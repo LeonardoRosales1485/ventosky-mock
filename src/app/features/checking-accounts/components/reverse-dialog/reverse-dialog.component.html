@@ -1,0 +1,141 @@
+<h2 mat-dialog-title>{{ 'checkingAccounts.reverseDialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="reverse__lead">{{ 'checkingAccounts.reverseDialog.lead' | translate }}</p>
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'checkingAccounts.reverseDialog.amount' | translate }}</mat-label>
+    <input
+      matInput
+      type="number"
+      min="0"
+      [max]="data.activeAmount"
+      step="0.01"
+      [value]="amount()"
+      (input)="onAmountChange($any($event.target).value)"
+    />
+    <span matTextPrefix>$&nbsp;</span>
+    <mat-hint>
+      {{ 'checkingAccounts.reverseDialog.amountHint' | translate }}
+      <app-currency-display [value]="data.activeAmount" />
+    </mat-hint>
+  </mat-form-field>
+
+  <!--
+    El antes y el despues los calcula el backend. El dato que importa —que la deuda vuelva a estar
+    vencida— se deriva contra la fecha de hoy, y el reloj que decide es el del servidor.
+  -->
+  @if (preview(); as preview) {
+    <section
+      class="reverse__preview"
+      [attr.aria-label]="'checkingAccounts.reverseDialog.previewAria' | translate"
+    >
+      <div class="reverse__row">
+        <span class="reverse__label">{{ 'checkingAccounts.reverseDialog.debt' | translate }}</span>
+        <span>{{ preview.debtPublicId ?? preview.debtDescription }}</span>
+      </div>
+
+      <!--
+        Cuatro filas de antes y después, no un resumen: «se revierten 2 imputaciones» no le dice
+        nada a nadie. La primera es cuánto de esta imputación queda en pie.
+      -->
+      <div class="reverse__row">
+        <span class="reverse__label">
+          {{ 'checkingAccounts.reverseDialog.activeAmount' | translate }}
+        </span>
+        <span class="reverse__change">
+          <app-currency-display [value]="preview.activeAmount" />
+          <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+          <app-currency-display [value]="preview.activeAmountAfter" />
+        </span>
+      </div>
+
+      <div class="reverse__row">
+        <span class="reverse__label">{{
+          'checkingAccounts.columns.pendingAmount' | translate
+        }}</span>
+        <span class="reverse__change">
+          <app-currency-display [value]="preview.debtPendingAmount" />
+          <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+          <app-currency-display [value]="preview.debtPendingAmountAfter" />
+        </span>
+      </div>
+
+      <div class="reverse__row">
+        <span class="reverse__label">{{ 'checkingAccounts.columns.state' | translate }}</span>
+        <span class="reverse__change">
+          <app-debt-state-chip [state]="preview.debtState" />
+          <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+          <app-debt-state-chip [state]="preview.debtStateAfter" />
+        </span>
+      </div>
+
+      <div class="reverse__row">
+        <span class="reverse__label">
+          {{ 'checkingAccounts.reverseDialog.creditAvailable' | translate }}
+        </span>
+        <span class="reverse__change">
+          <app-currency-display [value]="preview.creditUnallocatedAmount" />
+          <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+          <app-currency-display [value]="preview.creditUnallocatedAmountAfter" tone="positive" />
+        </span>
+      </div>
+
+      @if (stateChanges()) {
+        <p class="reverse__warning" role="alert">
+          <mat-icon aria-hidden="true">warning_amber</mat-icon>
+          {{
+            'checkingAccounts.reverseDialog.stateWarning'
+              | translate
+                : { state: 'checkingAccounts.states.' + preview.debtStateAfter | translate }
+          }}
+        </p>
+      }
+
+      <!--
+        Desimputar NO mueve el saldo de la cuenta: la deuda vuelve a pendiente y el cobro vuelve a
+        disponible por el mismo importe. Decirlo evita que alguien lo confunda con anular.
+      -->
+      <p class="reverse__note">
+        <mat-icon aria-hidden="true">info</mat-icon>
+        {{ 'checkingAccounts.reverseDialog.balanceUnchanged' | translate }}
+      </p>
+
+      <!--
+        La reversión se fecha hoy y no en la fecha de la imputación que deshace: es un hecho nuevo
+        del libro, no una corrección del pasado. Y baja la marca de imputación automática del cobro,
+        para que el FIFO no vuelva a llevárselo a la misma deuda.
+      -->
+      <p class="reverse__note">
+        <mat-icon aria-hidden="true">event</mat-icon>
+        {{ 'checkingAccounts.reverseDialog.datedToday' | translate }}
+      </p>
+    </section>
+  }
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'checkingAccounts.reverseDialog.reason' | translate }}</mat-label>
+    <textarea
+      matInput
+      rows="2"
+      [value]="reason()"
+      (input)="reason.set($any($event.target).value)"
+    ></textarea>
+    <mat-hint>{{ 'checkingAccounts.reverseDialog.reasonHint' | translate }}</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">
+    {{ 'checkingAccounts.actions.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [disabled]="!canSubmit()"
+    (click)="onConfirm()"
+  >
+    {{ 'checkingAccounts.reverseDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

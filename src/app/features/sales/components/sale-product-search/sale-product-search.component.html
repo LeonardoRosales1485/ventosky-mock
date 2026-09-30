@@ -1,0 +1,144 @@
+<div class="product-search">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="product-search__field">
+    <!--
+      El ícono ya no dice en qué modo está el campo, porque no hay modos: dice qué es este campo —el
+      lugar por donde entra la mercadería— y por eso no es un botón.
+    -->
+    <mat-icon matPrefix aria-hidden="true" class="product-search__icon">qr_code_scanner</mat-icon>
+
+    <input
+      #searchInput
+      matInput
+      type="text"
+      autocomplete="off"
+      enterkeyhint="enter"
+      [placeholder]="'sales.search.placeholder' | translate"
+      [attr.aria-label]="'sales.search.aria' | translate"
+      [attr.aria-describedby]="describedBy()"
+      [attr.aria-invalid]="lastError() ? 'true' : null"
+      [matAutocomplete]="productAutocomplete"
+      (input)="onTermChange(searchInput.value)"
+      (keydown.enter)="onEnter($event)"
+    />
+
+    @if (searching()) {
+      <mat-spinner
+        matSuffix
+        diameter="20"
+        [attr.aria-label]="'sales.search.searching' | translate"
+      />
+    }
+
+    <!--
+      **Sin `autoActiveFirstOption`, y es la decisión que hace que un solo campo funcione.** Con una
+      opción preseleccionada, el Enter del lector cargaría la coincidencia parcial que quedó primera
+      en vez del producto que se escaneó. Acá nada se elige solo: o el operador baja hasta la opción
+      con las flechas, o el Enter es una lectura.
+    -->
+    <mat-autocomplete
+      #productAutocomplete
+      [displayWith]="displayEmpty"
+      (optionSelected)="onSuggestionSelected($event.option.value)"
+    >
+      @for (row of suggestionRows(); track suggestionKey(row)) {
+        <mat-option [value]="row">
+          @if (row.kind === 'model') {
+            <!-- El modelo aparece una vez: elegirlo abre el selector de variante (RN-12). -->
+            <span class="product-search__option-name">{{ row.modelName }}</span>
+            <span class="product-search__option-meta">
+              {{ 'sales.search.modelVariants' | translate: { count: row.variants.length } }} ·
+              {{ 'sales.search.stock' | translate: { stock: row.totalStock } }}
+            </span>
+          } @else {
+            <span class="product-search__option-name">{{ row.product.name }}</span>
+            <span class="product-search__option-meta">
+              @if (row.product.sku) {
+                {{ 'sales.search.sku' | translate: { sku: row.product.sku } }} ·
+              }
+              @if (row.product.barcode) {
+                {{ 'sales.search.barcode' | translate: { barcode: row.product.barcode } }} ·
+              }
+              {{ 'sales.search.stock' | translate: { stock: row.product.totalStock ?? 0 } }}
+            </span>
+          }
+        </mat-option>
+      }
+
+      <!-- Deshabilitada a propósito: es el resultado de la búsqueda, no una opción que se pueda elegir. -->
+      @if (noResults()) {
+        <mat-option disabled>{{ 'sales.search.noResults' | translate }}</mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+
+  <button
+    mat-stroked-button
+    type="button"
+    class="product-search__advanced"
+    [matTooltip]="'sales.search.advancedHint' | translate"
+    (click)="onAdvancedSearch()"
+  >
+    <mat-icon aria-hidden="true">manage_search</mat-icon>
+    {{ 'sales.search.advanced' | translate }}
+  </button>
+</div>
+
+<!--
+  El toast ya interrumpió al lector de pantalla, así que esto no vuelve a anunciarse: queda como el
+  registro visible de por qué el último código no entró.
+-->
+@if (lastError(); as error) {
+  <p class="product-search__error" id="sale-search-error">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span>{{ error }}</span>
+  </p>
+}
+
+<!--
+  El desarme de la última etiqueta de balanza: prefijo · código interno · valor · verificador. Es lo
+  único que hay que entender para configurar bien el formato, y es lo que hace diagnosticable uno mal
+  cargado — si el prefijo o los largos no eran los de esta balanza, se ve acá. El mismo diseño sirve
+  para el formato que embebe peso y para el que embebe importe.
+-->
+@if (lastScale(); as scale) {
+  <p class="product-search__scale" aria-live="polite">
+    <mat-icon aria-hidden="true">scale</mat-icon>
+    <span class="product-search__scale-parts">
+      <span class="product-search__scale-part">
+        <span class="product-search__scale-label">{{ 'sales.search.scale.prefix' | translate }}</span>
+        <span class="product-search__scale-value">{{ scale.prefix }}</span>
+      </span>
+      <span class="product-search__scale-part">
+        <span class="product-search__scale-label">{{ 'sales.search.scale.code' | translate }}</span>
+        <span class="product-search__scale-value">{{ scale.scaleCode }}</span>
+      </span>
+      <span class="product-search__scale-part">
+        <span class="product-search__scale-label">{{
+          scale.valueType === 'AMOUNT'
+            ? ('sales.search.scale.amount' | translate)
+            : ('sales.search.scale.weight' | translate)
+        }}</span>
+        <span class="product-search__scale-value">{{ scale.rawValue }}</span>
+      </span>
+      <span class="product-search__scale-part">
+        <span class="product-search__scale-label">{{ 'sales.search.scale.check' | translate }}</span>
+        <span class="product-search__scale-value">{{ scale.checkDigit }}</span>
+      </span>
+    </span>
+    <!-- El importe embebido no carga la línea: el precio lo pone la lista, no la balanza. -->
+    @if (scale.valueType === 'WEIGHT') {
+      <span class="product-search__scale-read">
+        {{ 'sales.search.scale.read' | translate: { quantity: scale.quantity } }}
+      </span>
+    }
+  </p>
+}
+
+<!--
+  Qué hace el Enter. Es lo único que hay que saber para usar el campo, y es lo que reemplaza al
+  cartel de modo que había cuando eran dos: acá no hay estado que anunciar, hay una regla.
+-->
+<p class="product-search__hint" id="sale-search-hint">
+  <mat-icon aria-hidden="true">keyboard_return</mat-icon>
+  <span>{{ 'sales.search.hint' | translate }}</span>
+</p>

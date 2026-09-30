@@ -1,0 +1,43 @@
+@let current = detection();
+
+<div class="extra-links__status" role="status">
+  @if (current.status === 'loading') {
+    {{ 'directory.extraLinks.detecting' | translate }}
+  } @else if (current.status === 'error') {
+    {{ 'directory.extraLinks.detectError' | translate }}
+  }
+</div>
+
+@for (link of plan().links; track link) {
+  <section
+    class="extra-links__section"
+    [attr.aria-label]="
+      'directory.extraLinks.sectionLabel'
+        | translate: { link: ('directory.linkNouns.' + link | translate) }
+    "
+  >
+    <app-directory-profile-fields
+      [form]="form()"
+      [link]="link"
+      [showEmployment]="link === plan().employmentLink"
+      [branches]="branches()"
+      [priceLists]="priceLists()"
+    >
+      <p class="extra-links__lead">
+        <mat-icon aria-hidden="true">add_link</mat-icon>
+        <span>{{
+          'directory.extraLinks.lead'
+            | translate: { link: ('directory.linkNouns.' + link | translate) }
+        }}</span>
+      </p>
+      @if (reasons(link).length > 0) {
+        <p class="extra-links__because">
+          <span>{{ 'directory.extraLinks.because' | translate }}</span>
+          @for (permission of reasons(link); track permission) {
+            <code class="extra-links__permission">{{ permission }}</code>
+          }
+        </p>
+      }
+    </app-directory-profile-fields>
+  </section>
+}

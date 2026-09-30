@@ -1,0 +1,182 @@
+<app-page-header
+  [title]="'assemblies.traceability.title' | translate"
+  [description]="'assemblies.traceability.description' | translate"
+>
+  <button mat-stroked-button type="button" (click)="onBack()">
+    <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    {{ 'assemblies.traceability.actions.back' | translate }}
+  </button>
+</app-page-header>
+
+<section class="trace__search" aria-labelledby="trace-search-title">
+  <h2 class="trace__title" id="trace-search-title">
+    {{ 'assemblies.traceability.search.title' | translate }}
+  </h2>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="trace__input">
+    <mat-label>{{ 'assemblies.traceability.search.batch' | translate }}</mat-label>
+    <input matInput [value]="batchUuid()" (input)="batchUuid.set($any($event.target).value)" />
+  </mat-form-field>
+
+  <!--
+    Dos botones y no uno con un selector: son dos preguntas distintas que llegan en dos momentos
+    distintos —el frigorífico que retira un lote, y el cliente que devuelve una bandeja— y quien
+    entra ya sabe cuál de las dos tiene.
+  -->
+  <div class="trace__actions">
+    <button mat-flat-button type="button" color="primary" (click)="onTraceComponent()" [disabled]="loading()">
+      {{ 'assemblies.traceability.search.forward' | translate }}
+    </button>
+    <button mat-stroked-button type="button" (click)="onTraceProduced()" [disabled]="loading()">
+      {{ 'assemblies.traceability.search.backward' | translate }}
+    </button>
+  </div>
+</section>
+
+<!-- ─────────────────────────  La ida: del lote a los clientes  ───────────────────────── -->
+@if (trace(); as data) {
+  <section class="trace__card" aria-labelledby="trace-forward-title">
+    <h2 class="trace__title" id="trace-forward-title">
+      {{ 'assemblies.traceability.forward.title' | translate }}
+      <span class="trace__batch">{{ data.batchNumber }} · {{ data.product?.name }}</span>
+    </h2>
+
+    <ol class="trace__steps">
+      <!-- Paso 1: dónde se usó. -->
+      <li class="trace__step">
+        <!-- «Se consumió en 1 armados» es lo primero que se lee de la pantalla, y una concordancia
+             rota ahí le quita crédito a los números que siguen. -->
+        <h3 class="trace__step-title">
+          @if (data.assemblies.length === 1) {
+            {{ 'assemblies.traceability.forward.step1One' | translate }}
+          } @else {
+            {{
+              'assemblies.traceability.forward.step1' | translate: { count: data.assemblies.length }
+            }}
+          }
+        </h3>
+        <ul class="trace__list">
+          @for (assembly of data.assemblies; track assembly.uuid) {
+            <li>
+              <span class="trace__id">{{ assembly.publicId }}</span>
+              <span>{{ assembly.dateCreated | localizedDate: 'shortDate' }}</span>
+              <span>
+                {{
+                  'assemblies.traceability.forward.produced'
+                    | translate
+                      : {
+                          quantity: assembly.quantity ?? 0,
+                          product: assembly.product?.name ?? '',
+                          batch: assembly.batchNumber ?? '',
+                        }
+                }}
+              </span>
+            </li>
+          } @empty {
+            <li class="trace__hint">{{ 'assemblies.traceability.forward.noAssemblies' | translate }}</li>
+          }
+        </ul>
+      </li>
+
+      <!-- Paso 2: en qué estado quedaron esas unidades. -->
+      <li class="trace__step">
+        <h3 class="trace__step-title">
+          {{
+            'assemblies.traceability.forward.step2'
+              | translate: { quantity: data.producedQuantity ?? 0 }
+          }}
+        </h3>
+        <p class="trace__breakdown">
+          {{
+            'assemblies.traceability.forward.breakdown'
+              | translate
+                : {
+                    sold: data.soldQuantity ?? 0,
+                    inStock: data.inStockQuantity ?? 0,
+                    other: data.otherQuantity ?? 0,
+                  }
+          }}
+        </p>
+      </li>
+
+      <!-- Paso 3: a quién se le vendieron. Es el dato por el que existe la pantalla. -->
+      <li class="trace__step trace__step--last">
+        <!-- Una venta implica un cliente, así que el singular no necesita las cuatro
+             combinaciones: alcanza con distinguir «1 venta a 1 cliente» del resto. -->
+        <h3 class="trace__step-title">
+          @if (data.sales.length === 1) {
+            {{ 'assemblies.traceability.forward.step3One' | translate }}
+          } @else {
+            {{
+              'assemblies.traceability.forward.step3'
+                | translate: { sales: data.sales.length, customers: data.customerCount ?? 0 }
+            }}
+          }
+        </h3>
+        <ul class="trace__list">
+          @for (sale of data.sales; track sale.orderUuid) {
+            <li>
+              <span class="trace__id">{{ sale.publicId }}</span>
+              <span>{{ sale.party?.name || ('assemblies.traceability.finalConsumer' | translate) }}</span>
+              <span>{{ 'assemblies.units' | translate: { count: sale.quantity ?? 0 } }}</span>
+            </li>
+          } @empty {
+            <li class="trace__hint">{{ 'assemblies.traceability.forward.noSales' | translate }}</li>
+          }
+        </ul>
+      </li>
+    </ol>
+
+    <p class="trace__note">
+      <mat-icon aria-hidden="true">info</mat-icon>
+      <span>{{ 'assemblies.traceability.onlyAssembled' | translate }}</span>
+    </p>
+  </section>
+}
+
+<!-- ────────────────────  La vuelta: del terminado a sus componentes  ──────────────────── -->
+@if (backTrace(); as data) {
+  <section class="trace__card" aria-labelledby="trace-backward-title">
+    <h2 class="trace__title" id="trace-backward-title">
+      {{ 'assemblies.traceability.backward.title' | translate }}
+      <span class="trace__batch">{{ data.batchNumber }} · {{ data.product?.name }}</span>
+    </h2>
+
+    @if (data.assemblyPublicId) {
+      <p class="trace__breakdown">
+        {{
+          'assemblies.traceability.backward.fromAssembly'
+            | translate: { assembly: data.assemblyPublicId }
+        }}
+      </p>
+
+      <div class="trace__table-scroll">
+        <table class="trace__table">
+          <caption class="sr-only">{{ 'assemblies.traceability.backward.tableAria' | translate }}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{{ 'assemblies.traceability.backward.component' | translate }}</th>
+              <th scope="col">{{ 'assemblies.traceability.backward.batch' | translate }}</th>
+              <th scope="col" class="trace__num">
+                {{ 'assemblies.traceability.backward.quantity' | translate }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of data.components; track $index) {
+              <tr>
+                <td>{{ row.component.name }}</td>
+                <td class="trace__id">{{ row.batchNumber || '—' }}</td>
+                <td class="trace__num">{{ row.quantity ?? 0 }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <!-- Sin armado detrás no es un error: la partida pudo entrar por un ajuste o un traslado.
+           Lo que ya no puede es venir de una compra: ningún kit se compra (RN-29). -->
+      <p class="trace__hint">{{ 'assemblies.traceability.backward.notAssembled' | translate }}</p>
+    }
+  </section>
+}

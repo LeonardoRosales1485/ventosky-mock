@@ -1,0 +1,155 @@
+:host {
+  display: block;
+}
+
+.product-search {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+/* El campo de escaneo de la Propuesta B: 48px y borde violeta de 2px, siempre a la vista. */
+.product-search__field {
+  --mat-form-field-container-height: 48px;
+  --mat-form-field-container-vertical-padding: 12px;
+  --mat-form-field-outlined-outline-color: var(--vk-accent);
+  --mat-form-field-outlined-hover-outline-color: var(--vk-accent);
+  --mat-form-field-outlined-outline-width: 2px;
+  --mat-form-field-outlined-focus-outline-width: 2px;
+  --mat-form-field-container-text-size: 15px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.product-search__kbd {
+  margin-inline-end: 10px;
+}
+
+/* El botón de modo ocupa el lugar del ícono del prefijo: se lee como un ícono, no como un control
+   más de la barra. */
+.product-search__mode {
+  color: var(--vk-accent);
+}
+
+/*
+  El botón se alinea con la caja del campo, que es más alta que un botón: sin esto queda flotando
+  contra el borde superior.
+*/
+.product-search__advanced {
+  flex: none;
+  height: 48px;
+}
+
+/* En pantallas angostas el texto del botón se va y queda sólo el ícono. */
+@media (max-width: 599px) {
+  .product-search__advanced {
+    font-size: 0;
+    padding-inline: 0.75rem;
+  }
+
+  .product-search__advanced mat-icon {
+    margin: 0;
+  }
+}
+
+.product-search__error,
+.product-search__hint {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.product-search__error {
+  color: var(--vk-bad);
+}
+
+.product-search__hint {
+  color: var(--vk-fg-3);
+}
+
+/*
+  El estado del filtro va en el mismo renglón que el modo, separado por un punto: son las dos cosas
+  que cambian lo que el campo hace, y leerlas juntas es leer con qué está buscando.
+*/
+.product-search__hint-filter::before {
+  content: '·';
+  margin-inline-end: 0.375rem;
+}
+
+.product-search__error mat-icon,
+.product-search__hint mat-icon {
+  flex: none;
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/*
+  Las opciones se renderizan en un overlay, fuera de este componente: los selectores tienen que
+  valerse por sí solos, sin apoyarse en `.product-search` como ancestro.
+*/
+.product-search__option-name {
+  margin-inline-end: 0.5rem;
+}
+
+.product-search__option-meta {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/*
+  Desarme de la etiqueta de balanza. Se muestra siempre que la última lectura haya sido una: es lo
+  único que hay que entender para configurar el formato, y lo que permite ver de un vistazo que el
+  prefijo o los largos no eran los de esta balanza.
+*/
+.product-search__scale {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.75rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.product-search__scale mat-icon {
+  flex: none;
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.product-search__scale-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.product-search__scale-part {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: var(--mat-sys-corner-extra-small);
+  background: var(--mat-sys-surface-container-high);
+}
+
+.product-search__scale-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.product-search__scale-value {
+  color: var(--mat-sys-on-surface);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-search__scale-read {
+  color: var(--mat-sys-on-surface);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

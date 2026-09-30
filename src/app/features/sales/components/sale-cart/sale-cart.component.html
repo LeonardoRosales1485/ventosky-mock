@@ -1,0 +1,612 @@
+<!--
+  Qué hacer con lo que esté marcado. Va pegada a las líneas y no en el encabezado, que es donde vive
+  la lista de todo el carrito: esto actúa sobre las filas marcadas y aparece con ellas, así que
+  subirlo correría el resto de lugar cada vez que se marca algo.
+-->
+@if (canChoosePriceList() && selectedCount() > 0) {
+  <div class="cart__bulk" role="group" [attr.aria-label]="'sales.cart.bulkAria' | translate">
+    <span class="cart__bulk-count">
+      {{ 'sales.cart.selectedCount' | translate: { count: selectedCount() } }}
+    </span>
+
+    <button mat-stroked-button type="button" [matMenuTriggerFor]="bulkPriceListMenu">
+      <mat-icon aria-hidden="true">sell</mat-icon>
+      {{ 'sales.cart.applyPriceList' | translate }}
+    </button>
+
+    <button mat-button type="button" class="cart__bulk-remove" (click)="onSelectionRemove()">
+      <mat-icon aria-hidden="true">delete_outline</mat-icon>
+      {{ 'sales.cart.removeSelected' | translate }}
+    </button>
+
+    <button mat-button type="button" (click)="onClearSelection()">
+      {{ 'sales.cart.clearSelection' | translate }}
+    </button>
+  </div>
+
+  <mat-menu #bulkPriceListMenu>
+    <button mat-menu-item type="button" (click)="onSelectionPriceList(AUTO_PRICE_LIST)">
+      {{ 'sales.cart.priceListAuto' | translate }}
+    </button>
+    @for (list of priceLists(); track list.uuid) {
+      <button mat-menu-item type="button" (click)="onSelectionPriceList(list.uuid)">
+        {{ list.name }}
+      </button>
+    }
+  </mat-menu>
+}
+
+<div class="cart__scroll">
+  <table mat-table [dataSource]="lines()" [attr.aria-label]="'sales.cart.tableAria' | translate">
+    <!--
+      El número de fila. No identifica nada —el carrito se ordena por lo que se fue escaneando— pero
+      es cómo se nombra una línea en voz alta y en el panel de la derecha: «la 2» es más rápido que
+      leer el nombre entero del producto.
+    -->
+    <ng-container matColumnDef="index">
+      <th mat-header-cell *matHeaderCellDef class="cart__index-cell">#</th>
+      <td mat-cell *matCellDef="let line; let i = index" class="cart__index-cell">{{ i + 1 }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="select">
+      <th mat-header-cell *matHeaderCellDef class="cart__select-cell">
+        <!-- `aria-label` es el input de Material —lo pone en el `input` de adentro—, no el atributo. -->
+        <mat-checkbox
+          [checked]="allSelected()"
+          [indeterminate]="someSelected()"
+          [disabled]="lines().length === 0"
+          [aria-label]="'sales.cart.selectAll' | translate"
+          (change)="onToggleAll()"
+        />
+      </th>
+      <td mat-cell *matCellDef="let line" class="cart__select-cell">
+        <mat-checkbox
+          [checked]="isSelected(line)"
+          [aria-label]="'sales.cart.selectLine' | translate: { name: line.product.name }"
+          (change)="onToggleLine(line)"
+        />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="product">
+      <th mat-header-cell *matHeaderCellDef>{{ 'sales.cart.columns.product' | translate }}</th>
+      <td mat-cell *matCellDef="let line">
+        <span class="cart__product-name">
+          <!-- El despliegue es lo único que distingue un combo de una línea común: el comprobante
+               emite la padre y el inventario mueve las hijas (RN-08). -->
+          @if (isKit(line)) {
+            <button
+              mat-icon-button
+              type="button"
+              class="cart__kit-toggle"
+              [disabled]="line.kitComponents.length === 0"
+              [attr.aria-expanded]="isKitExpanded(line)"
+              [attr.aria-label]="
+                (isKitExpanded(line) ? 'sales.cart.kit.collapse' : 'sales.cart.kit.expand')
+                  | translate: { name: line.product.name }
+              "
+              (click)="onToggleKit(line)"
+            >
+              <mat-icon aria-hidden="true">
+                {{ isKitExpanded(line) ? 'expand_more' : 'chevron_right' }}
+              </mat-icon>
+            </button>
+          }
+          {{ line.product.name }}
+          @if (isKit(line)) {
+            <span class="cart__kit-tag">{{ 'sales.cart.kit.tag' | translate }}</span>
+          }
+        </span>
+
+        <span class="cart__product-meta">
+          @if (line.product.sku) {
+            {{ 'sales.search.sku' | translate: { sku: line.product.sku } }}
+          }
+          <!-- El disponible del kit es derivado: se muestra al agregarlo porque es lo único con lo
+               que el mostrador puede saber cuántos combos quedan (RN-07). -->
+          @if (isKit(line) && line.kit?.availability !== null && line.kit) {
+            <span class="cart__kit-available">
+              {{ 'sales.cart.kit.available' | translate: { available: line.kit.availability } }}
+            </span>
+          }
+        </span>
+
+        <!-- Los componentes van SIN importe: el precio del combo está entero en la línea padre, y
+             repetirlo abajo es exactamente el error que RN-08 evita. -->
+        @if (isKit(line) && isKitExpanded(line)) {
+          <ul class="cart__kit-components">
+            @for (component of line.kitComponents; track component.uuid) {
+              <li [class.cart__kit-component--short]="component.shortage > 0">
+                <span class="cart__kit-component-quantity">{{ component.requiredQuantity }} ×</span>
+                <span>{{ component.name }}</span>
+                @if (component.limitsAvailability) {
+                  <span class="cart__kit-component-note">
+                    {{ 'sales.cart.kit.movesStock' | translate }}
+                  </span>
+                } @else {
+                  <span class="cart__kit-component-note">
+                    {{ 'sales.cart.kit.doesNotMoveStock' | translate }}
+                  </span>
+                }
+                @if (component.shortage > 0) {
+                  <span class="cart__flag cart__flag--error">
+                    {{
+                      'sales.cart.kit.componentShortage'
+                        | translate: { available: component.stock ?? 0, deficit: component.shortage }
+                    }}
+                  </span>
+                }
+              </li>
+            }
+          </ul>
+        }
+
+        <!--
+          Un chip por promoción que alcanzó la línea, que es lo que contesta «¿por qué me sale esto?»
+          sin abrir nada. Dos promociones son dos chips: que se acumularon tiene que verse.
+
+          La bonificación de un NxM lleva su propio chip: las unidades que quedan en $0 no son un
+          porcentaje sobre un precio, y el glosario las separa a propósito.
+        -->
+        @if (line.promotions.length > 0) {
+          <span class="cart__promotions">
+            @for (promotion of line.promotions; track promotion.promotionKey) {
+              <span
+                class="cart__promotion"
+                [class.cart__promotion--bonus]="promotion.bonusQuantity > 0"
+                [matTooltip]="promotion.name"
+              >
+                <mat-icon aria-hidden="true">{{
+                  promotion.bonusQuantity > 0 ? 'redeem' : 'local_offer'
+                }}</mat-icon>
+                <!-- El nombre como fallback: un tipo que el front no sabe describir deja el chip
+                     vacío si no, y un chip vacío no dice nada. -->
+                <app-sale-promotion-detail
+                  [detail]="promotion.detail"
+                  [fallback]="promotion.name"
+                />
+                <!-- El chip dice el detalle; el lector de pantalla necesita además de qué promoción
+                     sale y cuánto restó, que es lo que en pantalla cuenta el tooltip. -->
+                <span class="sr-only">{{
+                  'sales.cart.promotionAria' | translate: { name: promotion.name }
+                }}</span>
+              </span>
+            }
+          </span>
+        }
+
+        <!--
+          Sin precio con el que cobrar el commit responde 400: se corta acá. Se nombra la lista
+          cuando la eligió el operador, que es cuando el arreglo es suyo: cambiarla por otra.
+        -->
+        @if (line.priceIssue === 'NO_PRICE') {
+          <span class="cart__flag cart__flag--error">
+            <mat-icon aria-hidden="true">price_change</mat-icon>
+            @if (priceListName(line.chosenPriceListUuid); as list) {
+              {{ 'sales.cart.noPriceInList' | translate: { list } }}
+            } @else {
+              {{ 'sales.cart.noPrice' | translate }}
+            }
+          </span>
+        }
+
+        @if (line.priceIssue === 'ZERO_PRICE') {
+          <span class="cart__flag cart__flag--error">
+            <mat-icon aria-hidden="true">money_off</mat-icon>
+            {{
+              'sales.cart.zeroPrice' | translate: { list: priceListName(line.priceListUuid) ?? '—' }
+            }}
+          </span>
+        }
+
+        @if (showsShortages() && line.shortage > 0) {
+          <span class="cart__flag" [class.cart__flag--error]="blocksOnShortage()">
+            <mat-icon aria-hidden="true">inventory_2</mat-icon>
+            <!-- Un kit no tiene saldo: lo que falta es de un componente, y nombrarlo es lo único
+                 que le dice al mostrador qué reponer. Es además lo que contesta el backend. -->
+            @if (isKit(line)) {
+              {{ 'sales.cart.kit.shortage' | translate: { component: shortComponents(line) } }}
+            } @else {
+              {{
+                'sales.cart.shortage'
+                  | translate: { available: line.product.totalStock ?? 0, deficit: line.shortage }
+              }}
+            }
+          </span>
+        }
+
+        <!--
+          El lote de una línea con partidas se muestra siempre (§7.3): es el dato que la farmacia
+          necesita ver antes de entregar. Sin elección, lo asigna la política de la sucursal al
+          cerrar; con `stock.batch_select` se puede elegir otro. El camino rápido —escanear y
+          cobrar— no pasa por acá.
+        -->
+        @if (line.batchTracked) {
+          <span class="cart__batch">
+            @if (line.chosenBatch; as batch) {
+              <span class="cart__batch-chip" [class.cart__batch-chip--short]="line.batchShortage > 0">
+                <mat-icon aria-hidden="true">layers</mat-icon>
+                <span class="cart__batch-number">{{ batch.batchNumber || ('sales.cart.batch.unnamed' | translate) }}</span>
+                @if (batch.expirationDate) {
+                  <app-expiration-chip
+                    [expirationDate]="batch.expirationDate"
+                    [status]="batch.expirationStatus"
+                    [days]="batch.daysToExpiration"
+                    [showDays]="false"
+                  />
+                }
+              </span>
+              @if (line.batchShortage > 0) {
+                <span class="cart__flag cart__flag--error">
+                  {{ 'sales.cart.batch.shortage' | translate: { available: batch.quantity } }}
+                </span>
+              }
+              @if (canSelectBatch()) {
+                <button
+                  mat-button
+                  type="button"
+                  class="cart__batch-action"
+                  (click)="batchPick.emit(line)"
+                >
+                  {{ 'sales.cart.batch.change' | translate }}
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="cart__batch-action"
+                  [matTooltip]="'sales.cart.batch.reset' | translate"
+                  [attr.aria-label]="'sales.cart.batch.resetAria' | translate: { name: line.product.name }"
+                  (click)="batchReset.emit(line.product.uuid)"
+                >
+                  <mat-icon aria-hidden="true">auto_mode</mat-icon>
+                </button>
+              }
+            } @else {
+              <span class="cart__batch-auto" [matTooltip]="'sales.cart.batch.autoHint' | translate">
+                <mat-icon aria-hidden="true">auto_mode</mat-icon>
+                {{ 'sales.cart.batch.auto' | translate }}
+              </span>
+              @if (canSelectBatch()) {
+                <button
+                  mat-button
+                  type="button"
+                  class="cart__batch-action"
+                  (click)="batchPick.emit(line)"
+                >
+                  {{ 'sales.cart.batch.pick' | translate }}
+                </button>
+              }
+            }
+          </span>
+        }
+
+        <!--
+          Las series son chips en la línea y no un diálogo escondido: se ve cuántas faltan sin abrir
+          nada, que es lo que el mostrador necesita antes de pedir la tarjeta.
+        -->
+        @if (line.serialTracked) {
+          <span class="cart__batch">
+            @for (serial of line.serials; track serial) {
+              <span class="cart__serial-chip">
+                <span class="cart__batch-number">{{ serial }}</span>
+                <button
+                  type="button"
+                  class="cart__serial-chip-remove"
+                  [attr.aria-label]="'sales.cart.serials.removeAria' | translate: { serial: serial }"
+                  (click)="serialRemove.emit({ productUuid: line.product.uuid, serial: serial })"
+                >
+                  ×
+                </button>
+              </span>
+            }
+            @if (line.serialShortage > 0) {
+              <!-- Dos claves y no una con «(s)»: el mostrador lee esto de reojo. -->
+              <span class="cart__flag cart__flag--error">
+                {{
+                  (line.serialShortage === 1
+                    ? 'sales.cart.serials.shortageOne'
+                    : 'sales.cart.serials.shortageMany'
+                  ) | translate: { count: line.serialShortage }
+                }}
+              </span>
+            }
+            <button
+              mat-button
+              type="button"
+              class="cart__batch-action"
+              (click)="serialPick.emit(line)"
+            >
+              {{
+                (line.serials.length > 0 ? 'sales.cart.serials.change' : 'sales.cart.serials.pick')
+                  | translate
+              }}
+            </button>
+          </span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="quantity">
+      <th mat-header-cell *matHeaderCellDef class="cart__center">
+        {{ 'sales.cart.columns.quantity' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let line">
+        <div class="cart__quantity">
+          <button
+            mat-icon-button
+            type="button"
+            [disabled]="!canDecrease(line)"
+            [attr.aria-label]="'sales.cart.decrease' | translate: { name: line.product.name }"
+            (click)="onDecrease(line)"
+          >
+            <mat-icon aria-hidden="true">remove</mat-icon>
+          </button>
+
+          <!--
+            `min` y `step` los declara la unidad del producto: con `step="1"` fijo el navegador
+            marcaba como inválido el 1,5 de un producto que se vende por kilo.
+          -->
+          <input
+            type="number"
+            class="cart__quantity-input"
+            [attr.min]="min(line)"
+            [attr.step]="step(line)"
+            [value]="displayedQuantity(line)"
+            [attr.aria-label]="
+              line.packaging
+                ? ('sales.cart.packaging.quantityAria'
+                  | translate: { name: line.product.name, packaging: line.packaging.name })
+                : ('sales.cart.quantityAria' | translate: { name: line.product.name })
+            "
+            (change)="onQuantityInput(line, $any($event.target).value)"
+          />
+
+          <button
+            mat-icon-button
+            type="button"
+            [attr.aria-label]="'sales.cart.increase' | translate: { name: line.product.name }"
+            (click)="onIncrease(line)"
+          >
+            <mat-icon aria-hidden="true">add</mat-icon>
+          </button>
+        </div>
+
+        <!--
+          El selector de empaque sólo aparece si el producto declara alguno, y sólo lo hace cuando la
+          línea entró por lectura de código: el paginado no trae los empaques. El input de arriba
+          pasa a contar cajas y la equivalencia dice cuántas unidades base son — es lo único que
+          evita que «2» se lea como dos unidades (RN-16).
+        -->
+        @if (packagingOptions(line).length > 0) {
+          <div class="cart__packaging">
+            <mat-select
+              class="cart__packaging-select"
+              [value]="line.packaging?.uuid ?? null"
+              [attr.aria-label]="
+                'sales.cart.packaging.selectAria' | translate: { name: line.product.name }
+              "
+              (selectionChange)="onPackagingChange(line, packagingByUuid(line, $event.value))"
+            >
+              <mat-option [value]="null">
+                {{ 'sales.cart.packaging.loose' | translate: { unit: unitName(line) } }}
+              </mat-option>
+              @for (option of packagingOptions(line); track option.uuid) {
+                <mat-option [value]="option.uuid">{{ option.name }}</mat-option>
+              }
+            </mat-select>
+
+            @if (equivalence(line); as text) {
+              <span class="cart__packaging-equivalence">{{ text }}</span>
+            }
+          </div>
+        }
+      </td>
+    </ng-container>
+
+    <!--
+      El disparador muestra siempre la lista con la que **quedó** la línea, elegida o resuelta: es
+      el dato que se necesita para decidir si hay que cambiarla. El ícono distingue una de la otra.
+    -->
+    <ng-container matColumnDef="priceList">
+      <!--
+        El encabezado es además el disparador de la lista de todo el carrito: es el alcance de la
+        columna entera, así que se pide desde donde la columna se nombra. Se abre en un menú y no en
+        un campo propio para no gastar una fila de alto —en un mostrador, cada una es una línea
+        menos de carrito— y para que la elección quede al lado de las líneas que va a cambiar.
+      -->
+      <th mat-header-cell *matHeaderCellDef>
+        <button
+          type="button"
+          class="cart__cart-list"
+          [matMenuTriggerFor]="cartPriceListMenu"
+          [matTooltip]="'sales.cart.cartPriceListHint' | translate"
+        >
+          <span class="cart__cart-list-text">
+            <span>{{ 'sales.cart.columns.priceList' | translate }}</span>
+            <!-- Con una lista fijada, el encabezado la nombra: es con la que se va a cobrar todo
+                 lo que se escanee, incluido el carrito vacío que todavía no tiene ninguna línea
+                 donde leerla. -->
+            @if (cartPriceListName(); as list) {
+              <span class="cart__cart-list-value">{{ list }}</span>
+            }
+          </span>
+          <mat-icon aria-hidden="true">arrow_drop_down</mat-icon>
+        </button>
+      </th>
+      <td mat-cell *matCellDef="let line">
+        <mat-select
+          class="cart__price-list"
+          [value]="line.chosenPriceListUuid ?? AUTO_PRICE_LIST"
+          [aria-label]="'sales.cart.priceListAria' | translate: { name: line.product.name }"
+          (valueChange)="onLinePriceList(line, $event)"
+        >
+          <mat-select-trigger>
+            @if (line.chosenPriceListUuid === null) {
+              <span class="cart__price-list-auto">
+                <mat-icon
+                  aria-hidden="true"
+                  [matTooltip]="'sales.cart.priceListAutoHint' | translate"
+                  >auto_mode</mat-icon
+                >
+                {{ priceListName(line.priceListUuid) ?? ('sales.cart.noPriceShort' | translate) }}
+              </span>
+            } @else {
+              {{ priceListName(line.chosenPriceListUuid) ?? '—' }}
+            }
+          </mat-select-trigger>
+
+          <mat-option [value]="AUTO_PRICE_LIST">
+            {{ 'sales.cart.priceListAuto' | translate }}
+          </mat-option>
+          @for (list of priceLists(); track list.uuid) {
+            <mat-option [value]="list.uuid">{{ list.name }}</mat-option>
+          }
+        </mat-select>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="unitPrice">
+      <th mat-header-cell *matHeaderCellDef class="cart__numeric">
+        {{ 'sales.cart.columns.unitPrice' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let line" class="cart__numeric">
+        <app-currency-display
+          [value]="line.amounts?.unitPrice ?? null"
+          [emptyLabel]="'sales.cart.noPriceShort' | translate"
+        />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="taxRate">
+      <th mat-header-cell *matHeaderCellDef class="cart__numeric">
+        {{ 'sales.cart.columns.taxRate' | translate }}
+      </th>
+      <!-- Un kit no tiene una alícuota: cada componente aporta la suya y el backend la prorratea
+           (RN-09). Mostrar la del combo diría un número que el comprobante no va a confirmar. -->
+      <td mat-cell *matCellDef="let line" class="cart__numeric">
+        @if (isKit(line)) {
+          <span [matTooltip]="'sales.cart.kit.taxHint' | translate">
+            {{ 'sales.cart.kit.tax' | translate }}
+          </span>
+        } @else {
+          {{ line.taxRate }}%
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="subtotal">
+      <th mat-header-cell *matHeaderCellDef class="cart__numeric">
+        {{ 'sales.cart.columns.subtotal' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let line" class="cart__numeric cart__subtotal">
+        <app-currency-display
+          [value]="line.amounts?.subtotal ?? null"
+          [emptyLabel]="'sales.cart.noPriceShort' | translate"
+        />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="cart__actions-cell">
+        <span class="sr-only">{{ 'sales.cart.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let line" class="cart__actions-cell">
+        <button
+          mat-icon-button
+          type="button"
+          [matTooltip]="'sales.cart.remove' | translate"
+          [attr.aria-label]="'sales.cart.removeAria' | translate: { name: line.product.name }"
+          (click)="lineRemove.emit(line.product.uuid)"
+        >
+          <mat-icon aria-hidden="true">delete_outline</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+    <!--
+      La fila entera elige: con el mouse se hace lo mismo que con las flechas, y el panel de la
+      derecha pasa a hablar de ésta. `aria-selected` es lo que le dice a un lector de pantalla dónde
+      quedó parado el teclado, que es información que la fila resaltada sólo da mirándola.
+    -->
+    <tr
+      mat-row
+      *matRowDef="let row; columns: displayedColumns()"
+      [attr.data-line]="row.product.uuid"
+      [attr.aria-selected]="row.product.uuid === activeUuid()"
+      [class.cart__row--active]="row.product.uuid === activeUuid()"
+      [class.cart__row--blocked]="row.priceIssue !== null || row.batchShortage > 0"
+      (click)="activeChange.emit(row.product.uuid)"
+    ></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <!--
+        La celda se queda como celda: un `display: flex` acá la saca del layout de la tabla y deja
+        de respetar el `colspan`, así que colapsa al ancho del contenido en vez de ocupar la fila.
+        El flex va adentro.
+      -->
+      <td class="cart__empty" [attr.colspan]="displayedColumns().length">
+        <div class="cart__empty-content">
+          <mat-icon aria-hidden="true">shopping_cart</mat-icon>
+          <span>{{ 'sales.cart.empty' | translate }}</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!--
+  La lista de todo el carrito. Reemplaza también las que se hayan fijado línea por línea: es el
+  alcance más grueso de los tres, y decirlo acá evita que la acción prometa una cosa y haga otra.
+-->
+<mat-menu #cartPriceListMenu [aria-label]="'sales.cart.cartPriceList' | translate">
+  <div class="cart__menu-head">
+    <span class="cart__menu-title">{{ 'sales.cart.cartPriceList' | translate }}</span>
+    <span class="cart__menu-hint">{{ 'sales.cart.cartPriceListHint' | translate }}</span>
+  </div>
+
+  <button
+    mat-menu-item
+    type="button"
+    role="menuitemradio"
+    [attr.aria-checked]="isCartPriceList(null)"
+    (click)="onCartPriceList(null)"
+  >
+    <mat-icon aria-hidden="true" [class.cart__menu-check--off]="!isCartPriceList(null)"
+      >check</mat-icon
+    >
+    {{ 'sales.cart.priceListAuto' | translate }}
+  </button>
+
+  @for (list of priceLists(); track list.uuid) {
+    <button
+      mat-menu-item
+      type="button"
+      role="menuitemradio"
+      [attr.aria-checked]="isCartPriceList(list.uuid)"
+      (click)="onCartPriceList(list.uuid)"
+    >
+      <mat-icon aria-hidden="true" [class.cart__menu-check--off]="!isCartPriceList(list.uuid)"
+        >check</mat-icon
+      >
+      {{ list.name }}
+    </button>
+  }
+</mat-menu>
+
+<footer class="cart__footer">
+  <span class="cart__count">
+    {{ 'sales.cart.itemCount' | translate: { count: lines().length } }}
+  </span>
+
+  <button
+    mat-button
+    type="button"
+    class="cart__clear"
+    [disabled]="lines().length === 0"
+    (click)="clear.emit()"
+  >
+    <mat-icon aria-hidden="true">remove_shopping_cart</mat-icon>
+    {{ 'sales.cart.clear' | translate }}
+  </button>
+</footer>

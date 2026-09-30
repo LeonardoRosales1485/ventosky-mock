@@ -1,0 +1,115 @@
+@if (matchesFilter(node())) {
+  <!--
+    `data-category-uuid` marca el nodo como zona de drop: al soltar, la página resuelve el
+    futuro padre con `elementFromPoint(...).closest('[data-category-uuid]')`, que devuelve el
+    nodo más profundo bajo el puntero.
+  -->
+  <div
+    class="tree-node"
+    cdkDrag
+    [cdkDragData]="node()"
+    [attr.data-category-uuid]="node().uuid"
+    [style.--tree-depth]="depth()"
+    (cdkDragStarted)="dragStarted.emit()"
+    (cdkDragMoved)="dragMoved.emit($event)"
+    (cdkDragEnded)="dragEnded.emit()"
+  >
+    <div
+      class="tree-node__row"
+      [class.tree-node__row--expanded]="node().expanded"
+      [class.tree-node__row--drop-target]="isDropTarget()"
+    >
+      <button
+        type="button"
+        class="tree-node__handle"
+        cdkDragHandle
+        [attr.aria-label]="'categories.actions.drag' | translate"
+        [matTooltip]="'categories.actions.drag' | translate"
+      >
+        <mat-icon aria-hidden="true">drag_indicator</mat-icon>
+      </button>
+
+      @if (showExpand()) {
+        <button
+          matIconButton
+          type="button"
+          class="tree-node__toggle"
+          [attr.aria-expanded]="node().expanded"
+          [attr.aria-label]="
+            (node().expanded ? 'categories.actions.collapse' : 'categories.actions.expand')
+              | translate
+          "
+          (click)="onToggle($event)"
+        >
+          <mat-icon aria-hidden="true">
+            {{ node().expanded ? 'expand_more' : 'chevron_right' }}
+          </mat-icon>
+        </button>
+      } @else {
+        <span class="tree-node__toggle-spacer" aria-hidden="true"></span>
+      }
+
+      <mat-icon class="tree-node__icon" aria-hidden="true">category</mat-icon>
+
+      <span class="tree-node__name">{{ node().name }}</span>
+
+      <div class="tree-node__actions">
+        <button
+          matIconButton
+          type="button"
+          [attr.aria-label]="'categories.actions.addChild' | translate"
+          [matTooltip]="'categories.actions.addChild' | translate"
+          (click)="onAddChild($event)"
+        >
+          <mat-icon aria-hidden="true">add_circle_outline</mat-icon>
+        </button>
+        <button
+          matIconButton
+          type="button"
+          [attr.aria-label]="'categories.actions.edit' | translate"
+          [matTooltip]="'categories.actions.edit' | translate"
+          (click)="onEdit($event)"
+        >
+          <mat-icon aria-hidden="true">edit</mat-icon>
+        </button>
+        <button
+          matIconButton
+          type="button"
+          color="warn"
+          [attr.aria-label]="'categories.actions.delete' | translate"
+          [matTooltip]="'categories.actions.delete' | translate"
+          (click)="onRemove($event)"
+        >
+          <mat-icon aria-hidden="true">delete_outline</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="tree-node__placeholder" *cdkDragPlaceholder></div>
+
+    <div class="tree-node__preview" *cdkDragPreview>
+      <mat-icon aria-hidden="true">category</mat-icon>
+      <span>{{ node().name }}</span>
+    </div>
+
+    @if (node().expanded) {
+      <div class="tree-node__children">
+        @for (child of node().children; track child.uuid) {
+          <app-category-tree-node
+            [node]="child"
+            [depth]="depth() + 1"
+            [filterQuery]="filterQuery()"
+            [dropTargetUuid]="dropTargetUuid()"
+            (toggled)="toggled.emit($event)"
+            (addChild)="addChild.emit($event)"
+            (edit)="edit.emit($event)"
+            (remove)="remove.emit($event)"
+            (dragStarted)="dragStarted.emit()"
+            (dragMoved)="dragMoved.emit($event)"
+            (dragEnded)="dragEnded.emit()"
+          />
+        }
+      </div>
+    }
+  </div>
+}

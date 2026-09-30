@@ -1,0 +1,132 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.configuration__scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface);
+}
+
+.configuration__scope-field {
+  flex: 0 0 12rem;
+}
+
+.configuration__scope-hint {
+  flex: 1 1 14rem;
+  margin: 0;
+  padding-top: 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.configuration__banner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.configuration__banner mat-icon {
+  flex: none;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.configuration__banner--info {
+  background: var(--app-info-container);
+  color: var(--app-on-info-container);
+}
+
+/* La solapa de sistema es la única que un administrador de empresa no ve. */
+.configuration__banner--locked {
+  margin: 1rem 1.5rem 0;
+  background: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.configuration__loading {
+  margin: 0;
+  padding: 2rem 0;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.configuration__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.configuration__panel {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-top: none;
+  border-radius: 0 0 0.75rem 0.75rem;
+  background: var(--mat-sys-surface);
+  overflow: hidden;
+}
+
+.configuration__empty-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 1.25rem 1.5rem;
+  padding: 1.75rem 1rem;
+  border: 1px dashed var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.configuration__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface);
+}
+
+/* Cuántas claves se van a mandar. Es lo que hace entendible que «Guardar» mande varias de una. */
+.configuration__pending {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.configuration__buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+@media (max-width: 48rem) {
+  .configuration__scope-field {
+    flex: 1 1 100%;
+  }
+
+  .configuration__buttons {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

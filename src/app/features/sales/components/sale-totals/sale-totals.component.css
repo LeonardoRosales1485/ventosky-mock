@@ -1,0 +1,197 @@
+/*
+  El bloque del cierre es lo primero de la columna derecha y es una tarjeta, no un pie: en una
+  pantalla de mostrador el total tiene que estar a la altura de los ojos y no al final de un scroll.
+*/
+:host {
+  display: block;
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.totals__breakdown {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.totals__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 14px;
+  color: var(--vk-fg-2);
+}
+
+.totals__row dt,
+.totals__row dd {
+  margin: 0;
+}
+
+.totals__row dd {
+  font-family: var(--vk-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El total de la Propuesta B: bloque violeta suave con el número grande en mono. */
+.totals__total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: var(--vk-radius-sm);
+  background: var(--vk-accent-soft);
+}
+
+.totals__total-label {
+  color: var(--vk-on-accent-soft);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.totals__total-value {
+  font: 600 36px/1.15 var(--vk-font-mono);
+  letter-spacing: -0.03em;
+  color: var(--vk-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.totals__total-value ::ng-deep .currency-display {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+/* El recuento vive pegado al total: es la letra chica del número grande. */
+.totals__foot {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--vk-fg-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.totals__charge {
+  width: 100%;
+  --mat-button-filled-container-height: 52px;
+  height: 52px;
+  margin-top: 14px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.totals__cancel {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* La tecla se lee como tecla y no como parte del texto del botón. */
+.totals__kbd {
+  margin-inline-start: 0.5rem;
+  padding: 0.0625rem 0.375rem;
+  border: 1px solid currentColor;
+  border-radius: var(--mat-sys-corner-extra-small);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  opacity: 0.75;
+}
+
+/*
+  El aviso de lo que falta. Es del color del error porque frena el cobro, pero va debajo del botón
+  y no encima: quien puede cobrar no tiene por qué ver nunca este bloque.
+*/
+.totals__missing {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--mat-sys-corner-small);
+  background: var(--vk-bad-soft);
+  color: var(--vk-bad);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.totals__missing-title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  font-weight: 600;
+  color: var(--vk-bad);
+}
+
+.totals__missing-title mat-icon {
+  flex: none;
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.totals__missing-list {
+  margin: 0.25rem 0 0;
+  padding-inline-start: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+/*
+  La fila «Descuento» es además el disparador del desglose. Se disfraza de fila —la tipografía y el
+  color son los de las otras— y sólo se distingue por el ícono: primero es un dato, y después un
+  botón. Sin promociones que desplegar no hay botón, sólo el importe.
+*/
+.totals__breakdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.totals__breakdown-toggle mat-icon {
+  flex: none;
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.totals__breakdown-toggle:hover {
+  color: var(--mat-sys-on-surface);
+}
+
+/* El descuento se lee de reojo desde el otro lado del mostrador: va pegado al total y en verde. */
+.totals__discount-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--vk-ok);
+}
+
+.totals__discount-legend mat-icon {
+  flex: none;
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.totals__discount-legend-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* El desglose ocupa la fila entera, debajo del importe que explica. */
+.totals__row--discount {
+  flex-wrap: wrap;
+}
+
+.totals__promotions-cell {
+  flex: 1 0 100%;
+}

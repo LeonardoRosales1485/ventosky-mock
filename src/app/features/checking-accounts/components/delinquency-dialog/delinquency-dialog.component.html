@@ -1,0 +1,116 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    {{ 'checkingAccounts.delinquencyDialog.title' | translate: { party: data.partyName } }}
+  </h2>
+
+  <mat-dialog-content>
+    <!--
+      Los dos números que sí están calculados, arriba de los niveles y no en otra pantalla: el chip
+      dice lo que alguien decidió, éstos dicen lo que pasó, y quien decide tiene que ver las dos
+      cosas juntas. Con el importe solo, $84.000 vencidos ayer y $84.000 vencidos hace siete meses se
+      leen igual.
+    -->
+    <dl class="delinquency-dialog__facts">
+      <div class="delinquency-dialog__fact">
+        <dt>{{ 'checkingAccounts.delinquencyDialog.overdue' | translate }}</dt>
+        <dd><app-currency-display [value]="data.overdueAmount ?? 0" /></dd>
+      </div>
+      <div class="delinquency-dialog__fact">
+        <dt>{{ 'checkingAccounts.delinquencyDialog.oldest' | translate }}</dt>
+        <dd>
+          @if (data.oldestOverdueDays === null) {
+            {{ 'checkingAccounts.delinquencyDialog.nothingOverdue' | translate }}
+          } @else {
+            {{
+              'checkingAccounts.delinquencyDialog.days' | translate: { days: data.oldestOverdueDays }
+            }}
+          }
+        </dd>
+      </div>
+    </dl>
+
+    <p class="delinquency-dialog__message">
+      {{ 'checkingAccounts.delinquencyDialog.message' | translate }}
+    </p>
+
+    <mat-radio-group
+      class="delinquency-dialog__levels"
+      [ngModel]="level()"
+      (ngModelChange)="level.set($event)"
+      name="level"
+      [attr.aria-label]="'checkingAccounts.delinquencyDialog.levelAria' | translate"
+    >
+      @for (option of levels; track option) {
+        <mat-radio-button [value]="option">
+          <span class="delinquency-dialog__level">
+            <strong>{{ 'checkingAccounts.delinquency.' + option | translate }}</strong>
+            <small>{{ 'checkingAccounts.delinquencyDialog.means.' + option | translate }}</small>
+          </span>
+        </mat-radio-button>
+      }
+    </mat-radio-group>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>{{ 'checkingAccounts.reasonDialog.reason' | translate }}</mat-label>
+      <textarea
+        matInput
+        rows="3"
+        [formField]="reasonForm.reason"
+        [attr.aria-label]="'checkingAccounts.reasonDialog.reason' | translate"
+      ></textarea>
+      <!-- Sin motivo la etiqueta no sirve años después, que es justo cuando se pregunta. -->
+      <mat-hint>{{ 'checkingAccounts.delinquencyDialog.reasonHint' | translate }}</mat-hint>
+      @if (reasonForm.reason().touched() && reasonForm.reason().invalid()) {
+        <mat-error>{{ reasonForm.reason().errors() | fieldError }}</mat-error>
+      }
+    </mat-form-field>
+
+    <!--
+      El historial va acá y no en otra pantalla: la pregunta real es «¿desde cuándo está en estudio
+      jurídico y quién lo decidió?», y contestarla obligando a abrir dos vistas la parte al medio.
+    -->
+    <h3 class="delinquency-dialog__history-title">
+      {{ 'checkingAccounts.delinquencyDialog.history' | translate }}
+    </h3>
+    @if (data.history.length === 0) {
+      <p class="delinquency-dialog__empty">
+        {{ 'checkingAccounts.override.noHistory' | translate }}
+      </p>
+    } @else {
+      <ol class="delinquency-dialog__history">
+        @for (event of data.history; track event.uuid) {
+          <li class="delinquency-dialog__history-item">
+            <span class="delinquency-dialog__history-when">
+              {{ event.dateDecided | localizedDate: 'shortDate' }}
+            </span>
+            <span class="delinquency-dialog__history-levels">
+              {{ 'checkingAccounts.delinquency.' + event.previousLevel | translate }}
+              →
+              <strong>{{ 'checkingAccounts.delinquency.' + event.level | translate }}</strong>
+            </span>
+            <span class="delinquency-dialog__history-reason">«{{ event.reason }}»</span>
+          </li>
+        }
+      </ol>
+    }
+
+    <!--
+      El pie dice que el efecto es ninguno. Es lo que evita que alguien reimplemente el bloqueo más
+      adelante «porque el nivel ya estaba ahí»: para frenarle las ventas a un titular está
+      deshabilitar la cuenta.
+    -->
+    <p class="delinquency-dialog__effect">
+      <mat-icon class="delinquency-dialog__effect-icon" aria-hidden="true">info</mat-icon>
+      {{ 'checkingAccounts.delinquencyDialog.noEffect' | translate }}
+    </p>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'checkingAccounts.actions.cancel' | translate }}
+    </button>
+    <button mat-flat-button type="submit" color="primary">
+      {{ 'checkingAccounts.delinquencyDialog.confirm' | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

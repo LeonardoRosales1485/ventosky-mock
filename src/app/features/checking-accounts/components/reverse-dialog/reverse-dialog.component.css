@@ -1,0 +1,75 @@
+.reverse__lead {
+  margin: 0 0 1rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* El antes y el despues, en una sola columna de pares para que se lean de corrido. */
+.reverse__preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.reverse__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.reverse__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.reverse__change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.reverse__change mat-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.reverse__warning,
+.reverse__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.reverse__warning {
+  font-weight: 600;
+  color: var(--mat-sys-error);
+}
+
+.reverse__note {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.reverse__warning mat-icon,
+.reverse__note mat-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+}

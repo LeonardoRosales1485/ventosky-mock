@@ -1,0 +1,37 @@
+.contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+}
+
+.contact-type {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.contact-value {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.contact-label,
+.contact-principal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}

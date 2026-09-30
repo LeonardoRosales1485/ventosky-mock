@@ -1,0 +1,125 @@
+<div class="details__grid">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>{{ 'purchases.checkout.supplier' | translate }}</mat-label>
+    <mat-icon matPrefix aria-hidden="true">local_shipping</mat-icon>
+    <mat-select
+      required
+      [value]="supplier()?.uuid ?? null"
+      [disabled]="disabled() || supplierLocked() || suppliers().length === 0"
+      (valueChange)="supplierChange.emit($event)"
+    >
+      @for (option of supplierOptions(); track option.uuid) {
+        <mat-option [value]="option.uuid">
+          {{ option.name }}
+          @if (option.docNumber) {
+            <span class="details__meta">· {{ formatDocument(option) }}</span>
+          }
+        </mat-option>
+      }
+    </mat-select>
+    @if (supplierLocked()) {
+      <mat-hint>{{ 'purchases.checkout.supplierLocked' | translate }}</mat-hint>
+    } @else if (suppliers().length === 0) {
+      <mat-hint>{{ 'purchases.checkout.noSuppliers' | translate }}</mat-hint>
+    }
+  </mat-form-field>
+
+  <!--
+    El comprobante declara qué hace la operación con el stock, con la cuenta del proveedor y con el
+    impuesto. Se ofrecen sólo los de compra: uno de venta con un proveedor lo rechaza el commit.
+  -->
+  @if (vouchers().length > 0) {
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>{{ 'purchases.checkout.voucher' | translate }}</mat-label>
+      <mat-icon matPrefix aria-hidden="true">receipt_long</mat-icon>
+      <mat-select
+        required
+        [value]="voucher()?.uuid ?? null"
+        [disabled]="disabled()"
+        (valueChange)="voucherChange.emit($event)"
+      >
+        @for (option of vouchers(); track option.uuid) {
+          <mat-option [value]="option.uuid">
+            {{ option.name }}
+            @if (option.code) {
+              <span class="details__meta">· {{ option.code }}</span>
+            }
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  } @else {
+    <p class="details__voucher-empty">{{ 'purchases.checkout.noVouchers' | translate }}</p>
+  }
+
+  <!--
+    La fecha real del comprobante del proveedor, que casi nunca es hoy. Es lo que ancla la sesión de
+    caja: el backend busca la que cubra este instante.
+  -->
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>{{ 'purchases.checkout.dateOperation' | translate }}</mat-label>
+    <mat-icon matPrefix aria-hidden="true">event</mat-icon>
+    <input
+      matInput
+      type="datetime-local"
+      [value]="dateOperationValue()"
+      [disabled]="disabled()"
+      (change)="dateOperationChange.emit($any($event.target).value)"
+    />
+    @if (!isToday()) {
+      <mat-hint>{{ 'purchases.checkout.pastDateHint' | translate }}</mat-hint>
+    }
+  </mat-form-field>
+</div>
+
+<!--
+  Lo que el comprobante elegido va a hacer, dicho antes de cargar la primera línea. Un comprobante
+  sin efectos —una orden de compra, un presupuesto— es una elección válida, pero conviene saber que
+  la mercadería no entra y que no se registra pago: descubrirlo al confirmar sería tarde.
+-->
+@if (voucher()) {
+  <ul class="details__effects">
+    @if (!incrementsStock()) {
+      <li class="details__effect details__effect--warn">
+        <mat-icon aria-hidden="true">inventory_2</mat-icon>
+        {{ 'purchases.checkout.voucherWithoutStock' | translate }}
+      </li>
+    }
+
+    @if (!requiresPayment()) {
+      <li class="details__effect details__effect--warn">
+        <mat-icon aria-hidden="true">payments</mat-icon>
+        {{ 'purchases.checkout.voucherWithoutPayment' | translate }}
+      </li>
+    }
+
+    @if (!addsTax()) {
+      <li class="details__effect">
+        <mat-icon aria-hidden="true">percent</mat-icon>
+        {{ 'purchases.checkout.voucherWithoutTax' | translate }}
+      </li>
+    }
+  </ul>
+}
+
+<!--
+  La nota de la compra. Es opcional y no toca ningún importe: sirve para dejar asentado lo que el
+  comprobante del proveedor no dice, y viaja como `observations` en el commit.
+-->
+<mat-form-field appearance="outline" subscriptSizing="dynamic" class="details__notes">
+  <mat-label>{{ 'purchases.checkout.observations' | translate }}</mat-label>
+  <mat-icon matPrefix aria-hidden="true">sticky_note_2</mat-icon>
+  <textarea
+    matInput
+    rows="2"
+    autocomplete="off"
+    [attr.maxlength]="maxLength"
+    [placeholder]="'purchases.checkout.observationsPlaceholder' | translate"
+    [value]="observations()"
+    [disabled]="disabled()"
+    (input)="observationsChange.emit($any($event.target).value)"
+  ></textarea>
+  <mat-hint align="end" class="details__counter"
+    >{{ observations().length }}/{{ maxLength }}</mat-hint
+  >
+</mat-form-field>

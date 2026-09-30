@@ -1,0 +1,70 @@
+<h2 mat-dialog-title>{{ 'checkingAccounts.extendDialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <dl class="extend__summary">
+    <div>
+      <dt>{{ 'checkingAccounts.columns.publicId' | translate }}</dt>
+      <dd>{{ data.debt.publicId }}</dd>
+    </div>
+    <div>
+      <dt>{{ 'checkingAccounts.columns.pendingAmount' | translate }}</dt>
+      <dd><app-currency-display [value]="data.debt.pendingAmount" /></dd>
+    </div>
+    <div>
+      <dt>{{ 'checkingAccounts.extendDialog.currentDue' | translate }}</dt>
+      <dd>{{ data.debt.dateDue | localizedDate: 'mediumDate' }}</dd>
+    </div>
+    <div>
+      <dt>{{ 'checkingAccounts.extendDialog.originalDue' | translate }}</dt>
+      <dd>
+        {{ data.debt.dateDueOriginal | localizedDate: 'mediumDate' }}
+        @if (wasExtended) {
+          <span class="extend__badge">
+            {{ 'checkingAccounts.extendDialog.alreadyExtended' | translate }}
+          </span>
+        }
+      </dd>
+    </div>
+  </dl>
+
+  <p class="extend__note">{{ 'checkingAccounts.extendDialog.note' | translate }}</p>
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'checkingAccounts.extendDialog.newDue' | translate }}</mat-label>
+    <input
+      matInput
+      [matDatepicker]="picker"
+      [value]="newDate()"
+      [min]="minDate"
+      (dateChange)="onDateChange($event.value)"
+    />
+    <mat-datepicker-toggle matIconSuffix [for]="picker" />
+    <mat-datepicker #picker />
+    @if (extraDays() > 0) {
+      <mat-hint>
+        {{ 'checkingAccounts.extendDialog.extraDays' | translate: { days: extraDays() } }}
+      </mat-hint>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'checkingAccounts.reasonDialog.reason' | translate }}</mat-label>
+    <textarea
+      matInput
+      rows="3"
+      [ngModel]="reason()"
+      (ngModelChange)="reason.set($event)"
+      name="reason"
+    ></textarea>
+    <mat-hint>{{ 'checkingAccounts.reasonDialog.hint' | translate }}</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="undefined">
+    {{ 'checkingAccounts.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary" type="button" [disabled]="!canSubmit()" (click)="onConfirm()">
+    {{ 'checkingAccounts.extendDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

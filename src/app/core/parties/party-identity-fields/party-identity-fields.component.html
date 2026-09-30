@@ -1,0 +1,57 @@
+<mat-form-field appearance="outline" class="w-full">
+  <mat-label>{{ nameLabelKey() | translate }}</mat-label>
+  <input
+    matInput
+    type="text"
+    [attr.autocomplete]="nameAutocomplete()"
+    [formField]="nameField()"
+    [attr.aria-label]="nameLabelKey() | translate"
+  />
+  @if (nameField()().touched() && nameField()().invalid()) {
+    <mat-error>{{ nameField()().errors() | fieldError }}</mat-error>
+  }
+</mat-form-field>
+
+<!-- Arriba y no estirados: el hint del número crece a dos renglones y estiraría el recuadro del tipo. -->
+<div class="flex items-start gap-2">
+  <mat-form-field appearance="outline" class="w-40">
+    <mat-label>{{ 'parties.fields.docType' | translate }}</mat-label>
+    <mat-select [formField]="docTypeField()" [attr.aria-label]="'parties.fields.docType' | translate">
+      <mat-option [value]="''">{{ 'parties.fields.docTypeNone' | translate }}</mat-option>
+      @for (docType of docTypes(); track docType) {
+        <mat-option [value]="docType">{{ docType }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
+    <mat-label>{{ 'parties.fields.docNumber' | translate }}</mat-label>
+    <input
+      matInput
+      type="text"
+      autocomplete="off"
+      [formField]="docNumberField()"
+      [attr.aria-label]="'parties.fields.docNumber' | translate"
+    />
+    <mat-hint>{{ 'parties.fields.docNumberHint' | translate }}</mat-hint>
+    @if (docNumberField()().touched() && docNumberField()().invalid()) {
+      <mat-error>{{ docNumberField()().errors() | fieldError }}</mat-error>
+    }
+  </mat-form-field>
+</div>
+
+@if (taxConditionField(); as taxCondition) {
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'parties.fields.taxCondition' | translate }}</mat-label>
+    <input
+      matInput
+      type="text"
+      autocomplete="off"
+      [formField]="taxCondition"
+      [attr.aria-label]="'parties.fields.taxCondition' | translate"
+    />
+    @if (taxCondition().touched() && taxCondition().invalid()) {
+      <mat-error>{{ taxCondition().errors() | fieldError }}</mat-error>
+    }
+  </mat-form-field>
+}

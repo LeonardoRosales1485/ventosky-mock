@@ -1,0 +1,197 @@
+:host {
+  display: block;
+}
+
+/* ─────────────────────────────  Tarjetas  ───────────────────────────── */
+
+.cards {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 48rem) {
+  .cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.875rem 1.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-left: 0.25rem solid var(--card-accent, var(--mat-sys-outline));
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.card[data-tone='error'] {
+  --card-accent: var(--app-error);
+}
+
+.card[data-tone='warning'] {
+  --card-accent: var(--app-warning);
+}
+
+.card__label {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.card__value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.card__meta {
+  display: flex;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ─────────────────────────────  Filtros y barra  ───────────────────────────── */
+
+.expirations-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  /* El mismo respiro que da app-table-toolbar en el resto de los listados. */
+  padding: 0.75rem 1rem;
+}
+
+.filters {
+  display: grid;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+@media (min-width: 64rem) {
+  .filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  }
+}
+
+.filters__range {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filters__range-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-high);
+}
+
+.bulk__count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dar de baja mueve stock: se pinta como lo que es. */
+.bulk__write-off:not([disabled]) {
+  --mdc-filled-button-container-color: var(--app-error);
+  --mdc-filled-button-label-text-color: var(--mat-sys-on-error);
+}
+
+.bulk__hint {
+  margin-inline-start: auto;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ─────────────────────────────  Grilla  ───────────────────────────── */
+
+table {
+  width: 100%;
+}
+
+.select-cell {
+  width: 1%;
+  padding-inline: 0.25rem;
+}
+
+.product__name {
+  display: block;
+  font-weight: 500;
+}
+
+.product__sku,
+.location__branch {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.batch__link {
+  color: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.batch__link:hover,
+.batch__link:focus-visible {
+  text-decoration: underline;
+}
+
+.numeric {
+  text-align: end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.days {
+  font-weight: 600;
+}
+
+.days[data-status='EXPIRED'] {
+  color: var(--app-error);
+}
+
+.days[data-status='WARNING'] {
+  color: var(--app-on-warning-container);
+}
+
+/* La fila entera lleva el color del semáforo: es lo que se ve sin leer. */
+tr[data-status='EXPIRED'] td {
+  background: var(--app-error-container);
+}
+
+tr[data-status='WARNING'] td {
+  background: var(--app-warning-container);
+}
+
+.row--selected td {
+  box-shadow: inset 0.1875rem 0 0 var(--mat-sys-primary);
+}
+
+.actions-cell {
+  width: 1%;
+  white-space: nowrap;
+  text-align: end;
+  background: var(--mat-sys-surface);
+}
+
+.empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}

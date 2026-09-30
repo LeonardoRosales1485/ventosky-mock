@@ -1,0 +1,74 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    {{ (isEdit ? 'roles.dialog.editTitle' : 'roles.dialog.createTitle') | translate }}
+  </h2>
+
+  <mat-dialog-content>
+    <div class="flex flex-col gap-2 pt-2">
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'roles.columns.name' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="roleForm.name"
+          [attr.aria-label]="'roles.columns.name' | translate"
+        />
+        @if (roleForm.name().touched() && roleForm.name().invalid()) {
+          <mat-error>{{ roleForm.name().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-checkbox
+        [checked]="roleForm.isDefault().value()"
+        (change)="onIsDefaultChange($event.checked)"
+      >
+        {{ 'roles.columns.isDefault' | translate }}
+      </mat-checkbox>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'roles.columns.permissions' | translate }}</mat-label>
+        <mat-select
+          multiple
+          [value]="roleForm.permissionUuids().value()"
+          (valueChange)="onPermissionsChange($event)"
+          [disabled]="permissionsLoading()"
+          [attr.aria-label]="'roles.columns.permissions' | translate"
+        >
+          @for (permission of permissions(); track permission.uuid) {
+            <mat-option [value]="permission.uuid">
+              <span class="permission-option">
+                <span class="permission-option__name">{{ permission.name }}</span>
+                @if (permission.description) {
+                  <span class="permission-option__description">{{ permission.description }}</span>
+                }
+              </span>
+            </mat-option>
+          }
+        </mat-select>
+        @if (permissionsLoading()) {
+          <mat-hint>{{ 'roles.dialog.loadingPermissions' | translate }}</mat-hint>
+        }
+      </mat-form-field>
+
+      <!--
+        Qué vínculos del directorio es quien tenga el rol. Describe, no autoriza: lo que habilita sigue siendo cada
+        permiso de arriba, y al darle el rol a alguien el directorio le pide los datos de esos vínculos.
+      -->
+      <p class="directory-links" role="status">
+        @if (detectedLabel()) {
+          {{ 'roles.directoryLinks.detected' | translate: { links: detectedLabel() } }}
+        }
+      </p>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'roles.dialog.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="permissionsLoading()">
+      {{ (isEdit ? 'roles.dialog.save' : 'roles.dialog.create') | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

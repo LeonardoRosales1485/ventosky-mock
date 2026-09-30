@@ -1,0 +1,16 @@
+/*
+  El diálogo es de una sola pregunta: se abre, se tipea y se cierra. Angosto a propósito —no hay
+  nada que leer al lado del campo— y con el número grande, que es lo único que hay que confirmar de
+  un vistazo antes de apretar Enter.
+*/
+.quantity__field {
+  width: 100%;
+  margin-block-start: 0.25rem;
+}
+
+.quantity__input {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}

@@ -1,0 +1,155 @@
+.void__lead {
+  margin: 0 0 1rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* El antes y el después de la anulación, en un bloque que se lee de corrido. */
+.void__preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.void__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.void__label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.void__change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.void__change mat-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.void__debts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.void__debt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.void__debt-name {
+  font-weight: 600;
+}
+
+.void__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.void__note mat-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+}
+
+.void__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Anular deshace un ingreso de dinero: el badge lo dice antes de leer una línea. */
+.void__badge {
+  padding: 0.0625rem 0.4375rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--app-error-container);
+  color: var(--app-on-error-container);
+}
+
+/*
+  No es un error de formulario: no hay nada que corregir en el diálogo, hay que abrir la caja. Por
+  eso el bloque explica el porqué y termina en qué hacer.
+*/
+.void__blocked {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin: 0 0 0.875rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--app-error) 35%, transparent);
+  border-radius: 0.5rem;
+  background: var(--app-error-container);
+  color: var(--app-on-error-container);
+}
+
+.void__blocked mat-icon {
+  flex: none;
+  color: var(--app-error);
+}
+
+.void__blocked-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.void__blocked-why,
+.void__blocked-how {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.void__session {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.875rem;
+  font-size: 0.75rem;
+  color: var(--app-success);
+}
+
+.void__session mat-icon {
+  width: 1.0625rem;
+  height: 1.0625rem;
+  font-size: 1.0625rem;
+}

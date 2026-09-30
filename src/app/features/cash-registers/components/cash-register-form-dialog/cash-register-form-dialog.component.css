@@ -1,0 +1,23 @@
+.cash-register-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.cash-register-form__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--mat-sys-error);
+}
+
+.cash-register-form__warning mat-icon {
+  flex: none;
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}

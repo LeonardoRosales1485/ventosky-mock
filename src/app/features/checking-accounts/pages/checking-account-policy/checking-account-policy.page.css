@@ -1,0 +1,198 @@
+:host {
+  display: block;
+}
+
+.policy__header {
+  margin-bottom: 1rem;
+}
+
+.policy__title {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+
+.policy__description {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+  max-width: 42rem;
+}
+
+.policy__loading {
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* De qué peldaño salió el valor. Sin esto, un «30» suelto no dice si es propio o heredado. */
+.policy__source {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+}
+
+.policy__warning,
+/* Advierte, no bloquea: el color acompaña esa diferencia y no la contradice con un rojo de error. */
+.policy__warning {
+  color: var(--mat-sys-tertiary);
+}
+
+.policy__result {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: 0.875rem;
+}
+
+.policy__result-failed {
+  font-weight: 600;
+}
+
+/* ─────────────────────────  La tabla de parámetros  ───────────────────────── */
+
+.policy__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* Cuántas declaraciones difieren de lo guardado, no un booleano de «hay cambios». */
+.policy__dirty {
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--app-warning-container);
+  color: var(--app-on-warning-container);
+}
+
+.policy__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface);
+}
+
+.policy__table {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: collapse;
+}
+
+.policy__table th,
+.policy__table td {
+  padding: 0.75rem 0.875rem;
+  text-align: start;
+  vertical-align: top;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.policy__table thead th {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.policy__table tbody tr:last-child th,
+.policy__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* La fila tocada se destaca: es la que va a dejar su propia fila en el extracto. */
+.policy__row--changed {
+  background: var(--mat-sys-surface-container-low);
+}
+
+.policy__param {
+  max-width: 20rem;
+}
+
+.policy__param-name {
+  display: block;
+  font-weight: 600;
+}
+
+.policy__param-key {
+  display: inline-block;
+  margin: 0.125rem 0;
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.policy__param-hint {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.policy__mode-cell {
+  min-width: 10rem;
+}
+
+.policy__field {
+  width: 100%;
+  max-width: 12rem;
+}
+
+.policy__dash {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.policy__effective {
+  font-size: 0.8125rem;
+}
+
+/*
+  El flex va en un div interno y no en la celda: un `display: flex` sobre un <td> le saca la caja
+  de `table-cell` y la celda deja de participar del reparto de columnas —la última columna queda
+  desalineada del encabezado y de las demás filas.
+*/
+.policy__effective-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.375rem;
+}
+
+.policy__effective mat-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* El valor viejo tachado: quien configura tiene que ver de dónde sale el número antes de cambiarlo. */
+.policy__old {
+  text-decoration: line-through;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.policy__new {
+  font-weight: 600;
+}
+
+.policy__trail {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.policy__actions {
+  margin-top: 1rem;
+}
+
+.policy__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

@@ -1,0 +1,412 @@
+<form class="collection" (submit)="onSubmit($event)">
+  <header class="collection__header">
+    <div>
+      <h1 class="collection__title">{{ 'checkingAccounts.newCollection.title' | translate }}</h1>
+      <p class="collection__description">
+        {{ 'checkingAccounts.newCollection.description' | translate }}
+      </p>
+    </div>
+  </header>
+
+  <div class="collection__grid">
+    <!-- ─────────────────────────────  El cobro  ───────────────────────────── -->
+    <section class="collection__card" aria-labelledby="collection-form-title">
+      <h2 class="collection__card-title" id="collection-form-title">
+        <mat-icon aria-hidden="true">receipt_long</mat-icon>
+        {{ 'checkingAccounts.newCollection.sections.operation' | translate }}
+      </h2>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'checkingAccounts.newCollection.party' | translate }}</mat-label>
+        <mat-select
+          [value]="selectedAccountUuid()"
+          (valueChange)="onAccountChange($event)"
+          [attr.aria-label]="'checkingAccounts.newCollection.party' | translate"
+        >
+          @for (account of accounts(); track account.uuid) {
+            <mat-option [value]="account.uuid">
+              {{ account.partyRole?.name }}
+              @if (account.partyRole?.role; as role) {
+                · {{ 'checkingAccounts.roles.' + role | translate }}
+              }
+            </mat-option>
+          }
+        </mat-select>
+        <mat-hint>{{ 'checkingAccounts.newCollection.partyHint' | translate }}</mat-hint>
+      </mat-form-field>
+
+      <div class="collection__row">
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'checkingAccounts.newCollection.date' | translate }}</mat-label>
+          <input
+            matInput
+            [matDatepicker]="picker"
+            [value]="dateIssued()"
+            (dateChange)="onDateChange($event.value)"
+          />
+          <mat-datepicker-toggle matIconSuffix [for]="picker" />
+          <mat-datepicker #picker />
+          <mat-hint>{{ 'checkingAccounts.newCollection.dateHint' | translate }}</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>{{ 'checkingAccounts.newCollection.notes' | translate }}</mat-label>
+          <input matInput name="description" [ngModel]="description()" (ngModelChange)="description.set($event)" />
+        </mat-form-field>
+      </div>
+
+      <h3 class="collection__subtitle">
+        {{ 'checkingAccounts.newCollection.sections.payments' | translate }}
+      </h3>
+
+      @for (payment of payments(); track payment.id) {
+        <div class="collection__payment">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ 'checkingAccounts.newCollection.paymentMethod' | translate }}</mat-label>
+            <mat-select
+              class="collection__payment-method"
+              [value]="payment.paymentMethodUuid"
+              (valueChange)="onPaymentMethodChange(payment.id, $event)"
+            >
+              @for (method of paymentMethods(); track method.uuid) {
+                <mat-option [value]="method.uuid">{{ method.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <!--
+            La marca va en la fila y no al confirmar: es lo que explica por qué este cobro exige una
+            sesión de caja abierta, y enterarse recién al apretar «cobrar» se paga tipeando de nuevo.
+          -->
+          @if (affectsCashRegister(payment.paymentMethodUuid)) {
+            <span class="collection__cash-badge">
+              {{ 'checkingAccounts.newCollection.affectsCash' | translate }}
+            </span>
+          }
+
+          <mat-form-field
+            appearance="outline"
+            subscriptSizing="dynamic"
+            class="collection__payment-amount"
+          >
+            <mat-label>{{ 'checkingAccounts.newCollection.paymentAmount' | translate }}</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              step="0.01"
+              [value]="payment.amount ?? ''"
+              (input)="onPaymentAmountChange(payment.id, $any($event.target).value)"
+            />
+          </mat-form-field>
+
+          <button
+            mat-icon-button
+            type="button"
+            [disabled]="payments().length === 1"
+            [matTooltip]="'checkingAccounts.newCollection.removePayment' | translate"
+            [attr.aria-label]="'checkingAccounts.newCollection.removePayment' | translate"
+            (click)="onRemovePayment(payment.id)"
+          >
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+      }
+
+      <div class="collection__payments-footer">
+        <button mat-stroked-button type="button" (click)="onAddPayment()">
+          <mat-icon aria-hidden="true">add</mat-icon>
+          {{ 'checkingAccounts.newCollection.addPayment' | translate }}
+        </button>
+      </div>
+
+      <!--
+        El importe es la suma de los medios y se muestra como total calculado, no como campo:
+        aceptarlo aparte abriría la única forma de que un cobro diga $100.000 mientras sus medios
+        suman $90.000.
+      -->
+      <div class="collection__total">
+        <span class="collection__total-label">
+          {{ 'checkingAccounts.newCollection.creditAmount' | translate }}
+        </span>
+        <app-currency-display class="collection__total-value" [value]="paymentsTotal()" />
+        <span class="collection__total-hint">
+          {{ 'checkingAccounts.newCollection.creditAmountHint' | translate }}
+        </span>
+      </div>
+
+      <!--
+        El aviso de caja aparece al elegir el medio, no al confirmar: enterarse con el formulario
+        entero cargado es la clase de error que se paga tipeando todo de nuevo.
+      -->
+      @if (missingCashSession()) {
+        <p class="collection__error" role="alert">
+          <mat-icon aria-hidden="true">point_of_sale</mat-icon>
+          {{ 'checkingAccounts.newCollection.noCashSession' | translate }}
+        </p>
+      } @else if (touchesCashRegister()) {
+        <p class="collection__hint">
+          <mat-icon aria-hidden="true">point_of_sale</mat-icon>
+          {{ 'checkingAccounts.newCollection.cashSessionHint' | translate }}
+        </p>
+      }
+    </section>
+
+    <!-- ────────────────────  El titular y la imputación  ──────────────────── -->
+    <div class="collection__aside">
+      <section class="collection__card" aria-labelledby="collection-party-title">
+        <h2 class="collection__card-title" id="collection-party-title">
+          <mat-icon aria-hidden="true">badge</mat-icon>
+          {{ 'checkingAccounts.newCollection.sections.party' | translate }}
+        </h2>
+
+        @if (selectedAccount(); as account) {
+          <!--
+            Dos datos y no uno: el saldo dice cuánto debe, el vencido dice cuánto de eso ya debería
+            haber entrado.
+          -->
+          <div class="collection__figures">
+            <div class="collection__figure">
+              <span class="collection__figure-label">
+                {{ 'checkingAccounts.columns.balance' | translate }}
+              </span>
+              <app-currency-display class="collection__figure-value" [value]="account.balance" />
+            </div>
+            <div class="collection__figure">
+              <span class="collection__figure-label">
+                {{ 'checkingAccounts.columns.overdueAmount' | translate }}
+              </span>
+              <app-currency-display
+                class="collection__figure-value"
+                [value]="account.overdueAmount"
+                [tone]="(account.overdueAmount ?? 0) > 0 ? 'negative' : 'neutral'"
+              />
+            </div>
+          </div>
+
+          @if (!account.enabled) {
+            <p class="collection__hint">
+              {{ 'checkingAccounts.newCollection.disabledAccountHint' | translate }}
+            </p>
+          }
+        } @else {
+          <p class="collection__empty">
+            {{ 'checkingAccounts.newCollection.selectParty' | translate }}
+          </p>
+        }
+      </section>
+
+      <section class="collection__card" aria-labelledby="collection-allocation-title">
+        <h2 class="collection__card-title" id="collection-allocation-title">
+          <mat-icon aria-hidden="true">rule</mat-icon>
+          {{ 'checkingAccounts.newCollection.sections.allocation' | translate }}
+        </h2>
+
+        <!--
+          Dos modos y no uno escondido: «elegir yo» es el caso del cliente que paga diciendo qué
+          factura está pagando, y resolverlo cobrando primero y corrigiendo después deja al FIFO
+          aplicar la plata en el medio.
+
+          Va primero, y elegido, el modo que rige para el titular según su política. Sin poder
+          saberlo, el orden de siempre.
+        -->
+        <mat-button-toggle-group
+          class="collection__mode"
+          [value]="allocationMode()"
+          (valueChange)="onAllocationModeChange($event)"
+          [attr.aria-label]="'checkingAccounts.newCollection.sections.allocation' | translate"
+        >
+          @for (choice of allocationChoices(); track choice.value) {
+            <mat-button-toggle [value]="choice.value">
+              {{ choice.labelKey | translate }}
+            </mat-button-toggle>
+          }
+        </mat-button-toggle-group>
+
+        @if (allocationMode() === 'AUTO') {
+          <!--
+            La previa la calcula el backend con la misma función que después escribe las
+            imputaciones, así que lo que se ve acá es lo que va a quedar. No reserva nada.
+          -->
+          @if (preview(); as preview) {
+            @if (preview.lines.length === 0) {
+              <p class="collection__hint">
+                {{ 'checkingAccounts.newCollection.previewNoDebts' | translate }}
+              </p>
+            } @else {
+              <table class="collection__split">
+                <thead>
+                  <tr>
+                    <th>{{ 'checkingAccounts.columns.debt' | translate }}</th>
+                    <th>{{ 'checkingAccounts.columns.dateDue' | translate }}</th>
+                    <th class="numeric-header">
+                      {{ 'checkingAccounts.columns.pendingAmount' | translate }}
+                    </th>
+                    <th class="numeric-header">
+                      {{ 'checkingAccounts.newCollection.applies' | translate }}
+                    </th>
+                    <th class="numeric-header">
+                      {{ 'checkingAccounts.newCollection.remains' | translate }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (line of preview.lines; track line.debtUuid) {
+                    <tr>
+                      <td>{{ line.publicId ?? line.description }}</td>
+                      <td>{{ line.dateDue | localizedDate: 'shortDate' }}</td>
+                      <td class="numeric-cell"><app-currency-display [value]="line.pendingAmount" /></td>
+                      <td class="numeric-cell">
+                        <app-currency-display [value]="line.amount" tone="positive" />
+                      </td>
+                      <td class="numeric-cell">
+                        @if (line.remainingAmount > 0) {
+                          <app-currency-display [value]="line.remainingAmount" />
+                        } @else {
+                          <span class="collection__settled">
+                            {{ 'checkingAccounts.newCollection.settled' | translate }}
+                          </span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+
+              <div class="collection__split-totals">
+                <span>
+                  {{ 'checkingAccounts.newCollection.cancelsDebt' | translate }}
+                  <app-currency-display [value]="preview.allocatedAmount" />
+                </span>
+                @if (preview.surplusAmount > 0) {
+                  <span class="collection__leftover">
+                    {{ 'checkingAccounts.newCollection.previewLeftover' | translate }}
+                    <app-currency-display [value]="preview.surplusAmount" tone="positive" />
+                  </span>
+                }
+              </div>
+            }
+          } @else {
+            <p class="collection__hint">
+              {{ 'checkingAccounts.newCollection.previewEmpty' | translate }}
+            </p>
+          }
+        } @else {
+          @if (openDebts().length === 0) {
+            <p class="collection__hint">
+              {{ 'checkingAccounts.newCollection.previewNoDebts' | translate }}
+            </p>
+          } @else {
+            <!--
+              Las deudas van en orden de vencimiento, el mismo del FIFO, para que elegir a mano
+              parta de lo que el sistema haría solo — pero acá la vencida puede quedar en cero si el
+              cliente dijo qué está pagando.
+            -->
+            <table class="collection__split">
+              <thead>
+                <tr>
+                  <th>{{ 'checkingAccounts.columns.debt' | translate }}</th>
+                  <th class="numeric-header">
+                    {{ 'checkingAccounts.columns.pendingAmount' | translate }}
+                  </th>
+                  <th class="numeric-header">
+                    {{ 'checkingAccounts.newCollection.iApply' | translate }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (debt of openDebts(); track debt.uuid) {
+                  <tr>
+                    <td>
+                      {{ debt.publicId ?? debt.description }}
+                      <span class="collection__split-due">
+                        {{ debt.dateDue | localizedDate: 'shortDate' }}
+                      </span>
+                    </td>
+                    <td class="numeric-cell"><app-currency-display [value]="debt.pendingAmount" /></td>
+                    <td class="numeric-cell">
+                      <input
+                        class="collection__split-input"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        [value]="manualAmounts()[debt.uuid] ?? ''"
+                        (input)="onManualAmountChange(debt.uuid, $any($event.target).value)"
+                        [attr.aria-label]="
+                          'checkingAccounts.newCollection.iApplyTo'
+                            | translate: { debt: debt.publicId ?? debt.description }
+                        "
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+
+            <!--
+              El reparto se valida en bloque y no línea por línea: dos líneas de $600 sobre un cobro
+              de $1.000 pasarían las dos por separado. Las dos fallas se dicen juntas para evitar el
+              ida y vuelta.
+            -->
+            @if (!manualValid()) {
+              <p class="collection__error" role="alert">
+                @if (manualUnassigned() < 0) {
+                  {{
+                    'checkingAccounts.newCollection.splitOverTotal'
+                      | translate: { split: manualTotal(), amount: paymentsTotal() }
+                  }}
+                }
+                @for (line of manualOverflow(); track line.debt.uuid) {
+                  {{
+                    'checkingAccounts.newCollection.splitOverPending'
+                      | translate
+                        : { debt: line.debt.publicId ?? line.debt.description, excess: line.excess }
+                  }}
+                }
+                {{ 'checkingAccounts.newCollection.splitFixAll' | translate }}
+              </p>
+            }
+
+            <div class="collection__split-totals">
+              <span [class.collection__unassigned--negative]="manualUnassigned() < 0">
+                {{ 'checkingAccounts.newCollection.unassigned' | translate }}
+                <app-currency-display [value]="manualUnassigned()" [showSign]="true" tone="auto" />
+              </span>
+              <button mat-stroked-button type="button" (click)="onSplitByFifo()">
+                {{ 'checkingAccounts.newCollection.splitByFifo' | translate }}
+              </button>
+            </div>
+          }
+        }
+
+        <!--
+          Recuadro y no nota al pie: el reparto —el del FIFO o el armado a mano— es una simulación
+          que se recalcula con cada cambio, y sin marcarla se lee como algo que ya quedó imputado.
+        -->
+        @if (hasSimulation()) {
+          <p class="collection__simulation" role="note">
+            {{ 'checkingAccounts.newCollection.previewSimulation' | translate }}
+          </p>
+        }
+      </section>
+    </div>
+  </div>
+
+  <footer class="collection__footer">
+    <p class="collection__receipt-hint">
+      {{ 'checkingAccounts.newCollection.receiptHint' | translate }}
+    </p>
+    <div class="collection__footer-actions">
+      <button mat-button type="button" (click)="onCancel()">
+        {{ 'checkingAccounts.actions.cancel' | translate }}
+      </button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="!canSubmit()">
+        <mat-icon aria-hidden="true">check</mat-icon>
+        {{ 'checkingAccounts.newCollection.submit' | translate }}
+        @if (paymentsTotal() > 0) {
+          · <app-currency-display [value]="paymentsTotal()" />
+        }
+      </button>
+    </div>
+  </footer>
+</form>

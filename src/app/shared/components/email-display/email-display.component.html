@@ -1,0 +1,51 @@
+@let address = value();
+@let copyLabel =
+  justCopied()
+    ? ('emailDisplay.copied' | translate)
+    : ('emailDisplay.copy' | translate: { email: address });
+@let sendLabel = 'emailDisplay.send' | translate: { email: address };
+
+<div class="email-display">
+  @if (hasValue()) {
+    <span
+      class="email-display__value"
+      [class.email-display__value--truncate]="truncate()"
+      [matTooltip]="truncate() ? address : ''"
+      >{{ address }}</span
+    >
+
+    <span class="email-display__actions">
+      @if (showCopy()) {
+        <button
+          matIconButton
+          type="button"
+          class="email-display__action"
+          [attr.aria-label]="copyLabel"
+          [matTooltip]="copyLabel"
+          (click)="copy(); $event.stopPropagation()"
+        >
+          <mat-icon aria-hidden="true">
+            {{ justCopied() ? 'check' : 'content_copy' }}
+          </mat-icon>
+        </button>
+      }
+
+      @if (showSend()) {
+        <a
+          matIconButton
+          class="email-display__action"
+          [href]="mailtoHref()"
+          [attr.aria-label]="sendLabel"
+          [matTooltip]="sendLabel"
+          (click)="$event.stopPropagation()"
+        >
+          <mat-icon aria-hidden="true">mail</mat-icon>
+        </a>
+      }
+    </span>
+  } @else {
+    <span class="email-display__empty">
+      {{ emptyLabel() ?? ('emailDisplay.empty' | translate) }}
+    </span>
+  }
+</div>

@@ -1,0 +1,59 @@
+<button
+  mat-icon-button
+  type="button"
+  [matMenuTriggerFor]="settingsMenu"
+  [attr.aria-label]="'settings.openAria' | translate"
+>
+  <mat-icon>settings</mat-icon>
+</button>
+
+<mat-menu #settingsMenu="matMenu" class="settings-menu-panel">
+  <!--
+    A layout wrapper, not a control: the handlers only keep the menu from
+    closing (or hijacking arrow keys) while its own controls are in use.
+  -->
+  <div
+    class="flex min-w-64 flex-col gap-3 px-4 py-3"
+    role="presentation"
+    (click)="$event.stopPropagation()"
+    (keydown)="$event.stopPropagation()"
+  >
+    <div class="flex items-center justify-between gap-4">
+      <span class="text-sm text-[var(--mat-sys-on-surface)]">
+        {{ 'settings.theme' | translate }}
+      </span>
+      <button
+        mat-icon-button
+        type="button"
+        (click)="theme.toggleTheme()"
+        [attr.aria-label]="'settings.themeToggleAria' | translate"
+      >
+        <mat-icon>
+          {{ theme.theme() === 'dark' ? 'light_mode' : 'dark_mode' }}
+        </mat-icon>
+      </button>
+    </div>
+
+    <div class="flex items-center justify-between gap-4">
+      <span class="text-sm text-[var(--mat-sys-on-surface)]">
+        {{ 'settings.language' | translate }}
+      </span>
+      <mat-form-field appearance="outline" class="language-field" subscriptSizing="dynamic">
+        <mat-select
+          [value]="language.currentLang()"
+          (valueChange)="onLanguageChange($event)"
+          [attr.aria-label]="'settings.languageAria' | translate"
+        >
+          @for (option of language.languages; track option.code) {
+            <mat-option [value]="option.code">
+              <span class="inline-flex items-center gap-2">
+                <span aria-hidden="true">{{ option.flag }}</span>
+                <span>{{ option.labelKey | translate }}</span>
+              </span>
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
+</mat-menu>

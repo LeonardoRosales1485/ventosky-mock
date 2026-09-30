@@ -1,0 +1,261 @@
+<h2 mat-dialog-title>
+  {{ titleKey | translate }}
+  @if (order().publicId) {
+    <span class="detail__public-id">{{ order().publicId }}</span>
+  }
+</h2>
+
+<mat-dialog-content class="detail__content">
+  <!--
+    El encabezado sale de la fila del listado y no espera al detalle: son los mismos datos que el
+    usuario venía mirando cuando hizo clic, y dibujarlos ya confirma que abrió la fila que quería.
+  -->
+  <dl class="detail__meta">
+    <div class="detail__meta-item">
+      <dt>{{ 'orders.detail.date' | translate }}</dt>
+      <dd>{{ (order().dateOperation | localizedDate: 'short') || '—' }}</dd>
+    </div>
+
+    <div class="detail__meta-item">
+      <dt>{{ partyLabelKey | translate }}</dt>
+      <dd>{{ order().partyRole?.name || ('orders.detail.noParty' | translate) }}</dd>
+    </div>
+
+    <div class="detail__meta-item">
+      <dt>{{ 'orders.detail.voucher' | translate }}</dt>
+      <dd>{{ order().voucher?.name || '—' }}</dd>
+    </div>
+
+    <div class="detail__meta-item">
+      <dt>{{ 'orders.detail.branch' | translate }}</dt>
+      <dd>{{ order().branch?.name || '—' }}</dd>
+    </div>
+  </dl>
+
+  @if (order().observations) {
+    <p class="detail__observations">
+      <mat-icon aria-hidden="true">sticky_note_2</mat-icon>
+      {{ order().observations }}
+    </p>
+  }
+
+  <!--
+    Las líneas llegan después de que el diálogo abrió y el foco quedó en el título, así que la región
+    avisa sola: `aria-busy` mientras carga y `aria-live` para anunciar la tabla al aterrizar.
+  -->
+  <div [attr.aria-busy]="loading()" aria-live="polite">
+    @if (loading()) {
+      <div class="detail__state">
+        <mat-spinner diameter="32" />
+        <p>{{ 'orders.detail.loading' | translate }}</p>
+      </div>
+    } @else if (failed()) {
+      <div class="detail__state" role="alert">
+        <mat-icon aria-hidden="true" class="detail__state-icon">error_outline</mat-icon>
+        <p>{{ 'orders.detail.loadError' | translate }}</p>
+        <button mat-stroked-button type="button" (click)="load()">
+          {{ 'orders.detail.retry' | translate }}
+        </button>
+      </div>
+    } @else if (lines().length === 0) {
+      <p class="detail__state">{{ 'orders.detail.noLines' | translate }}</p>
+    } @else {
+      <div class="detail__table-scroll">
+        <table class="detail__table">
+          <caption class="sr-only">
+            {{
+              'orders.detail.tableAria' | translate
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">{{ 'orders.detail.columns.product' | translate }}</th>
+              <th scope="col" class="detail__numeric">
+                {{ 'orders.detail.columns.quantity' | translate }}
+              </th>
+              <th scope="col" class="detail__numeric">
+                {{ 'orders.detail.columns.unitPrice' | translate }}
+              </th>
+              <th scope="col" class="detail__numeric">
+                {{ 'orders.detail.columns.subtotal' | translate }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of lines(); track trackLine($index, line)) {
+              <tr>
+                <th scope="row">
+                  <!--
+                  El flex va en un `<span>` de adentro y no en el `<th>`: un `display: flex` sobre la
+                  celda le saca el `table-cell` y la columna deja de alinear con su encabezado.
+                -->
+                  <span class="detail__product">
+                    <span class="detail__product-name">{{ line.name || '—' }}</span>
+                    <!--
+                  El indicador de la línea. Cuando lleva a algún lado es un enlace de verdad, no un
+                  chip con `(click)`: entra en el orden de tabulación y se puede abrir aparte, que es
+                  lo que hace falta para no perder el comprobante que se está revisando.
+                -->
+                    @if (line.chip; as chip) {
+                      <app-product-chip
+                        [chip]="chip"
+                        [link]="line.link"
+                        [linkLabel]="linkLabelKey(chip) | translate: { name: line.name }"
+                      />
+                    }
+                  </span>
+                </th>
+                <td class="detail__numeric">{{ line.item.quantity ?? '—' }}</td>
+                <td class="detail__numeric">
+                  <app-currency-display [value]="line.item.unitPrice" />
+                </td>
+                <td class="detail__numeric">
+                  <app-currency-display [value]="line.item.subtotal" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!--
+      Por qué algunas líneas están marcadas, dicho una sola vez al pie y no repetido por fila: el
+      chip identifica, la nota explica.
+    -->
+      @if (hasFlaggedLines()) {
+        <p class="detail__note">{{ 'orders.detail.flaggedNote' | translate }}</p>
+      }
+    }
+  </div>
+
+  <!--
+  El desglose de promociones. Llega en la misma respuesta que las líneas pero queda **fuera** de la
+  región `aria-live`: metida adentro, un lector de pantalla leería de corrido las dos tablas
+  enteras al aterrizar, y el anuncio que servía para las líneas se volvería impracticable.
+
+  Una venta sin promociones no la dibuja: `promotions()` da `null` y acá no hay nada.
+  -->
+  @if (promotions(); as promotions) {
+    <section class="detail__promotions">
+      <h3 class="detail__promotions-title">{{ 'orders.detail.promotions.title' | translate }}</h3>
+
+      <!--
+        Que los textos son del día de la venta se dice en la pantalla y no sólo en el código: es la
+        única explicación de por qué esta fila puede nombrar una promoción que hoy se llama de otra
+        forma —o que ya no está—.
+      -->
+      <p class="detail__note">{{ 'orders.detail.promotions.snapshotNote' | translate }}</p>
+
+      <div class="detail__table-scroll">
+        <table class="detail__table">
+          <caption class="sr-only">
+            {{
+              'orders.detail.promotions.tableAria' | translate
+            }}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">{{ 'orders.detail.promotions.columns.promotion' | translate }}</th>
+              <th scope="col">{{ 'orders.detail.promotions.columns.line' | translate }}</th>
+              <th scope="col" class="detail__numeric">
+                {{ 'orders.detail.promotions.columns.bonus' | translate }}
+              </th>
+              <th scope="col" class="detail__numeric">
+                {{ 'orders.detail.promotions.columns.amount' | translate }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of promotions.rows; track row.key) {
+              <tr>
+                <th scope="row">
+                  <span class="detail__product">
+                    <span class="detail__product-name">{{ row.name || '—' }}</span>
+                    @if (row.detail) {
+                      <span class="detail__promotion-detail">{{ row.detail }}</span>
+                    }
+                  </span>
+                </th>
+                <td>
+                  <!--
+                    La celda queda visualmente vacía en el descuento sobre el total —la nota del
+                    pie es la que lo explica—, pero no muda: leída fuera de la fila, una celda sin
+                    nada no dice si falta el dato o si no corresponde.
+                  -->
+                  @if (row.onOrderTotal) {
+                    <span class="sr-only">{{
+                      'orders.detail.promotions.onOrderTotal' | translate
+                    }}</span>
+                  } @else {
+                    {{ row.line || '—' }}
+                  }
+                </td>
+                <td class="detail__numeric">{{ row.bonusQuantity }}</td>
+                <td class="detail__numeric">
+                  <app-currency-display [value]="row.amount" tone="positive" />
+                </td>
+              </tr>
+            }
+          </tbody>
+          <!--
+            El descuento total de la venta va en el pie de la tabla y no suelto debajo: así queda
+            bajo la columna que suma, y quien lea con lector de pantalla lo escucha como el total
+            de esa columna y no como una frase aparte.
+
+            Es todo lo que descontaron las promociones, y **no** coincide con el «Descuento» de los
+            totales de más abajo, que sólo acumula las de ámbito total.
+          -->
+          <tfoot>
+            <tr>
+              <th scope="row" colspan="3">
+                {{ 'orders.detail.promotions.total' | translate }}
+              </th>
+              <td class="detail__numeric">
+                <app-currency-display [value]="promotions.totalDiscountAmount" tone="positive" />
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!--
+        La simplificación declarada de v1: el descuento sobre el total no se reparte entre las
+        líneas. Sólo aparece cuando hay alguna fila así — si no, explica algo que no pasó.
+      -->
+      @if (promotions.hasOrderTotalRows) {
+        <p class="detail__note">{{ 'orders.detail.promotions.orderTotalNote' | translate }}</p>
+      }
+    </section>
+  }
+
+  <!--
+    Sin checkout no hay total: una orden de compra contra un comprobante sin efectos no lo tiene, y
+    mostrar $0 diría que se compró por cero.
+  -->
+  @if (order().orderCheckout; as checkout) {
+    <dl class="detail__totals">
+      @if (checkout.discountAmount) {
+        <div class="detail__totals-row">
+          <dt>{{ 'orders.detail.discount' | translate }}</dt>
+          <dd><app-currency-display [value]="checkout.discountAmount" tone="positive" /></dd>
+        </div>
+      }
+      @if (checkout.taxAmount) {
+        <div class="detail__totals-row">
+          <dt>{{ 'orders.detail.tax' | translate }}</dt>
+          <dd><app-currency-display [value]="checkout.taxAmount" /></dd>
+        </div>
+      }
+      <div class="detail__totals-row detail__totals-row--total">
+        <dt>{{ 'orders.detail.total' | translate }}</dt>
+        <dd><app-currency-display [value]="checkout.totalAmount" /></dd>
+      </div>
+    </dl>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" mat-dialog-close>
+    {{ 'orders.detail.close' | translate }}
+  </button>
+</mat-dialog-actions>

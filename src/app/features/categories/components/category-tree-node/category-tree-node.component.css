@@ -1,0 +1,141 @@
+:host {
+  display: block;
+}
+
+.tree-node {
+  display: block;
+}
+
+.tree-node__row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 3rem;
+  padding-block: 0.25rem;
+  padding-inline-end: 0.5rem;
+  padding-inline-start: calc(0.5rem + (var(--tree-depth, 0) * 1.5rem));
+  border-radius: 0.5rem;
+  color: var(--mat-sys-on-surface);
+  transition: background-color 120ms ease;
+}
+
+.tree-node__row:hover {
+  background: color-mix(in srgb, var(--mat-sys-primary) 6%, var(--mat-sys-surface));
+}
+
+.tree-node__row:hover .tree-node__actions {
+  opacity: 1;
+}
+
+.tree-node__row--expanded {
+  background: color-mix(in srgb, var(--mat-sys-primary) 4%, var(--mat-sys-surface));
+}
+
+.tree-node__row--drop-target,
+.tree-node__row--drop-target:hover {
+  background: color-mix(in srgb, var(--mat-sys-primary) 14%, var(--mat-sys-surface));
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: -2px;
+}
+
+.tree-node__handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: grab;
+}
+
+.tree-node__handle:active {
+  cursor: grabbing;
+}
+
+.tree-node__handle mat-icon,
+.tree-node__icon {
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.tree-node__toggle {
+  flex-shrink: 0;
+}
+
+.tree-node__toggle-spacer {
+  display: inline-block;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+}
+
+.tree-node__icon {
+  flex-shrink: 0;
+  margin-inline-end: 0.35rem;
+  color: var(--mat-sys-primary);
+}
+
+.tree-node__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-node__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  margin-inline-start: auto;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.tree-node__actions:focus-within {
+  opacity: 1;
+}
+
+.tree-node__children {
+  min-height: 0.5rem;
+  padding-block-end: 0.15rem;
+}
+
+.tree-node__placeholder {
+  min-height: 3rem;
+  margin-block: 0.15rem;
+  margin-inline-start: calc(0.5rem + (var(--tree-depth, 0) * 1.5rem));
+  border-radius: 0.5rem;
+  border: 1px dashed var(--mat-sys-outline-variant);
+  background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
+}
+
+.tree-node__preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface);
+  box-shadow: var(--mat-sys-level2);
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.cdk-drag-animating {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+@media (hover: none) {
+  .tree-node__actions {
+    opacity: 1;
+  }
+}

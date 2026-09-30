@@ -1,0 +1,568 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  /* El carrito crece hasta donde le deja el panel y ahí adentro scrollea, no la página. */
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+/*
+  Aparece y desaparece con la marca. Se apoya contra el borde derecho y encima de las líneas: es lo
+  que va a pasarles a ellas, no una opción más de la pantalla.
+*/
+.cart__bulk {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+  margin: 0 1rem 0.5rem;
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-large);
+  background: var(--mat-sys-surface-container-low);
+}
+
+/* Teñido como «Limpiar carrito»: es la misma clase de acción y conviene que se distinga de las otras. */
+.cart__bulk-remove {
+  --mat-button-text-label-text-color: var(--app-error);
+  --mat-button-text-icon-color: var(--app-error);
+}
+
+.cart__bulk-count {
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+}
+
+.cart__product-name {
+  display: block;
+  font-weight: 500;
+}
+
+.cart__product-meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
+.cart__flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--app-warning);
+}
+
+.cart__flag--error {
+  color: var(--app-error);
+}
+
+.cart__flag mat-icon {
+  flex: none;
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+/*
+  El encabezado de la columna es también el disparador de la lista de todo el carrito. Se disfraza
+  de encabezado —la tipografía y el color son los del `th`— y sólo muestra el borde al pasar por
+  encima, igual que el selector de cada fila: es primero el nombre de la columna y después un botón.
+*/
+.cart__cart-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  max-width: 100%;
+  padding: 0.125rem 0 0.125rem 0.375rem;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--mat-sys-corner-extra-small);
+  cursor: pointer;
+}
+
+.cart__cart-list:hover {
+  border-color: var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container-high);
+}
+
+.cart__cart-list:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 1px;
+}
+
+.cart__cart-list-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+/*
+  La lista fijada se nombra debajo del título de la columna en vez de reemplazarlo: la columna tiene
+  que seguir diciendo qué es, y el color la distingue de lo que resuelve el cliente.
+*/
+.cart__cart-list-value {
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--mat-sys-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cart__cart-list mat-icon {
+  flex: none;
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/*
+  El menú se abre desde el encabezado de una columna, así que dice de qué alcance es: sin el título,
+  «Automática» al lado de las listas se confunde con el selector de la fila.
+*/
+.cart__menu-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  max-width: 15rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.cart__menu-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.cart__menu-hint {
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: normal;
+}
+
+/* La tilde se esconde pero ocupa: las opciones quedan alineadas entre sí, con marca o sin ella. */
+.cart__menu-check--off {
+  visibility: hidden;
+}
+
+/*
+  El selector va suelto, sin `mat-form-field`: uno por fila levantaría el alto de la grilla casi al
+  doble y el mostrador vive de ver muchas líneas juntas. El borde aparece al pasar por encima, que
+  es lo que le devuelve el aspecto de control sin ocupar lugar todo el tiempo.
+*/
+.cart__price-list {
+  min-width: 8rem;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.8125rem;
+  border: 1px solid transparent;
+  border-radius: var(--mat-sys-corner-extra-small);
+}
+
+.cart__price-list:hover {
+  border-color: var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container-high);
+}
+
+.cart__price-list:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 1px;
+}
+
+.cart__price-list-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.cart__price-list-auto mat-icon {
+  flex: none;
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.cart__select-cell {
+  width: 1%;
+  padding-inline-end: 0;
+}
+
+/* El número de fila no compite con nada: angosto, tabular y en el gris de los datos de apoyo. */
+.cart__index-cell {
+  width: 1%;
+  padding-inline-end: 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+/*
+  Dónde está parado el teclado. Se marca con el color del foco y con una barra en el canto: en una
+  pantalla de mostrador el fondo teñido se pierde de reojo, la barra no.
+
+  Va antes que `--blocked` en el archivo a propósito: una línea que además no se puede cobrar tiene
+  que seguir viéndose roja, y ahí lo que dice dónde estoy parado es la barra del canto.
+*/
+.cart__row--active td {
+  background: var(--mat-sys-secondary-container);
+}
+
+.cart__row--active td:first-child {
+  box-shadow: inset 0.1875rem 0 0 var(--mat-sys-primary);
+}
+
+/* Elegir una fila es un gesto de la tabla entera, y el cursor lo dice antes de que nadie lo pruebe. */
+tr[mat-row] {
+  cursor: pointer;
+}
+
+/*
+  La línea que no se puede cobrar se marca entera y no sólo con su leyenda: en una grilla de ocho
+  columnas, un renglón teñido es lo que se ve sin leer.
+*/
+.cart__row--blocked td {
+  background: var(--app-error-container);
+}
+
+.cart__row--blocked td:first-child {
+  box-shadow: inset 0.1875rem 0 0 var(--app-error);
+}
+
+.cart__center {
+  text-align: center;
+}
+
+.cart__numeric {
+  text-align: end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart__subtotal {
+  font-weight: 500;
+}
+
+.cart__quantity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+}
+
+.cart__quantity-input {
+  width: 3rem;
+  padding: 0.25rem;
+  text-align: center;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  background: var(--mat-sys-surface-container-high);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-extra-small);
+}
+
+.cart__quantity-input:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 1px;
+}
+
+/* Las flechas nativas compiten con los botones −/+ por el mismo gesto. */
+.cart__quantity-input::-webkit-outer-spin-button,
+.cart__quantity-input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.cart__quantity-input {
+  appearance: textfield;
+}
+
+.mat-column-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Columna fija en el scroll horizontal: necesita fondo propio para no dejar ver las de atrás. */
+.cart__actions-cell {
+  background: var(--mat-sys-surface);
+  text-align: end;
+  padding-inline: 0.25rem;
+}
+
+.cart__empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.cart__empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cart__empty mat-icon {
+  font-size: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  opacity: 0.5;
+}
+
+.cart__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.cart__count {
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
+.cart__clear {
+  --mat-button-text-label-text-color: var(--app-error);
+  --mat-button-text-icon-color: var(--app-error);
+}
+
+/* ───────────────────────────  Lote de la línea (§7.3)  ─────────────────────────── */
+
+.cart__batch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.cart__batch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--mat-sys-corner-extra-small);
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.cart__batch-chip--short {
+  outline: 1px solid var(--app-error);
+}
+
+.cart__batch-chip mat-icon,
+.cart__batch-auto mat-icon {
+  flex: none;
+  font-size: 0.875rem;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.cart__batch-number {
+  font-weight: 600;
+}
+
+/* El lote lo va a elegir la política al cerrar: se dice, para que no parezca que falta un dato. */
+.cart__batch-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.cart__batch-action {
+  --mdc-text-button-container-height: 1.75rem;
+  --mdc-icon-button-state-layer-size: 1.75rem;
+  font-size: 0.75rem;
+}
+
+/*
+  Empaque de la línea. Va debajo del control de cantidad y no en una columna propia: en un mostrador
+  cada columna es ancho que se le saca al nombre del producto, y la equivalencia sólo tiene sentido
+  pegada al número que aclara.
+*/
+.cart__packaging {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.cart__packaging-select {
+  max-width: 9rem;
+  font-size: 0.75rem;
+}
+
+/*
+  La equivalencia en unidad base: es lo que evita que el número de la fila se lea como unidades
+  cuando en realidad son cajas (RN-16).
+*/
+.cart__packaging-equivalence {
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Línea de kit ─────────────────────────────────────────────────────────── */
+
+/* El toggle vive dentro del nombre: es parte de la línea, no una columna aparte. */
+.cart__kit-toggle {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-inline-start: -0.5rem;
+}
+
+.cart__kit-tag {
+  margin-inline-start: 0.375rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.cart__kit-available {
+  margin-inline-start: 0.5rem;
+}
+
+/*
+  Los componentes: sangrados bajo su combo y sin columna de importe. Que no haya un número al lado
+  de cada uno es la mitad de lo que la fila comunica (RN-08).
+*/
+.cart__kit-components {
+  margin: 0.25rem 0 0;
+  padding-inline-start: 1.75rem;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.cart__kit-component-quantity {
+  font-variant-numeric: tabular-nums;
+  margin-inline-end: 0.25rem;
+}
+
+.cart__kit-component-note {
+  margin-inline-start: 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.cart__kit-component--short {
+  color: var(--mat-sys-error);
+}
+
+/* ── Series de la línea (wireframe 1m) ──────────────────────────────────── */
+
+.cart__serial-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  /*
+   * El número no se parte: la celda del producto es angosta y sin esto `SN-A14-0041` se rompe en
+   * tres renglones dentro de la píldora, que es justo lo que hace ilegible un número de serie.
+   */
+  white-space: nowrap;
+  padding: 0.15rem 0.2rem 0.15rem 0.5rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 999px;
+  background: var(--mat-sys-surface-container-high);
+  font-size: 0.8125rem;
+}
+
+.cart__serial-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cart__serial-chip-remove:hover {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+}
+
+/*
+  Los chips de promoción van en la línea y no en el panel de totales: lo que el vendedor necesita
+  contestar es «¿por qué esta línea sale esto?», y la respuesta tiene que estar donde está la
+  pregunta. El panel dice cuánto descontó la venta; la fila, por qué.
+*/
+.cart__promotions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.cart__promotion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  padding: 0.0625rem 0.5rem 0.0625rem 0.375rem;
+  border-radius: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: var(--app-success-container);
+  color: var(--app-on-success-container);
+}
+
+/*
+  La bonificación de un NxM se distingue del porcentaje: son cosas distintas —una unidad entera que
+  pasa a valer nada, contra una fracción de un precio— y el glosario las separa a propósito.
+*/
+.cart__promotion--bonus {
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+}
+
+.cart__promotion mat-icon {
+  flex: none;
+  font-size: 0.875rem;
+  width: 0.875rem;
+  height: 0.875rem;
+}

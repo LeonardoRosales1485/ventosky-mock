@@ -1,0 +1,259 @@
+@if (trace(); as trace) {
+  <h2 mat-dialog-title>
+    {{
+      'checkingAccounts.traceDialog.title'
+        | translate: { date: (trace.allocation.dateCreated | localizedDate: 'shortDate') }
+    }}
+    · <app-currency-display [value]="trace.allocation.amount" />
+  </h2>
+} @else {
+  <h2 mat-dialog-title>{{ 'checkingAccounts.traceDialog.loadingTitle' | translate }}</h2>
+}
+
+<mat-dialog-content>
+  @if (loading()) {
+    <div class="trace__loading">
+      <mat-spinner diameter="28" />
+    </div>
+  } @else if (failed()) {
+    <p class="trace__error">{{ 'checkingAccounts.traceDialog.error' | translate }}</p>
+  } @else if (trace(); as trace) {
+    <header class="trace__head">
+      <p class="trace__route">
+        {{ trace.allocation.creditPublicId ?? '—' }}
+        <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+        {{ trace.allocation.debtPublicId ?? '—' }}
+      </p>
+      <!--
+        Vigente y original, no sólo la resta: lo que esta imputación todavía sostiene y por cuánto
+        nació son dos datos, y con uno solo no se sabe cuánto se deshizo.
+      -->
+      <span class="trace__chip" [class.trace__chip--spent]="!trace.active">
+        {{
+          (trace.active
+            ? 'checkingAccounts.traceDialog.active'
+            : 'checkingAccounts.traceDialog.spent'
+          ) | translate
+        }}
+        <app-currency-display [value]="trace.activeAmount" />
+        {{ 'checkingAccounts.traceDialog.of' | translate }}
+        <app-currency-display [value]="trace.allocation.amount" />
+      </span>
+    </header>
+
+    <!-- ───────────────────  A dónde fue esa plata  ─────────────────── -->
+    <h3 class="trace__section">{{ 'checkingAccounts.traceDialog.where' | translate }}</h3>
+    <ol class="trace__steps">
+      @for (step of trace.trace; track step.entry.uuid) {
+        <li
+          class="trace__step"
+          [class.trace__step--reversal]="isReversal(step.entry)"
+          [style.margin-inline-start]="indentOf(step.depth)"
+        >
+          <span class="trace__level">
+            {{ 'checkingAccounts.traceDialog.level' | translate: { level: step.depth } }}
+          </span>
+          <span class="trace__what">
+            <strong>
+              {{ 'checkingAccounts.traceDialog.' + step.entry.entryType | translate }}
+            </strong>
+            <app-currency-display [value]="step.entry.signedAmount" [showSign]="true" tone="auto" />
+            @if (!isReversal(step.entry) && step.entry.debtPublicId) {
+              {{ 'checkingAccounts.traceDialog.toDebt' | translate }} {{ step.entry.debtPublicId }}
+            }
+            <!-- La causa con palabras: `CREDIT_VOID` no contesta «por qué volvió a la bandeja». -->
+            @if (isReversal(step.entry)) {
+              · {{ 'checkingAccounts.traceDialog.cause' | translate }}
+              {{ 'checkingAccounts.causes.' + step.entry.cause | translate }}
+            }
+          </span>
+          <span class="trace__when">
+            {{ step.entry.dateCreated | localizedDate: 'shortDate' }}
+            ·
+            {{ 'checkingAccounts.allocationModes.' + step.entry.mode | translate }}
+            @if (step.entry.reason) {
+              · «{{ step.entry.reason }}»
+            }
+          </span>
+        </li>
+      } @empty {
+        <li class="trace__empty">{{ 'checkingAccounts.traceDialog.noSteps' | translate }}</li>
+      }
+    </ol>
+    <!--
+      El recorrido de una porción termina donde termina esa porción. Que otra del mismo cobro siga
+      viva no se ve acá, y por eso está el bloque de abajo: dos imputaciones no se encadenan.
+    -->
+    <p class="trace__hint">{{ 'checkingAccounts.traceDialog.chainHint' | translate }}</p>
+
+    <!-- ─────────────────  Qué hizo todo este cobro  ───────────────── -->
+    @if (credit(); as credit) {
+      <section class="trace__credit" aria-labelledby="trace-credit">
+        <h3 class="trace__section" id="trace-credit">
+          {{ 'checkingAccounts.traceDialog.wholeCredit' | translate }}
+        </h3>
+
+        <dl class="trace__credit-figures">
+          <div>
+            <dt>{{ 'checkingAccounts.traceDialog.creditAmount' | translate }}</dt>
+            <dd><app-currency-display [value]="credit.amount" /></dd>
+          </div>
+          <div>
+            <dt>{{ 'checkingAccounts.traceDialog.creditApplied' | translate }}</dt>
+            <dd><app-currency-display [value]="appliedAmount()" /></dd>
+          </div>
+          <div>
+            <dt>{{ 'checkingAccounts.columns.unallocatedAmount' | translate }}</dt>
+            <dd>
+              <app-currency-display
+                [value]="credit.unallocatedAmount"
+                [tone]="credit.unallocatedAmount > 0 ? 'positive' : 'neutral'"
+              />
+            </dd>
+          </div>
+        </dl>
+
+        <!--
+          Una fila por porción, con su deuda de destino: es la única forma de ver, parado en $5.000
+          de un cobro de $10.000, dónde terminó la otra mitad. Clickear una salta la traza a ella.
+        -->
+        <ul class="trace__siblings">
+          @for (sibling of siblings(); track sibling.entry.uuid) {
+            <li>
+              <button
+                type="button"
+                class="trace__sibling"
+                [class.trace__sibling--current]="sibling.current"
+                [disabled]="sibling.current"
+                [matTooltip]="
+                  (sibling.current
+                    ? 'checkingAccounts.traceDialog.thisOne'
+                    : 'checkingAccounts.traceDialog.openSibling'
+                  ) | translate
+                "
+                (click)="onOpenSibling(sibling)"
+              >
+                <span class="trace__sibling-when">
+                  {{ sibling.entry.dateCreated | localizedDate: 'shortDate' }}
+                </span>
+                <span class="trace__sibling-debt">
+                  {{ 'checkingAccounts.traceDialog.toDebt' | translate }}
+                  {{ sibling.entry.debtPublicId ?? '—' }}
+                </span>
+                <app-currency-display [value]="sibling.entry.amount" />
+                <!--
+                  Cuánto de esa porción sigue en pie. En cero, la plata se movió: la traza de esa
+                  fila dice a dónde.
+                -->
+                <span
+                  class="trace__sibling-active"
+                  [class.trace__sibling-active--spent]="sibling.activeAmount <= 0"
+                >
+                  @if (sibling.activeAmount > 0) {
+                    {{ 'checkingAccounts.traceDialog.stillStanding' | translate }}
+                  } @else {
+                    {{ 'checkingAccounts.traceDialog.moved' | translate }}
+                  }
+                </span>
+                @if (sibling.current) {
+                  <mat-icon class="trace__sibling-mark" aria-hidden="true">visibility</mat-icon>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <div class="trace__cards">
+      <!-- ───────────────────  Quién la revirtió  ─────────────────── -->
+      <section class="trace__card" aria-labelledby="trace-reversals">
+        <h3 class="trace__card-title" id="trace-reversals">
+          {{ 'checkingAccounts.traceDialog.reversals' | translate }}
+        </h3>
+        @if (trace.reversals.length === 0) {
+          <p class="trace__card-empty">
+            {{ 'checkingAccounts.traceDialog.noReversals' | translate }}
+          </p>
+        } @else {
+          <ul class="trace__list">
+            @for (reversal of trace.reversals; track reversal.uuid) {
+              <li>
+                <span class="trace__when">
+                  {{ reversal.dateCreated | localizedDate: 'shortDate' }}
+                </span>
+                {{ 'checkingAccounts.causes.' + reversal.cause | translate }}
+                <app-currency-display [value]="reversal.amount" />
+                @if (reversal.reason) {
+                  <span class="trace__reason">«{{ reversal.reason }}»</span>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <!-- ────────────  Cómo llegó la deuda a su pendiente  ──────────── -->
+      <section class="trace__card" aria-labelledby="trace-debt">
+        <h3 class="trace__card-title" id="trace-debt">
+          {{ 'checkingAccounts.traceDialog.debtHistory' | translate }}
+        </h3>
+
+        <!--
+          El importe emitido es el primer anclaje: sin él los movimientos de abajo no suman a nada.
+          Sólo está cuando el diálogo se abre desde la línea de tiempo de la deuda — no hay endpoint
+          para leer una deuda suelta, y estimarlo sumando filas sería inventar el número que esta
+          tarjeta existe para verificar.
+        -->
+        @if (debtReconciliation(); as reconciliation) {
+          <p class="trace__debt-anchor">
+            {{ 'checkingAccounts.traceDialog.issued' | translate }}
+            <app-currency-display [value]="reconciliation.issued" />
+          </p>
+        }
+
+        @if (trace.debtHistory.length === 0) {
+          <p class="trace__card-empty">
+            {{ 'checkingAccounts.traceDialog.noDebtHistory' | translate }}
+          </p>
+        } @else {
+          <ul class="trace__list">
+            @for (entry of trace.debtHistory; track entry.uuid) {
+              <li>
+                <span class="trace__when">
+                  {{ entry.dateCreated | localizedDate: 'shortDate' }}
+                </span>
+                {{ 'checkingAccounts.traceDialog.' + entry.entryType | translate }}
+                @if (entry.creditPublicId) {
+                  {{ entry.creditPublicId }}
+                }
+                <!--
+                  El signo es el de la **deuda**, no el del libro: una imputación baja el pendiente,
+                  y mostrar `signedAmount` en verde se leía como si la deuda hubiera crecido.
+                -->
+                <app-currency-display
+                  [value]="debtEffectOf(entry)"
+                  [showSign]="true"
+                  tone="auto"
+                />
+              </li>
+            }
+          </ul>
+        }
+
+        @if (debtReconciliation(); as reconciliation) {
+          <p class="trace__debt-anchor trace__debt-anchor--total">
+            {{ 'checkingAccounts.traceDialog.pendingToday' | translate }}
+            <app-currency-display [value]="reconciliation.pending" />
+          </p>
+        }
+      </section>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">
+    {{ 'checkingAccounts.actions.close' | translate }}
+  </button>
+</mat-dialog-actions>

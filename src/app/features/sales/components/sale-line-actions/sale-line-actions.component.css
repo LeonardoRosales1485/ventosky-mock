@@ -1,0 +1,91 @@
+/*
+  El panel de la línea marcada. Va debajo del cobro y no arriba: lo primero que se mira de esta
+  columna es cuánto da la venta; esto es lo que se hace mientras tanto.
+*/
+:host {
+  display: block;
+  padding: 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-medium);
+  background: var(--mat-sys-surface-container-low);
+}
+
+.line__title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Una línea sola: el nombre completo está en la tabla, acá alcanza con reconocerla. */
+.line__name {
+  margin: 0.125rem 0 0.625rem;
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+
+/*
+  Cada acción es una tecla con nombre: la etiqueta a la izquierda y la tecla apoyada contra el
+  borde, que es como se leen en el pie de la pantalla y en el botón de cobro.
+*/
+.line__action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4375rem 0.5rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-small);
+  background: var(--mat-sys-surface);
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.line__action:hover {
+  background: var(--mat-sys-surface-container-high);
+}
+
+.line__action:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+.line__action--remove {
+  color: var(--app-error);
+}
+
+.line__action kbd {
+  flex: none;
+  padding: 0.0625rem 0.375rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-extra-small);
+  background: var(--mat-sys-surface-container);
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.line__empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* El tilde ocupa su lugar en la fila que no lo lleva: sin esto las opciones no alinean. */
+.line__check--off {
+  visibility: hidden;
+}

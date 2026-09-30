@@ -1,0 +1,87 @@
+@let searchLabel = searchPlaceholder() ?? ('tableToolbar.search' | translate);
+@let searchAria = searchAriaLabel() ?? ('tableToolbar.searchAria' | translate);
+@let filtersAria = filtersLabel() ?? ('tableToolbar.filters' | translate);
+@let refreshAria = refreshLabel() ?? ('tableToolbar.refresh' | translate);
+@let clearFiltersAria =
+  clearFiltersLabel() ?? ('tableToolbar.clearFilters' | translate);
+
+<div
+  class="table-toolbar"
+  role="toolbar"
+  [attr.aria-label]="'tableToolbar.aria' | translate"
+>
+  <mat-form-field
+    appearance="outline"
+    class="table-toolbar__search vk-field-40"
+    subscriptSizing="dynamic"
+  >
+    <mat-icon matIconPrefix aria-hidden="true">search</mat-icon>
+    <input
+      matInput
+      type="text"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+      [disabled]="disabled()"
+      [placeholder]="searchLabel"
+      [attr.aria-label]="searchAria"
+    />
+    <button
+      matIconButton
+      matSuffix
+      type="button"
+      class="table-toolbar__clear-search"
+      [class.table-toolbar__clear-search--hidden]="!search()"
+      [disabled]="disabled() || !search()"
+      [attr.aria-label]="'tableToolbar.clearSearch' | translate"
+      (click)="search.set(''); $event.stopPropagation()"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  </mat-form-field>
+
+  <ng-content select="[toolbarSegment]" />
+
+  <div class="table-toolbar__actions">
+    <ng-content select="[toolbarActions]" />
+    @if (hasActiveFilters()) {
+      <button
+        mat-button
+        type="button"
+        [disabled]="disabled()"
+        [attr.aria-label]="clearFiltersAria"
+        [matTooltip]="clearFiltersAria"
+        (click)="clearFilters.emit()"
+      >
+        <mat-icon aria-hidden="true">filter_alt_off</mat-icon>
+        {{ clearFiltersAria }}
+      </button>
+    }
+
+    <button
+      mat-stroked-button
+      type="button"
+      class="table-toolbar__filters"
+      [disabled]="disabled()"
+      [attr.aria-label]="filtersAria"
+      (click)="filtersClick.emit()"
+    >
+      <mat-icon aria-hidden="true">tune</mat-icon>
+      {{ 'tableToolbar.filtersButton' | translate }}
+      @if (hasActiveFilters()) {
+        <span class="table-toolbar__count vk-num">{{ activeFilters() }}</span>
+      }
+    </button>
+
+    <button
+      mat-icon-button
+      type="button"
+      class="vk-row-action"
+      [disabled]="disabled()"
+      [attr.aria-label]="refreshAria"
+      [matTooltip]="refreshAria"
+      (click)="refresh.emit()"
+    >
+      <mat-icon aria-hidden="true">refresh</mat-icon>
+    </button>
+  </div>
+</div>

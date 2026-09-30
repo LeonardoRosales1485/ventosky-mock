@@ -1,0 +1,120 @@
+:host {
+  display: block;
+}
+
+/*
+  Propuesta B: la carga en una columna ancha (detalles, líneas, pagos) y el resumen en una angosta
+  que acompaña el scroll, con el total y el botón de registrar siempre a la vista.
+*/
+.purchase {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: var(--vk-gap);
+  align-items: start;
+}
+
+.purchase__stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vk-gap);
+  min-width: 0;
+}
+
+/* El buscador y la carga por modelo, en su franja bajo el encabezado de la tarjeta de líneas. */
+.purchase__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--vk-line);
+}
+
+.purchase__search {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.purchase__model-load {
+  flex: none;
+  height: 48px;
+}
+
+@media (max-width: 599px) {
+  .purchase__model-load {
+    font-size: 0;
+    padding-inline: 0.75rem;
+  }
+
+  .purchase__model-load mat-icon {
+    margin: 0;
+  }
+}
+
+.purchase__account {
+  display: block;
+  margin-top: 16px;
+}
+
+/* ---- Resumen ---- */
+.purchase__summary {
+  position: sticky;
+  top: 20px;
+}
+
+.purchase__summary-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.purchase__confirm {
+  --mat-button-filled-container-height: 50px;
+  width: 100%;
+  font-size: 15px;
+}
+
+.purchase__cancel {
+  width: 100%;
+}
+
+.purchase__reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  color: var(--vk-fg-3);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.purchase__reason mat-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+/* Qué catálogo no cargó: arriba de todo, donde se lee antes de empezar. */
+.purchase__catalogs-alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--vk-radius-sm);
+  background: var(--vk-bad-soft);
+  color: var(--vk-bad);
+  font-size: 13px;
+}
+
+@media (max-width: 1180px) {
+  .purchase {
+    grid-template-columns: 1fr;
+  }
+
+  .purchase__summary {
+    position: static;
+  }
+}

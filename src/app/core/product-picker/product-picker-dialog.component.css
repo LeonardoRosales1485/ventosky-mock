@@ -1,0 +1,114 @@
+/*
+  El diálogo se queda con el alto que le dé el viewport y scrollea la tabla por dentro: con el
+  scroll en el contenido, el encabezado con el buscador se iría de pantalla apenas hay resultados.
+*/
+.picker__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.picker__description {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.picker__header {
+  display: flex;
+  flex-direction: column;
+}
+
+.picker__filters {
+  display: flex;
+  flex-wrap: wrap;
+  /* Sin `stretch` el campo con hint (Categoría) no estira la caja del otro campo. */
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0 1rem 0.75rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.picker__filters mat-form-field {
+  flex: 1 1 14rem;
+  min-width: min(100%, 14rem);
+}
+
+/*
+  El checkbox del proveedor no compite por ancho con los selects: ocupa su renglón y alinea con la
+  altura del campo, así el panel no queda con una caja de texto y una casilla a media altura.
+*/
+.picker__filters-supplier {
+  flex: 1 1 100%;
+  align-self: center;
+}
+
+/* Sangría por nivel para que el select deje ver la jerarquía del árbol. */
+.picker__filters-category {
+  padding-inline-start: calc(1rem + (var(--category-depth, 0) * 1rem));
+}
+
+table {
+  width: 100%;
+}
+
+.picker__row {
+  cursor: pointer;
+}
+
+.picker__row:hover {
+  background: var(--mat-sys-surface-container-high);
+}
+
+.picker__name {
+  display: block;
+  font-weight: 500;
+}
+
+.picker__barcode {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
+.picker__numeric {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.picker__stock {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sin stock no bloquea la elección, pero tiene que verse antes de agregarlo. */
+.picker__stock--out {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--app-error-container);
+  color: var(--app-on-error-container);
+  font-weight: 500;
+}
+
+.picker__empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.mat-column-actions {
+  width: 1%;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+  text-align: end;
+}
+
+/* La columna queda fija al hacer scroll horizontal, así que necesita fondo propio. */
+.picker__actions-cell {
+  background: var(--mat-sys-surface);
+  border-left: 1px solid var(--mat-sys-outline-variant);
+}

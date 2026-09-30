@@ -1,0 +1,90 @@
+<h2 mat-dialog-title class="payment-dialog__title">
+  <mat-icon aria-hidden="true">point_of_sale</mat-icon>
+  {{ 'sales.payments.dialogTitle' | translate }}
+</h2>
+
+<mat-dialog-content>
+  <!--
+    El total va primero y grande: es el número que se le canta al cliente, y el que después hay que
+    saldar con los tramos de abajo.
+
+    Región viva, además: con una promoción condicionada por medio de pago el total **se mueve
+    mientras se cobra**, que es un caso que no existe en ninguna otra pantalla del sistema. Si cambia
+    sin que nada lo anuncie, el vendedor lo descubre al cantarle otro número al cliente.
+  -->
+  <p class="payment-dialog__total" role="status">
+    <span>{{ 'sales.totals.total' | translate }}</span>
+    <app-currency-display class="payment-dialog__total-value" [value]="totals().totalAmount" />
+  </p>
+
+  <!--
+    Por qué el total dice lo que dice. La aplicada muestra lo que restó; la sugerida, lo que restaría
+    y con qué hay que pagar; la caída queda tachada en $0 con el motivo y con qué se recupera — si
+    desapareciera, el vendedor vería subir el total sin ninguna explicación.
+  -->
+  @if (checkout().breakdown.length > 0) {
+    <app-sale-promotion-breakdown
+      class="payment-dialog__promotions"
+      [promotions]="checkout().breakdown"
+    />
+  }
+
+  <!--
+    A nombre de quién se emite, antes del cobro: es el dato que hay que tener resuelto cuando se
+    imprime, y dejarlo después de los medios de pago lo pondría abajo del botón de confirmar.
+  -->
+  <app-sale-receiver [customer]="data.customer" [(receiver)]="receiver" />
+
+  <app-sale-payments
+    [paymentMethods]="data.paymentMethods"
+    [payments]="payments()"
+    [remainingAmount]="balance().remainingAmount"
+    [availability]="data.availability"
+    (paymentAdd)="onPaymentAdd($event)"
+    (paymentRemove)="onPaymentRemove($event)"
+  />
+
+  <!-- Región viva: el saldo cambia con cada tramo que se agrega, sin que nada más se mueva. -->
+  <p class="payment-dialog__balance" role="status">
+    @if (balance().remainingAmount > 0) {
+      <span>{{ 'sales.totals.remaining' | translate }}</span>
+      <app-currency-display
+        class="payment-dialog__balance-value payment-dialog__balance-value--due"
+        [value]="balance().remainingAmount"
+      />
+    } @else if (balance().changeAmount > 0) {
+      <span>{{ 'sales.totals.change' | translate }}</span>
+      <app-currency-display
+        class="payment-dialog__balance-value"
+        [value]="balance().changeAmount"
+        tone="positive"
+      />
+    } @else {
+      <span class="payment-dialog__settled">
+        <mat-icon aria-hidden="true">task_alt</mat-icon>
+        {{ 'sales.payments.settled' | translate }}
+      </span>
+    }
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="undefined">
+    {{ 'sales.payments.cancel' | translate }}
+  </button>
+
+  <!--
+    Confirmar es lo que registra la venta: hasta que el cobro no cubra el total no hay nada que
+    confirmar, y el motivo lo dice el saldo de arriba.
+  -->
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [disabled]="!balance().isFullyPaid"
+    (click)="onConfirm()"
+  >
+    <mat-icon aria-hidden="true">check_circle</mat-icon>
+    {{ 'sales.totals.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

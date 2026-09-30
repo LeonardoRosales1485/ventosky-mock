@@ -1,0 +1,184 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    @if (party(); as person) {
+      {{
+        (personUser() ? 'directory.grant.editTitle' : 'directory.grant.titleFor')
+          | translate: { name: person.name }
+      }}
+    } @else {
+      {{ 'directory.grant.title' | translate }}
+    }
+  </h2>
+
+  <mat-dialog-content>
+    <p class="grant__subtitle">{{ 'directory.grant.subtitle' | translate }}</p>
+
+    @if (errorMessage(); as message) {
+      <p class="grant__error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        {{ message }}
+      </p>
+    }
+
+    @if (linkingUser) {
+      <p class="grant__note">
+        <mat-icon aria-hidden="true">link</mat-icon>
+        {{ 'directory.grant.linkingUser' | translate: { username: linkingUser.username } }}
+      </p>
+    }
+
+    @if (party(); as person) {
+      <section class="grant__person" aria-labelledby="grant-person-title">
+        <h3 class="grant__eyebrow" id="grant-person-title">
+          {{ 'directory.grant.person' | translate }}
+        </h3>
+        <span class="grant__person-name">{{ person.name }}</span>
+        @if (document(); as doc) {
+          <span class="grant__person-doc">{{ doc }}</span>
+        }
+        @if ((person.roles ?? []).length > 0) {
+          <span class="grant__person-roles">
+            @for (role of person.roles; track role.uuid) {
+              <span class="grant__tag">{{ 'directory.roleNames.' + role.role | translate }}</span>
+            }
+          </span>
+        }
+        <span class="grant__hint">{{ 'directory.grant.personKept' | translate }}</span>
+        @if (!presetParty) {
+          <button mat-button type="button" class="self-start" (click)="onChangePerson()">
+            {{ 'directory.grant.changePerson' | translate }}
+          </button>
+        }
+      </section>
+
+      @if (userConflict()) {
+        <p class="grant__note" role="note">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          {{
+            'directory.grant.userConflict'
+              | translate: { username: personUser()?.name, other: linkingUser?.username }
+          }}
+        </p>
+      }
+
+      @if (personUser()) {
+        <section class="grant__current" aria-labelledby="grant-current-title">
+          <h3 class="grant__eyebrow" id="grant-current-title">
+            {{ 'directory.grant.currentRoles' | translate }}
+          </h3>
+          <span class="grant__person-roles">
+            @for (role of currentRoles(); track role.uuid) {
+              <span class="grant__tag">{{ role.name }}</span>
+            } @empty {
+              <span class="grant__hint">{{ 'directory.grant.noCurrentRoles' | translate }}</span>
+            }
+          </span>
+          <span class="grant__hint">{{ 'directory.grant.onlyAdds' | translate }}</span>
+        </section>
+      } @else if (!model().access.existingUserUuid) {
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>{{ 'directory.grant.email' | translate }}</mat-label>
+          <input
+            matInput
+            type="email"
+            autocomplete="email"
+            [formField]="grantForm.email"
+            [attr.aria-label]="'directory.grant.email' | translate"
+          />
+          @if (grantForm.email().touched() && grantForm.email().invalid()) {
+            <mat-error>{{ grantForm.email().errors() | fieldError }}</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      <app-directory-access-block
+        [access]="grantForm.access"
+        variant="grant"
+        [suggested]="suggested()"
+        [suggestedState]="suggestedState()"
+        [roles]="roles()"
+        [currentRoleUuids]="currentRoleUuids()"
+        [canGrant]="canGrant"
+        [takenUser]="takenUser()"
+        [personHasUser]="!!personUser() || !!linkingUser"
+      />
+
+      <app-directory-extra-links
+        [form]="grantForm"
+        [plan]="extraLinks()"
+        [detection]="detection()"
+        [branches]="catalogs.branches()"
+        [priceLists]="catalogs.priceLists()"
+      />
+    } @else {
+      <section class="grant__search" aria-labelledby="grant-search-title">
+        <h3 class="grant__eyebrow" id="grant-search-title">
+          {{ 'directory.grant.searchTitle' | translate }}
+        </h3>
+        <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+          <mat-icon matIconPrefix aria-hidden="true">search</mat-icon>
+          <mat-label>{{ 'directory.grant.searchLabel' | translate }}</mat-label>
+          <input
+            matInput
+            type="search"
+            autocomplete="off"
+            [value]="searchTerm()"
+            (input)="onSearchInput($event)"
+            [attr.aria-label]="'directory.grant.searchLabel' | translate"
+          />
+        </mat-form-field>
+
+        <div role="status" class="grant__search-status">
+          @if (searching()) {
+            {{ 'directory.grant.searching' | translate }}
+          } @else if (searchFailed()) {
+            {{ 'directory.grant.searchFailed' | translate }}
+          } @else if (searchTerm().trim().length >= 2 && results().length === 0) {
+            {{ 'directory.grant.noResults' | translate }}
+          }
+        </div>
+
+        @if (results().length > 0) {
+          <ul class="grant__results" [attr.aria-label]="'directory.grant.results' | translate">
+            @for (candidate of results(); track candidate.uuid) {
+              <li>
+                <button type="button" class="grant__result" (click)="onSelectParty(candidate)">
+                  <span class="grant__person-name">{{ candidate.name }}</span>
+                  <span class="grant__result-meta">
+                    @if (candidate.docNumber) {
+                      <span>{{ candidate.docType }} {{ candidate.docNumber }}</span>
+                    }
+                    @for (role of candidate.roles ?? []; track role.uuid) {
+                      <span class="grant__tag">{{
+                        'directory.roleNames.' + role.role | translate
+                      }}</span>
+                    }
+                    @if (candidate.username) {
+                      <span class="grant__tag grant__tag--user">{{
+                        'directory.grant.logsInAs' | translate: { username: candidate.username }
+                      }}</span>
+                    }
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    @if (personUser() && canUnlink) {
+      <button mat-button type="button" class="grant__unlink" (click)="onUnlink()">
+        {{ 'directory.grant.unlink' | translate }}
+      </button>
+    }
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'directory.form.cancel' | translate }}
+    </button>
+    <button mat-flat-button type="submit" [disabled]="submitDisabled()">
+      {{ submitLabelKey() | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

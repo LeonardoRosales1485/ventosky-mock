@@ -1,0 +1,148 @@
+:host {
+  display: block;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+:host(:last-of-type) {
+  border-bottom: none;
+}
+
+.setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+  align-items: start;
+  gap: 1.25rem 1.5rem;
+  padding: 1.25rem 1.5rem;
+}
+
+/* Una clave que este nivel no admite se lee igual: apagada, no escondida. */
+.setting--out-of-level {
+  background: var(--mat-sys-surface-container-low);
+}
+
+.setting__about {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.setting__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.setting--out-of-level .setting__label {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.setting__hint {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* El nombre técnico a la vista: es lo que hace que un implementador y un administrador puedan
+   hablar de lo mismo sin traducir de la etiqueta al string de la API. */
+.setting__key {
+  font-family: 'Roboto Mono', ui-monospace, monospace;
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: var(--mat-sys-on-surface-variant);
+  overflow-wrap: anywhere;
+}
+
+.setting__control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.setting__control mat-form-field {
+  width: 100%;
+}
+
+.setting__color {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.setting__swatch {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.25rem;
+  background: none;
+  cursor: pointer;
+}
+
+.setting__swatch:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.setting__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.setting__out-of-level-chip {
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.setting__error {
+  margin: 0;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--mat-sys-error);
+}
+
+/* A qué valor vuelve «Restablecer». Sin eso, restablecer es una apuesta. */
+.setting__reset-hint {
+  margin: 0;
+  text-align: right;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.setting__levels {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 48rem) {
+  .setting {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 1rem 1.25rem;
+  }
+
+  .setting__control {
+    align-items: stretch;
+  }
+
+  .setting__meta {
+    justify-content: flex-start;
+  }
+
+  .setting__error,
+  .setting__reset-hint {
+    text-align: left;
+  }
+}

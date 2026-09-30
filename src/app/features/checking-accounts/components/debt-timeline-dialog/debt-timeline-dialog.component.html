@@ -1,0 +1,241 @@
+<h2 mat-dialog-title>{{ 'checkingAccounts.timeline.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <!--
+    El panel lateral contesta de dónde sale esta deuda y qué se hizo con su vencimiento. Va al lado y
+    no arriba porque la línea de tiempo es lo que se viene a leer: empujarla hacia abajo con dos
+    bloques de contexto la dejaría fuera de la primera pantalla justo cuando hay varias imputaciones.
+  -->
+  <div class="timeline__layout">
+    @if (data.debt; as debt) {
+      <aside class="timeline__panel" [attr.aria-label]="'checkingAccounts.timeline.panel' | translate">
+        <!-- ─────────────────────────  De dónde sale  ───────────────────────── -->
+        <section class="timeline__card">
+          <header class="timeline__card-head">
+            <mat-icon aria-hidden="true">description</mat-icon>
+            <h3>{{ 'checkingAccounts.timeline.originTitle' | translate }}</h3>
+          </header>
+
+          <div class="timeline__card-body">
+            <span class="timeline__chip">
+              {{ 'checkingAccounts.origins.' + debt.origin | translate }}
+            </span>
+
+            <!--
+              No hay pantalla de detalle de una orden, así que el enlace abre el listado que
+              corresponde ya buscando ese comprobante. Cliente ⇒ venta, proveedor ⇒ compra: es la
+              misma orden leída desde cada lado del mostrador, y la deuda sola no lo distingue.
+            -->
+            @if (orderLink(); as link) {
+              <a
+                class="timeline__order"
+                [routerLink]="link.path"
+                [queryParams]="link.query"
+                mat-dialog-close
+              >
+                <span class="timeline__order-text">
+                  <span class="timeline__order-label">
+                    {{ 'checkingAccounts.timeline.goToOrder' | translate }}
+                  </span>
+                  <strong>{{ debt.order?.name }}</strong>
+                </span>
+                <mat-icon aria-hidden="true">open_in_new</mat-icon>
+              </a>
+            } @else {
+              <p class="timeline__note">{{ 'checkingAccounts.timeline.noOrder' | translate }}</p>
+            }
+
+            @if (debt.description) {
+              <p class="timeline__note">{{ debt.description }}</p>
+            }
+
+            <dl class="timeline__facts">
+              <div>
+                <dt>{{ 'checkingAccounts.timeline.issuedOn' | translate }}</dt>
+                <dd>{{ debt.dateIssued | localizedDate }}</dd>
+              </div>
+              <div>
+                <dt>{{ 'checkingAccounts.columns.amount' | translate }}</dt>
+                <dd><app-currency-display [value]="debt.amount" /></dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+
+        <!-- ──────────────────────  Historial de prórrogas  ────────────────────── -->
+        <section class="timeline__card">
+          <header class="timeline__card-head">
+            <mat-icon aria-hidden="true">event_repeat</mat-icon>
+            <h3>{{ 'checkingAccounts.timeline.extensionsTitle' | translate }}</h3>
+            @if (extensions().length > 0) {
+              <span class="timeline__count">{{ extensions().length }}</span>
+            }
+          </header>
+
+          <div class="timeline__card-body">
+            <!--
+              El vencimiento vigente arriba y grande: es el dato que se viene a mirar. El original
+              sólo aparece cuando difiere — iguales, decir «vencía el mismo día» es ruido.
+            -->
+            <p class="timeline__due">{{ debt.dateDue | localizedDate: 'mediumDate' }}</p>
+            @if (debt.dateDueOriginal && debt.dateDueOriginal !== debt.dateDue) {
+              <p class="timeline__due-original">
+                {{ 'checkingAccounts.timeline.originalDue' | translate }}
+                {{ debt.dateDueOriginal | localizedDate: 'mediumDate' }}
+              </p>
+            }
+
+            @if (extensionsFailed()) {
+              <p class="timeline__note">
+                {{ 'checkingAccounts.timeline.extensionsError' | translate }}
+              </p>
+            } @else if (extensions().length === 0) {
+              <p class="timeline__note">
+                {{ 'checkingAccounts.timeline.noExtensions' | translate }}
+              </p>
+            } @else {
+              <ol class="timeline__extensions">
+                @for (extension of extensions(); track extension.uuid) {
+                  <li class="timeline__extension">
+                    <span class="timeline__extension-dates">
+                      {{ extension.previousDue | localizedDate: 'shortDate' }}
+                      <mat-icon aria-hidden="true">east</mat-icon>
+                      <strong>{{ extension.newDue | localizedDate: 'shortDate' }}</strong>
+                    </span>
+                    @if (extension.reason) {
+                      <span class="timeline__extension-reason">«{{ extension.reason }}»</span>
+                    }
+                    <span class="timeline__extension-when">
+                      {{ extension.dateDecided | localizedDate }}
+                    </span>
+                  </li>
+                }
+              </ol>
+            }
+          </div>
+        </section>
+      </aside>
+    }
+
+    <div class="timeline__main">
+      @if (data.credit; as credit) {
+        <p class="timeline__debt">
+          <strong>{{ credit.publicId ?? credit.description }}</strong>
+          ·
+          {{ 'checkingAccounts.columns.unallocatedAmount' | translate }}:
+          <app-currency-display [value]="credit.unallocatedAmount" tone="positive" />
+        </p>
+      } @else if (data.debt; as debt) {
+        <p class="timeline__debt">
+          <strong>{{ debt.publicId ?? debt.description }}</strong>
+          ·
+          {{ 'checkingAccounts.columns.pendingAmount' | translate }}:
+          <app-currency-display [value]="debt.pendingAmount" />
+        </p>
+      }
+
+      @if (loading()) {
+        <div class="timeline__loading">
+          <mat-spinner diameter="28" />
+        </div>
+      } @else if (entries().length === 0) {
+        <p class="timeline__empty">{{ 'checkingAccounts.timeline.empty' | translate }}</p>
+      } @else {
+        <!--
+          Linea de tiempo y no arbol: la estructura es una cadena —una reversion apunta a lo que deshace,
+          una reimputacion a la reversion que la financio— pero la pregunta que trae alguien aca es que
+          paso con esta deuda, y eso se lee en orden.
+        -->
+        <ol class="timeline">
+          @for (entry of entries(); track entry.uuid) {
+            <li
+              class="timeline__entry"
+              [class.timeline__entry--reversal]="entry.entryType === 'REVERSAL'"
+            >
+              <span class="timeline__marker" aria-hidden="true">
+                <mat-icon>
+                  {{ entry.entryType === 'REVERSAL' ? 'undo' : 'call_received' }}
+                </mat-icon>
+              </span>
+
+              <div class="timeline__body">
+                <div class="timeline__head">
+                  <span class="timeline__kind">
+                    {{ 'checkingAccounts.timeline.entryTypes.' + entry.entryType | translate }}
+                    @if (entry.mode === 'AUTOMATIC') {
+                      <span class="timeline__badge">
+                        {{ 'checkingAccounts.allocationModes.AUTOMATIC' | translate }}
+                      </span>
+                    }
+                  </span>
+                  <app-currency-display
+                    [value]="entry.signedAmount"
+                    [tone]="entry.signedAmount < 0 ? 'negative' : 'neutral'"
+                  />
+                </div>
+
+                <p class="timeline__meta">
+                  {{ entry.dateCreated | localizedDate }}
+                  @if (fromCredit) {
+                    @if (entry.debtPublicId) {
+                      · {{ entry.debtPublicId }}
+                    }
+                  } @else if (entry.creditPublicId) {
+                    · {{ entry.creditPublicId }}
+                  }
+                  · {{ 'checkingAccounts.causes.' + entry.cause | translate }}
+                </p>
+
+                @if (entry.reason) {
+                  <p class="timeline__reason">{{ entry.reason }}</p>
+                }
+
+                <div class="timeline__actions">
+                  <!--
+                    A dónde fue esa plata: se ofrece en toda imputación, vigente o no. Justamente en la
+                    que ya no queda vigente es donde la pregunta tiene sentido.
+                  -->
+                  @if (entry.entryType === 'ALLOCATION') {
+                    <button mat-button type="button" (click)="onTrace(entry)">
+                      <mat-icon aria-hidden="true">account_tree</mat-icon>
+                      {{ 'checkingAccounts.actions.trace' | translate }}
+                    </button>
+                  }
+                </div>
+
+                @if (canOperate(entry)) {
+                  <div class="timeline__actions">
+                    <span class="timeline__active">
+                      {{ 'checkingAccounts.timeline.stillActive' | translate }}
+                      <app-currency-display [value]="activeAmountOf(entry)" />
+                    </span>
+                    <button mat-stroked-button type="button" (click)="onReverse(entry)">
+                      <mat-icon aria-hidden="true">undo</mat-icon>
+                      {{ 'checkingAccounts.actions.reverse' | translate }}
+                    </button>
+                    <!--
+                      Reimputar necesita la deuda de origen como fila y desde el cobro sólo se tiene su uuid;
+                      además, mover una imputación es una decisión sobre la deuda. Deshacer sí se ofrece.
+                    -->
+                    @if (!fromCredit) {
+                      <button mat-stroked-button type="button" (click)="onReassign(entry)">
+                        <mat-icon aria-hidden="true">swap_horiz</mat-icon>
+                        {{ 'checkingAccounts.actions.reassign' | translate }}
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            </li>
+          }
+        </ol>
+      }
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">
+    {{ 'checkingAccounts.actions.close' | translate }}
+  </button>
+</mat-dialog-actions>

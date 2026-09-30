@@ -1,0 +1,142 @@
+<dl class="totals__breakdown">
+  <div class="totals__row">
+    <dt>{{ 'sales.totals.net' | translate }}</dt>
+    <dd><app-currency-display [value]="totals().netAmount" /></dd>
+  </div>
+
+  <div class="totals__row">
+    <dt>{{ 'sales.totals.tax' | translate }}</dt>
+    <dd><app-currency-display [value]="totals().taxAmount" /></dd>
+  </div>
+
+  <!--
+    Lo que las promociones restaron. Se despliega promoción por promoción porque el vendedor tiene
+    que poder contestar «¿por qué me sale esto?» en el mostrador y sin llamar a nadie: el número
+    solo dice cuánto, y lo que hace falta es cuál.
+  -->
+  <div class="totals__row totals__row--discount">
+    @if (hasBreakdown()) {
+      <dt>
+        <button
+          type="button"
+          class="totals__breakdown-toggle"
+          [attr.aria-expanded]="breakdownOpen()"
+          (click)="onToggleBreakdown()"
+        >
+          <mat-icon aria-hidden="true">{{
+            breakdownOpen() ? 'expand_more' : 'chevron_right'
+          }}</mat-icon>
+          {{ 'sales.totals.discount' | translate }}
+        </button>
+      </dt>
+    } @else {
+      <dt>{{ 'sales.totals.discount' | translate }}</dt>
+    }
+    <dd>
+      <app-currency-display [value]="-totals().discountAmount" tone="positive" />
+    </dd>
+
+    <!-- Segundo `dd` de la misma fila y no un bloque suelto: dentro de un `dl` sólo entran `dt` y
+         `dd`, y el desglose es una descripción más de «Descuento». -->
+    @if (breakdownOpen() && hasBreakdown()) {
+      <dd class="totals__promotions-cell">
+        <app-sale-promotion-breakdown [promotions]="promotions()" />
+      </dd>
+    }
+  </div>
+
+  <!-- Un cobro que quedó registrado sin llegar a venta: se dice acá para que no sea plata invisible. -->
+  @if (paidAmount() > 0) {
+    <div class="totals__row">
+      <dt>{{ 'sales.totals.paid' | translate }}</dt>
+      <dd><app-currency-display [value]="paidAmount()" tone="positive" /></dd>
+    </div>
+  }
+</dl>
+
+<div class="totals__total">
+  <span class="totals__total-label">{{ 'sales.totals.total' | translate }}</span>
+  <app-currency-display class="totals__total-value" [value]="totals().totalAmount" />
+</div>
+
+<!--
+  El descuento en palabras y junto al total: es lo que el cliente lee del otro lado del mostrador, y
+  la única confirmación de que la promoción se aplicó de verdad. El texto se dirige al cliente —«lo
+  que te ahorrás»—, que es como lo pide el documento funcional; el importe sigue siendo el descuento,
+  que es como lo nombra el glosario. Sin plata descontada no se dibuja: una leyenda que dice
+  «Ahorrás $0» es peor que no decir nada.
+-->
+@if (totals().discountAmount > 0) {
+  <p class="totals__discount-legend">
+    <mat-icon aria-hidden="true">savings</mat-icon>
+    {{ 'sales.totals.discountLegend' | translate }}
+    <app-currency-display class="totals__discount-legend-value" [value]="totals().discountAmount" />
+  </p>
+}
+
+<!--
+  Cuánto se está por cobrar, contado en lo que el cliente ve del otro lado del mostrador: cuántos
+  renglones va a tener el ticket y cuántas cosas se lleva. Es el control de que no se escaneó dos
+  veces lo mismo, y se lee sin abrir nada.
+-->
+<p class="totals__foot">
+  {{ linesKey() | translate: { count: lineCount() } }} ·
+  {{ unitsKey() | translate: { count: unitCount() } }}
+</p>
+
+<!--
+  El atajo va escrito en el botón: es el gesto que se usa todo el día, y el botón es el único lugar
+  donde quien todavía no lo sabe lo va a leer.
+-->
+<button
+  mat-flat-button
+  color="primary"
+  type="button"
+  class="totals__charge"
+  [disabled]="submitting()"
+  [attr.aria-keyshortcuts]="shortcut()"
+  (click)="charge.emit()"
+>
+  @if (submitting()) {
+    <mat-spinner diameter="20" />
+  } @else {
+    <mat-icon aria-hidden="true">point_of_sale</mat-icon>
+  }
+  {{ 'sales.totals.charge' | translate }}
+  <kbd class="totals__kbd" aria-hidden="true">{{ shortcut() }}</kbd>
+</button>
+
+<!--
+  Tirar la venta y volver a empezar. Va debajo del cobro y en secundario: es la salida de la vez que
+  el cliente cambió de idea con el carrito lleno, no algo que se haga seguido. La confirmación la
+  pide la pantalla, que es la que sabe si hay algo que perder.
+-->
+<button
+  mat-stroked-button
+  type="button"
+  class="totals__cancel"
+  [disabled]="!canCancel() || submitting()"
+  (click)="cancelSale.emit()"
+>
+  <mat-icon aria-hidden="true">delete_sweep</mat-icon>
+  {{ 'sales.totals.cancel' | translate }}
+</button>
+
+<!--
+  Lo que falta para poder cobrar, todo junto y no de a uno: resolver un requisito para que aparezca
+  el siguiente es la forma más lenta de enterarse de que faltaban tres.
+-->
+@if (missingRequirements().length > 0) {
+  <div class="totals__missing" role="alert">
+    <p class="totals__missing-title">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      {{ 'sales.blocked.title' | translate }}
+    </p>
+
+    <ul class="totals__missing-list">
+      @for (reason of missingRequirements(); track reasonKey(reason)) {
+        <li>{{ reasonKey(reason) | translate: reasonParams(reason) }}</li>
+      }
+    </ul>
+  </div>
+}

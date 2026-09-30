@@ -1,0 +1,13 @@
+:host {
+  display: block;
+}
+
+.branch-list {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.branch-list__item + .branch-list__item {
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}

@@ -1,0 +1,538 @@
+/*
+  Ventosky · Propuesta B — piel de Angular Material.
+
+  Tokens de componente como variables CSS planas: Material 22 los lee con fallback a los
+  `--mat-sys-*`, así que definirlos en `html` alcanza para toda la app (diálogos y menús incluidos,
+  que viven en el overlay fuera del árbol del panel). Después, las reglas que los tokens no cubren.
+*/
+html {
+  /* ---- Botones: 42px, radio 9px, sin píldora ---- */
+  --mat-button-filled-container-shape: var(--vk-radius-sm);
+  --mat-button-filled-container-color: var(--vk-accent-fill);
+  --mat-button-filled-label-text-color: var(--vk-on-accent);
+  --mat-button-filled-container-height: var(--vk-control-h);
+  --mat-button-filled-horizontal-padding: 18px;
+  --mat-button-filled-label-text-weight: 500;
+  --mat-button-filled-label-text-size: 14px;
+  --mat-button-filled-label-text-tracking: 0;
+  --mat-button-outlined-container-shape: var(--vk-radius-sm);
+  --mat-button-outlined-container-height: var(--vk-control-h);
+  --mat-button-outlined-horizontal-padding: 18px;
+  --mat-button-outlined-outline-color: var(--vk-line-strong);
+  --mat-button-outlined-label-text-color: var(--vk-fg);
+  --mat-button-outlined-label-text-weight: 500;
+  --mat-button-outlined-label-text-size: 14px;
+  --mat-button-outlined-label-text-tracking: 0;
+  --mat-button-text-container-shape: var(--vk-radius-sm);
+  --mat-button-text-container-height: 38px;
+  --mat-button-text-label-text-weight: 500;
+  --mat-button-text-label-text-size: 14px;
+  --mat-button-text-label-text-tracking: 0;
+  --mat-button-tonal-container-shape: var(--vk-radius-sm);
+  --mat-button-tonal-container-height: var(--vk-control-h);
+  --mat-button-tonal-container-color: var(--vk-accent-soft);
+  --mat-button-tonal-label-text-color: var(--vk-on-accent-soft);
+  --mat-button-tonal-label-text-tracking: 0;
+  --mat-button-protected-container-shape: var(--vk-radius-sm);
+  --mat-button-protected-container-height: var(--vk-control-h);
+  --mat-button-protected-container-color: var(--vk-surface);
+  --mat-button-protected-label-text-color: var(--vk-accent);
+  --mat-button-protected-container-elevation-shadow: none;
+  --mat-button-protected-hover-container-elevation-shadow: none;
+  --mat-icon-button-state-layer-color: var(--vk-accent);
+  --mat-icon-button-icon-color: var(--vk-fg-2);
+  --mat-fab-container-color: var(--vk-accent-fill);
+  --mat-fab-foreground-color: var(--vk-on-accent);
+  --mat-fab-container-shape: var(--vk-radius);
+
+  /* ---- Tablas: filas de 56px, encabezado de 44px ---- */
+  --mat-table-background-color: var(--vk-surface);
+  --mat-table-header-container-height: var(--vk-thead-h);
+  --mat-table-footer-container-height: var(--vk-row-h);
+  --mat-table-row-item-container-height: var(--vk-row-h);
+  --mat-table-header-headline-color: var(--vk-fg-3);
+  --mat-table-header-headline-size: 12px;
+  --mat-table-header-headline-weight: 500;
+  --mat-table-header-headline-tracking: 0;
+  --mat-table-row-item-label-text-color: var(--vk-fg);
+  --mat-table-row-item-label-text-size: 14px;
+  --mat-table-row-item-label-text-tracking: 0;
+  --mat-table-row-item-outline-color: var(--vk-line);
+  --mat-sort-arrow-color: var(--vk-fg-3);
+
+  /* ---- Paginador ---- */
+  --mat-paginator-container-background-color: transparent;
+  --mat-paginator-container-text-color: var(--vk-fg-3);
+  --mat-paginator-container-text-size: 13px;
+  --mat-paginator-container-size: 52px;
+  --mat-paginator-enabled-icon-color: var(--vk-fg-2);
+  --mat-paginator-disabled-icon-color: var(--vk-line-strong);
+  --mat-paginator-form-field-container-height: 34px;
+  --mat-paginator-form-field-container-vertical-padding: 5px;
+
+  /* ---- Campos: outline, radio 9px, 46px ---- */
+  --mat-form-field-container-height: var(--vk-input-h);
+  --mat-form-field-container-vertical-padding: 11px;
+  --mat-form-field-container-text-size: 14px;
+  --mat-form-field-container-text-tracking: 0;
+  --mat-form-field-outlined-container-shape: var(--vk-radius-sm);
+  --mat-form-field-outlined-outline-color: var(--vk-line-strong);
+  --mat-form-field-outlined-hover-outline-color: var(--vk-accent);
+  --mat-form-field-outlined-focus-outline-color: var(--vk-accent-fill);
+  --mat-form-field-outlined-focus-outline-width: 1px;
+  --mat-form-field-outlined-label-text-color: var(--vk-fg-3);
+  --mat-form-field-outlined-focus-label-text-color: var(--vk-accent);
+  --mat-form-field-outlined-hover-label-text-color: var(--vk-fg-2);
+  --mat-form-field-outlined-input-text-color: var(--vk-fg);
+  --mat-form-field-outlined-input-text-placeholder-color: var(--vk-fg-3);
+  --mat-form-field-outlined-label-text-size: 14px;
+  --mat-form-field-outlined-label-text-tracking: 0;
+  --mat-form-field-outlined-caret-color: var(--vk-accent);
+  --mat-form-field-leading-icon-color: var(--vk-fg-3);
+  --mat-form-field-trailing-icon-color: var(--vk-fg-3);
+  --mat-form-field-enabled-select-arrow-color: var(--vk-fg-3);
+  --mat-form-field-focus-select-arrow-color: var(--vk-accent);
+  --mat-form-field-subscript-text-size: 12px;
+  --mat-form-field-subscript-text-tracking: 0;
+  --mat-select-trigger-text-size: 14px;
+  --mat-select-trigger-text-tracking: 0;
+  --mat-select-panel-background-color: var(--vk-surface);
+  --mat-select-container-elevation-shadow: 0 12px 32px -12px rgba(20, 10, 60, 0.28);
+  --mat-option-label-text-size: 14px;
+  --mat-option-label-text-tracking: 0;
+  --mat-option-hover-state-layer-color: var(--vk-sunken);
+  --mat-option-selected-state-layer-color: var(--vk-accent-soft);
+  --mat-option-selected-state-label-text-color: var(--vk-on-accent-soft);
+  --mat-autocomplete-background-color: var(--vk-surface);
+  --mat-autocomplete-container-elevation-shadow: 0 12px 32px -12px rgba(20, 10, 60, 0.28);
+
+  /* ---- Cards ---- */
+  --mat-card-outlined-container-shape: var(--vk-radius);
+  --mat-card-outlined-outline-color: var(--vk-line);
+  --mat-card-outlined-container-color: var(--vk-surface);
+  --mat-card-elevated-container-shape: var(--vk-radius);
+  --mat-card-elevated-container-color: var(--vk-surface);
+  --mat-card-elevated-container-elevation: none;
+  --mat-card-filled-container-shape: var(--vk-radius);
+  --mat-card-filled-container-color: var(--vk-sunken);
+  --mat-card-title-text-size: 16px;
+  --mat-card-title-text-weight: 600;
+  --mat-card-subtitle-text-color: var(--vk-fg-2);
+
+  /* ---- Segmentado (button toggle) ---- */
+  --mat-button-toggle-shape: var(--vk-radius-sm);
+  --mat-button-toggle-height: 34px;
+  --mat-button-toggle-background-color: transparent;
+  --mat-button-toggle-text-color: var(--vk-fg-2);
+  --mat-button-toggle-selected-state-background-color: var(--vk-surface);
+  --mat-button-toggle-selected-state-text-color: var(--vk-on-accent-soft);
+  --mat-button-toggle-divider-color: transparent;
+  --mat-button-toggle-label-text-size: 13px;
+  --mat-button-toggle-label-text-weight: 500;
+  --mat-button-toggle-label-text-tracking: 0;
+  --mat-button-toggle-state-layer-color: var(--vk-accent);
+
+  /* ---- Diálogos ---- */
+  --mat-dialog-container-shape: var(--vk-radius);
+  --mat-dialog-container-color: var(--vk-surface);
+  --mat-dialog-container-elevation-shadow: 0 24px 60px -20px rgba(20, 10, 60, 0.35);
+  --mat-dialog-subhead-size: 18px;
+  --mat-dialog-subhead-weight: 600;
+  --mat-dialog-subhead-tracking: -0.01em;
+  --mat-dialog-subhead-color: var(--vk-fg);
+  --mat-dialog-supporting-text-color: var(--vk-fg-2);
+  --mat-dialog-supporting-text-size: 14px;
+  --mat-dialog-supporting-text-tracking: 0;
+  --mat-dialog-headline-padding: 22px 24px 8px;
+  --mat-dialog-content-padding: 16px 24px;
+  --mat-dialog-with-actions-content-padding: 16px 24px 8px;
+  --mat-dialog-actions-padding: 12px 24px 20px;
+
+  /* ---- Menús ---- */
+  --mat-menu-container-shape: var(--vk-radius);
+  --mat-menu-container-color: var(--vk-surface);
+  --mat-menu-container-elevation-shadow: 0 12px 32px -12px rgba(20, 10, 60, 0.28);
+  --mat-menu-item-label-text-size: 14px;
+  --mat-menu-item-label-text-tracking: 0;
+  --mat-menu-item-label-text-color: var(--vk-fg);
+  --mat-menu-item-icon-color: var(--vk-fg-3);
+  --mat-menu-item-hover-state-layer-color: var(--vk-sunken);
+  --mat-menu-item-with-icon-leading-spacing: 14px;
+  --mat-menu-item-leading-spacing: 14px;
+
+  /* ---- Chips ---- */
+  --mat-chip-container-shape-radius: var(--vk-radius-pill);
+  --mat-chip-container-height: 30px;
+  --mat-chip-outline-color: var(--vk-line);
+  --mat-chip-label-text-color: var(--vk-fg-2);
+  --mat-chip-label-text-size: 13px;
+  --mat-chip-label-text-tracking: 0;
+  --mat-chip-elevated-selected-container-color: var(--vk-accent-soft);
+  --mat-chip-selected-label-text-color: var(--vk-on-accent-soft);
+  --mat-chip-flat-selected-outline-width: 0;
+
+  /* ---- Tabs ---- */
+  --mat-tab-active-indicator-color: var(--vk-accent-fill);
+  --mat-tab-active-focus-indicator-color: var(--vk-accent-fill);
+  --mat-tab-active-hover-indicator-color: var(--vk-accent-fill);
+  --mat-tab-active-label-text-color: var(--vk-accent);
+  --mat-tab-active-focus-label-text-color: var(--vk-accent);
+  --mat-tab-active-hover-label-text-color: var(--vk-accent);
+  --mat-tab-inactive-label-text-color: var(--vk-fg-2);
+  --mat-tab-inactive-hover-label-text-color: var(--vk-fg);
+  --mat-tab-inactive-focus-label-text-color: var(--vk-fg);
+  --mat-tab-label-text-size: 14px;
+  --mat-tab-label-text-weight: 500;
+  --mat-tab-label-text-tracking: 0;
+  --mat-tab-divider-color: var(--vk-line);
+  --mat-tab-active-indicator-height: 2px;
+  --mat-tab-container-height: 46px;
+
+  /* ---- Tooltip, snackbar, progreso ---- */
+  --mat-tooltip-container-color: var(--vk-side);
+  --mat-tooltip-supporting-text-color: #ffffff;
+  --mat-tooltip-supporting-text-size: 12px;
+  --mat-tooltip-container-shape: 7px;
+  --mat-snack-bar-container-shape: var(--vk-radius);
+  --mat-progress-bar-active-indicator-color: var(--vk-accent-fill);
+  --mat-progress-bar-track-color: var(--vk-accent-soft);
+  --mat-progress-spinner-active-indicator-color: var(--vk-accent-fill);
+
+  /* ---- Checkbox, radio, toggle, slider ---- */
+  --mat-checkbox-selected-icon-color: var(--vk-accent-fill);
+  --mat-checkbox-selected-hover-icon-color: var(--vk-accent-fill);
+  --mat-checkbox-selected-focus-icon-color: var(--vk-accent-fill);
+  --mat-checkbox-selected-checkmark-color: #ffffff;
+  --mat-checkbox-unselected-icon-color: var(--vk-line-strong);
+  --mat-checkbox-label-text-size: 14px;
+  --mat-checkbox-label-text-tracking: 0;
+  --mat-radio-selected-icon-color: var(--vk-accent-fill);
+  --mat-radio-selected-hover-icon-color: var(--vk-accent-fill);
+  --mat-radio-selected-focus-icon-color: var(--vk-accent-fill);
+  --mat-radio-unselected-icon-color: var(--vk-line-strong);
+  --mat-radio-label-text-size: 14px;
+  --mat-radio-label-text-tracking: 0;
+  --mat-slide-toggle-selected-track-color: var(--vk-accent-fill);
+  --mat-slide-toggle-selected-hover-track-color: var(--vk-accent-fill);
+  --mat-slide-toggle-selected-focus-track-color: var(--vk-accent-fill);
+  --mat-slide-toggle-selected-pressed-track-color: var(--vk-accent-fill);
+  --mat-slide-toggle-unselected-track-color: var(--vk-sunken);
+  --mat-slide-toggle-unselected-track-outline-color: var(--vk-line-strong);
+  --mat-slide-toggle-unselected-handle-color: var(--vk-fg-3);
+  --mat-slide-toggle-label-text-size: 14px;
+  --mat-slide-toggle-label-text-tracking: 0;
+
+  /* ---- Listas, expansión, stepper, divisor ---- */
+  --mat-list-list-item-label-text-size: 14px;
+  --mat-list-list-item-label-text-tracking: 0;
+  --mat-list-list-item-container-shape: var(--vk-radius-sm);
+  --mat-list-list-item-hover-state-layer-color: var(--vk-accent);
+  --mat-expansion-container-shape: var(--vk-radius);
+  --mat-expansion-container-background-color: var(--vk-surface);
+  --mat-expansion-header-text-size: 14px;
+  --mat-expansion-header-text-weight: 600;
+  --mat-stepper-header-selected-state-icon-background-color: var(--vk-accent-fill);
+  --mat-stepper-header-done-state-icon-background-color: var(--vk-accent-fill);
+  --mat-stepper-header-edit-state-icon-background-color: var(--vk-accent-fill);
+  --mat-divider-color: var(--vk-line);
+  --mat-datepicker-calendar-container-shape: var(--vk-radius);
+  --mat-datepicker-calendar-date-selected-state-background-color: var(--vk-accent-fill);
+  --mat-datepicker-calendar-date-selected-state-text-color: #ffffff;
+  --mat-datepicker-calendar-date-today-outline-color: var(--vk-accent);
+  --mat-badge-background-color: var(--vk-accent-fill);
+  --mat-badge-text-color: #ffffff;
+}
+
+/* ---- Íconos: Material Symbols Rounded, peso 400, sin relleno ---- */
+.material-symbols-rounded {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* ---- Botones ---- */
+.mat-mdc-unelevated-button.mat-primary:not(:disabled),
+.mat-mdc-unelevated-button:not(.mat-warn):not(:disabled) {
+  box-shadow: var(--vk-shadow-accent);
+}
+
+.mat-mdc-unelevated-button:not(:disabled):hover {
+  --mat-button-filled-container-color: var(--vk-accent-fill-hover);
+}
+
+.mat-mdc-unelevated-button.mat-warn,
+.mat-mdc-unelevated-button[color='warn'] {
+  --mat-button-filled-container-color: var(--vk-bad);
+  box-shadow: none;
+}
+
+.mat-mdc-outlined-button:not(:disabled) {
+  background-color: var(--vk-surface);
+}
+
+.mat-mdc-outlined-button:not(:disabled):hover {
+  --mat-button-outlined-outline-color: var(--vk-accent);
+  --mat-button-outlined-label-text-color: var(--vk-accent);
+}
+
+.mat-mdc-button:not(:disabled) {
+  --mat-button-text-label-text-color: var(--vk-accent);
+}
+
+.mat-mdc-button-base .mat-icon,
+.mat-mdc-button-base .material-symbols-rounded {
+  font-size: 19px;
+  width: 19px;
+  height: 19px;
+}
+
+.mat-mdc-icon-button:not(:disabled):hover {
+  color: var(--vk-accent);
+}
+
+/* ---- Tablas ---- */
+.mat-mdc-table {
+  font-family: var(--vk-font-ui);
+}
+
+.mat-mdc-header-cell,
+.mat-mdc-cell,
+.mat-mdc-footer-cell {
+  padding-inline: 16px;
+}
+
+.mat-mdc-header-cell:first-of-type,
+.mat-mdc-cell:first-of-type,
+.mat-mdc-footer-cell:first-of-type {
+  padding-inline-start: 22px;
+}
+
+.mat-mdc-header-cell:last-of-type,
+.mat-mdc-cell:last-of-type,
+.mat-mdc-footer-cell:last-of-type {
+  padding-inline-end: 22px;
+}
+
+.mat-mdc-header-row {
+  background: var(--vk-surface);
+}
+
+.mat-mdc-row {
+  transition: background-color 150ms ease-out;
+}
+
+.mat-mdc-row:hover .mat-mdc-cell {
+  background-color: var(--vk-sunken);
+}
+
+.mat-mdc-row:last-child .mat-mdc-cell {
+  border-bottom-color: transparent;
+}
+
+/* ---- Paginador: botones de 32px, radio 8px ---- */
+.mat-mdc-paginator {
+  border-top: 1px solid var(--vk-line);
+  font-family: var(--vk-font-ui);
+}
+
+.mat-mdc-paginator .mat-mdc-paginator-range-label {
+  font-family: var(--vk-font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mat-mdc-paginator .mat-mdc-icon-button {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border-radius: 8px;
+  --mat-icon-button-state-layer-size: 32px;
+}
+
+.mat-mdc-paginator .mat-mdc-icon-button .mat-mdc-button-persistent-ripple,
+.mat-mdc-paginator .mat-mdc-icon-button .mat-mdc-button-ripple {
+  border-radius: 8px;
+}
+
+/* ---- Campos ---- */
+.mat-mdc-form-field {
+  font-family: var(--vk-font-ui);
+}
+
+.mat-mdc-text-field-wrapper .mdc-notched-outline__leading {
+  border-radius: var(--vk-radius-sm) 0 0 var(--vk-radius-sm) !important;
+}
+
+.mat-mdc-text-field-wrapper .mdc-notched-outline__trailing {
+  border-radius: 0 var(--vk-radius-sm) var(--vk-radius-sm) 0 !important;
+}
+
+.mat-mdc-form-field.mat-focused .mdc-text-field--outlined {
+  border-radius: var(--vk-radius-sm);
+  box-shadow: 0 0 0 3px var(--vk-accent-soft);
+}
+
+.mat-mdc-form-field.mat-focused .mat-mdc-form-field-icon-prefix,
+.mat-mdc-form-field.mat-focused .mat-mdc-form-field-icon-prefix .mat-icon {
+  color: var(--vk-accent);
+}
+
+.mat-mdc-form-field-icon-prefix > .mat-icon,
+.mat-mdc-form-field-icon-suffix > .mat-icon {
+  font-size: 19px;
+  width: 19px;
+  height: 19px;
+  padding: 0 10px 0 12px;
+  box-sizing: content-box;
+}
+
+.mat-mdc-form-field-error {
+  color: var(--vk-bad);
+}
+
+.mat-mdc-form-field .mat-mdc-form-field-required-marker,
+.mat-mdc-form-field .mdc-floating-label--required::after {
+  color: var(--vk-accent);
+}
+
+/* ---- Diálogos ---- */
+.mat-mdc-dialog-container .mat-mdc-dialog-title {
+  font-family: var(--vk-font-ui);
+}
+
+.mat-mdc-dialog-actions {
+  gap: 10px;
+}
+
+.cdk-overlay-dark-backdrop.cdk-overlay-backdrop-showing {
+  background: rgba(18, 12, 40, 0.45);
+}
+
+/* ---- Menús y selects ---- */
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel {
+  border: 1px solid var(--vk-line);
+}
+
+.mat-mdc-menu-content,
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel {
+  padding: 6px !important;
+}
+
+.mat-mdc-menu-item,
+.mat-mdc-option {
+  border-radius: 7px;
+  min-height: 40px !important;
+}
+
+.mat-mdc-menu-item .mat-icon {
+  font-size: 19px;
+  width: 19px;
+  height: 19px;
+}
+
+/* ---- Segmentado ---- */
+.mat-button-toggle-group,
+.mat-button-toggle-group-appearance-standard {
+  background: var(--vk-sunken);
+  border: 0 !important;
+  border-radius: var(--vk-radius-sm);
+  padding: 3px;
+  gap: 2px;
+}
+
+.mat-button-toggle-appearance-standard {
+  border-radius: 7px;
+  border: 0 !important;
+}
+
+.mat-button-toggle-appearance-standard .mat-button-toggle-label-content {
+  padding: 0 14px;
+  line-height: 34px;
+}
+
+.mat-button-toggle-checked.mat-button-toggle-appearance-standard {
+  box-shadow: 0 1px 3px rgba(20, 10, 60, 0.08);
+}
+
+.mat-button-toggle-checked .mat-pseudo-checkbox {
+  display: none;
+}
+
+/* ---- Tabs ---- */
+.mat-mdc-tab-header {
+  border-bottom: 1px solid var(--vk-line);
+}
+
+/* ---- Tooltip ---- */
+.mat-mdc-tooltip .mdc-tooltip__surface {
+  padding: 6px 10px;
+  font-family: var(--vk-font-ui);
+}
+
+/* ---- Cards de Material ---- */
+.mat-mdc-card {
+  box-shadow: none !important;
+}
+
+.mat-mdc-card-outlined {
+  border-color: var(--vk-line);
+}
+
+/* ---- Expansión ---- */
+.mat-expansion-panel:not([class*='mat-elevation-z']) {
+  box-shadow: none;
+  border: 1px solid var(--vk-line);
+}
+
+/* ---- Barra de progreso global ---- */
+.mat-mdc-progress-bar {
+  --mat-progress-bar-track-height: 3px;
+  --mat-progress-bar-active-indicator-height: 3px;
+}
+
+/* ---- Panel de avisos de la barra superior ---- */
+.notifications-panel.mat-mdc-menu-panel {
+  max-width: 400px;
+}
+
+/* ---- Campo compacto de 40px (buscadores de tabla) ---- */
+.vk-field-40 {
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 8px;
+  --mat-form-field-outlined-outline-color: var(--vk-line);
+}
+
+.vk-field-40 .mat-mdc-form-field-icon-prefix > .mat-icon {
+  padding: 0 8px 0 12px;
+}
+
+.vk-field-40 .mat-mdc-form-field-icon-suffix .mat-mdc-icon-button {
+  --mat-icon-button-state-layer-size: 32px;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+}
+
+/*
+  Hints largos: con el subscript fijo de Material el texto de dos renglones se monta sobre el campo
+  de abajo. Acá el subscript crece con su contenido y reserva igual el renglón de siempre.
+*/
+.mat-mdc-form-field-subscript-wrapper:not(.mat-mdc-form-field-subscript-dynamic-size) {
+  min-height: 20px;
+}
+
+.mat-mdc-form-field-subscript-wrapper .mat-mdc-form-field-hint-wrapper,
+.mat-mdc-form-field-subscript-wrapper .mat-mdc-form-field-error-wrapper {
+  position: static;
+  padding-top: 4px;
+}
+
+.mat-mdc-form-field-hint {
+  color: var(--vk-fg-3);
+  line-height: 1.4;
+}

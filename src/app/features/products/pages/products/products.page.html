@@ -1,0 +1,369 @@
+@let columns = displayedColumns();
+
+<app-page-header
+  [title]="'products.title' | translate"
+  [description]="'products.description' | translate"
+>
+  <button mat-stroked-button type="button" (click)="onImport()">
+    <mat-icon aria-hidden="true">upload</mat-icon>
+    {{ 'products.actions.import' | translate }}
+  </button>
+
+  @if (canCreate || canCreateModel) {
+    <button
+      mat-flat-button
+      type="button"
+      color="primary"
+      [matMenuTriggerFor]="createMenu"
+      [attr.aria-label]="'products.actions.newAria' | translate"
+    >
+      <mat-icon aria-hidden="true">add</mat-icon>
+      {{ 'products.actions.new' | translate }}
+      <mat-icon iconPositionEnd aria-hidden="true">arrow_drop_down</mat-icon>
+    </button>
+
+    <mat-menu #createMenu="matMenu">
+      @if (canCreate) {
+        <button mat-menu-item type="button" (click)="onCreate()">
+          <mat-icon aria-hidden="true">inventory_2</mat-icon>
+          <span>{{ 'products.actions.create' | translate }}</span>
+        </button>
+      }
+      @if (canCreateModel) {
+        <button mat-menu-item type="button" (click)="onCreateModel()">
+          <mat-icon aria-hidden="true">view_module</mat-icon>
+          <span>{{ 'products.actions.createModel' | translate }}</span>
+        </button>
+      }
+    </mat-menu>
+  }
+</app-page-header>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'products.loading' | translate"
+  maxHeight="32rem"
+>
+  <div tableWrapperHeader class="products-header">
+    <app-table-toolbar
+      [search]="searchQuery()"
+      [activeFilters]="activeFilters()"
+      [searchPlaceholder]="'products.searchPlaceholder' | translate"
+      (searchChange)="searchQuery.set($event)"
+      (refresh)="onRefresh()"
+      (filtersClick)="onToggleFilters()"
+      (clearFilters)="onClearFilters()"
+    >
+      <mat-button-toggle-group
+        toolbarSegment
+        hideSingleSelectionIndicator
+        [value]="saleStatusFilter() ?? 'all'"
+        (change)="onSaleStatusChange($event.value === 'all' ? null : $event.value)"
+        [attr.aria-label]="'products.filters.saleStatus' | translate"
+      >
+        <mat-button-toggle value="onSale">{{ 'products.saleStatuses.onSale' | translate }}</mat-button-toggle>
+        <mat-button-toggle value="all">{{ 'products.filters.saleStatusAll' | translate }}</mat-button-toggle>
+        <mat-button-toggle value="discontinued">{{ 'products.saleStatuses.discontinued' | translate }}</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <!--
+        La salida de emergencia de la agrupación: devuelve la vista plana de siempre. Nadie pierde el
+        listado que ya conoce sólo porque ahora existan modelos.
+      -->
+      <mat-slide-toggle
+        toolbarActions
+        class="products-flat-toggle"
+        [checked]="flatView()"
+        (change)="onToggleFlatView($event.checked)"
+        >{{ 'products.grouping.flatView' | translate }}</mat-slide-toggle
+      >
+    </app-table-toolbar>
+
+    @if (filtersOpen()) {
+      <div class="products-filters" [attr.aria-label]="'products.filtersAria' | translate">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'products.filters.brand' | translate }}</mat-label>
+          <mat-select
+            [value]="brandFilter()"
+            (valueChange)="onBrandChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{ 'products.filters.all' | translate }}</mat-option>
+            @for (brand of brands(); track brand.uuid) {
+              <mat-option [value]="brand.uuid">{{ brand.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'products.filters.category' | translate }}</mat-label>
+          <mat-select
+            [value]="categoryFilter()"
+            (valueChange)="onCategoryChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{ 'products.filters.all' | translate }}</mat-option>
+            @for (category of categories(); track category.uuid) {
+              <mat-option
+                [value]="category.uuid"
+                [matTooltip]="category.path"
+                [style.--category-depth]="category.depth"
+                class="products-filters__category"
+              >
+                {{ category.name }}
+              </mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{ 'products.filters.categoryHint' | translate }}</mat-hint>
+        </mat-form-field>
+
+        <!--
+          Los dos ejes del producto (§4). Contestan «¿cuáles llevan lote?» o «¿qué servicios tengo?»
+          sin recorrer el catálogo a ojo, que es justo la pregunta que aparece cuando los productos
+          dejan de comportarse todos igual.
+        -->
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'products.filters.type' | translate }}</mat-label>
+          <mat-select
+            [value]="typeFilter()"
+            (valueChange)="onTypeChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{ 'products.filters.typeAll' | translate }}</mat-option>
+            @for (type of productTypes; track type) {
+              <mat-option [value]="type">{{ 'products.types.' + type | translate }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <!--
+          Qué se sigue ofreciendo (§2). Abre en «En venta» porque el listado sin filtro es el
+          problema que el archivado y la discontinuación vinieron a resolver; «Todos» es donde
+          aparece el producto que se compra y no se vende, que no entra en ninguno de los otros dos.
+        -->
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'products.filters.saleStatus' | translate }}</mat-label>
+          <mat-select
+            [value]="saleStatusFilter()"
+            (valueChange)="onSaleStatusChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{
+              'products.filters.saleStatusAll' | translate
+            }}</mat-option>
+            @for (status of saleStatuses; track status) {
+              <mat-option [value]="status">{{
+                'products.saleStatuses.' + status | translate
+              }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'products.filters.stockTracking' | translate }}</mat-label>
+          <mat-select
+            [value]="stockTrackingFilter()"
+            (valueChange)="onStockTrackingChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{
+              'products.filters.stockTrackingAll' | translate
+            }}</mat-option>
+            @for (mode of stockTrackingModes; track mode) {
+              <mat-option [value]="mode">{{
+                'products.stockTrackingModes.' + mode | translate
+              }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+  </div>
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="rows()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    [attr.aria-label]="'products.tableAria' | translate"
+  >
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'products.columns.name' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">
+        @if (row.kind === 'model') {
+          <!-- El modelo es una fila expandible: colapsa doce variantes en una. -->
+          <button
+            type="button"
+            class="products-model-toggle vk-prod"
+            [attr.aria-expanded]="isExpanded(row.uuid)"
+            (click)="onToggleModel(row.uuid)"
+          >
+            <span class="vk-thumb" aria-hidden="true"><mat-icon>category</mat-icon></span>
+            <span class="min-w-0">
+              <span class="products-name-row">
+                <span class="vk-prod__name">{{ row.name }}</span>
+                <mat-icon aria-hidden="true" class="products-model-caret">
+                  {{ isExpanded(row.uuid) ? 'expand_more' : 'chevron_right' }}
+                </mat-icon>
+                @if (row.loadingVariants) {
+                  <mat-spinner
+                    diameter="16"
+                    [attr.aria-label]="'products.grouping.loadingVariants' | translate"
+                  />
+                }
+              </span>
+              <span class="vk-prod__meta">
+                {{ 'products.grouping.modelChip' | translate: { count: row.variantsCount } }}
+                @if (row.skuPrefix) {
+                  · {{ row.skuPrefix }}
+                }
+              </span>
+            </span>
+          </button>
+        } @else {
+          <span class="vk-prod" [class.products-variant]="row.isVariant">
+            <span class="vk-thumb" aria-hidden="true"><mat-icon>{{ thumbIcon(row.product) }}</mat-icon></span>
+            <span class="min-w-0">
+              <!--
+                El chip del eje es lo único que la columna Producto agrega: sólo aparece cuando el
+                producto se aparta del default, así que el catálogo simple se ve igual que siempre.
+              -->
+              <span class="products-name-row">
+                <span class="vk-prod__name">{{ row.product.name }}</span>
+                @for (chip of chipsOf(row.product); track chip.id) {
+                  <app-product-chip [chip]="chip" />
+                }
+              </span>
+              <span class="vk-prod__meta">
+                {{ row.product.sku || '—' }}
+                @if (row.product.barcode && row.product.barcode !== row.product.sku) {
+                  · {{ row.product.barcode }}
+                }
+              </span>
+            </span>
+          </span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="brand">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'products.columns.brand' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">
+        {{ (row.kind === 'model' ? row.brand : row.product.brand?.name) || '—' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="category">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'products.columns.category' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">
+        {{ (row.kind === 'model' ? row.category : row.product.category?.name) || '—' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="stock">
+      <th mat-header-cell *matHeaderCellDef class="products-stock-header">
+        {{ 'products.columns.stock' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row" class="products-stock-cell">
+        @if (row.kind === 'model') {
+          <!-- Suma de las variantes, de sólo lectura: el modelo no tiene stock propio (RN-12). -->
+          <span class="products-stock-line">
+            <span class="vk-num">{{ row.totalStock ?? '—' }}</span>
+            @if ((row.totalStock ?? 0) <= 0) {
+              <span class="vk-pill vk-pill--dot vk-pill--bad">{{ 'products.stock.short.out' | translate }}</span>
+            }
+          </span>
+        } @else {
+          @let stock = stockBadge(row.product);
+
+          <span class="products-stock-line" [matTooltip]="stock.tooltip">
+            <span class="vk-num">{{ stock.value }}</span>
+            @if (stock.fill !== null) {
+              <span class="vk-stockbar" aria-hidden="true"><i [style.width.%]="stock.fill"></i></span>
+            }
+            <span [class]="'vk-pill vk-pill--dot ' + stock.pillClass">{{ stock.shortLabel }}</span>
+          </span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'products.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let row" class="actions-cell">
+        @if (row.kind === 'model') {
+          <!-- El lápiz del modelo lleva a su matriz, no al formulario de producto: no tiene precio,
+               ni stock, ni código que editar ahí (RN-12). -->
+          <app-row-actions
+            [actions]="modelRowActions()"
+            [ariaLabel]="'products.actions.modelRowAria' | translate"
+            (actionClick)="onModelRowAction($event, row)"
+          />
+        } @else {
+          <app-row-actions
+            [actions]="rowActions()"
+            [ariaLabel]="'products.actions.rowAria' | translate"
+            (actionClick)="onRowAction($event, row)"
+          />
+        }
+      </td>
+    </ng-container>
+
+    <!--
+      El pie de un modelo con más variantes de las que se dibujan. Ocupa el ancho de la tabla, así
+      que va en su propia plantilla de fila y no comparte las columnas del resto.
+    -->
+    <ng-container matColumnDef="moreVariants">
+      <td mat-cell *matCellDef="let row" [attr.colspan]="columns.length" class="products-more-cell">
+        <button
+          type="button"
+          class="products-more"
+          [attr.aria-label]="
+            'products.grouping.moreVariantsAria'
+              | translate: { count: row.hiddenCount, model: row.modelName }
+          "
+          (click)="onOpenMoreVariants(row)"
+        >
+          {{ 'products.grouping.moreVariants' | translate: { count: row.hiddenCount } }}
+          <mat-icon aria-hidden="true" class="products-more__icon">arrow_forward</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: ['moreVariants']; when: isMoreVariantsRow"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="columns.length"
+      >
+        @if (!paginator.loading()) {
+          {{ 'products.empty' | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'products.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

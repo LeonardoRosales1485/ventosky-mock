@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+
+table {
+  width: 100%;
+}
+
+.mat-column-priority {
+  width: 8rem;
+}
+
+.warehouses-priority-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+.mat-column-actions {
+  width: 1%;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+  text-align: end;
+}
+
+/* La columna queda fija al hacer scroll horizontal, así que necesita fondo propio. */
+.actions-header,
+.actions-cell {
+  background: var(--mat-sys-surface);
+  border-left: 1px solid var(--mat-sys-outline-variant);
+}

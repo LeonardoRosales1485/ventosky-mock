@@ -1,0 +1,92 @@
+<h3 class="receiver__title">
+  <mat-icon aria-hidden="true">receipt_long</mat-icon>
+  {{ 'sales.receiver.title' | translate }}
+</h3>
+
+@if (!editing()) {
+  <!--
+    Cerrado por defecto: el caso frecuente es emitir a nombre del cliente elegido —o a consumidor
+    final si no hay—, y ahí no hay nada que decidir. El resumen dice qué se va a imprimir, y el
+    botón está para los dos casos que sí necesitan mano: el comprador sin ficha y la factura a otro
+    CUIT.
+  -->
+  <p class="receiver__summary">
+    @if (isFinalConsumer()) {
+      <span class="receiver__summary-name receiver__summary-name--generic">
+        {{ 'sales.receiver.finalConsumer' | translate }}
+      </span>
+    } @else {
+      <span class="receiver__summary-name">{{ shown().receiverName }}</span>
+      @if (shown().receiverDocNumber) {
+        <span class="receiver__summary-doc">
+          {{ shown().receiverDocType }} {{ shown().receiverDocNumber }}
+        </span>
+      }
+    }
+  </p>
+
+  <button mat-button type="button" class="receiver__edit" (click)="onEdit()">
+    <mat-icon aria-hidden="true">edit</mat-icon>
+    {{ 'sales.receiver.edit' | translate }}
+  </button>
+} @else {
+  <div class="receiver__fields">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="receiver__name">
+      <mat-label>{{ 'sales.receiver.name' | translate }}</mat-label>
+      <input
+        matInput
+        type="text"
+        maxlength="255"
+        [value]="shown().receiverName ?? ''"
+        (input)="onFieldChange('receiverName', $any($event.target).value)"
+      />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="receiver__doc-type">
+      <mat-label>{{ 'sales.receiver.docType' | translate }}</mat-label>
+      <mat-select
+        [value]="shown().receiverDocType ?? ''"
+        (valueChange)="onFieldChange('receiverDocType', $event)"
+      >
+        <mat-option value="">{{ 'sales.receiver.docTypeNone' | translate }}</mat-option>
+        @for (type of documentTypes; track type) {
+          <mat-option [value]="type">
+            {{ 'sales.receiver.docTypes.' + type | translate }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="receiver__doc-number">
+      <mat-label>{{ 'sales.receiver.docNumber' | translate }}</mat-label>
+      <input
+        matInput
+        type="text"
+        maxlength="50"
+        [value]="shown().receiverDocNumber ?? ''"
+        (input)="onFieldChange('receiverDocNumber', $any($event.target).value)"
+      />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="receiver__tax-condition">
+      <mat-label>{{ 'sales.receiver.taxCondition' | translate }}</mat-label>
+      <input
+        matInput
+        type="text"
+        maxlength="50"
+        [value]="shown().receiverTaxCondition ?? ''"
+        (input)="onFieldChange('receiverTaxCondition', $any($event.target).value)"
+      />
+    </mat-form-field>
+  </div>
+
+  <p class="receiver__hint">{{ 'sales.receiver.hint' | translate }}</p>
+
+  <button mat-button type="button" class="receiver__reset" (click)="onReset()">
+    <mat-icon aria-hidden="true">undo</mat-icon>
+    {{
+      (customer() ? 'sales.receiver.resetToCustomer' : 'sales.receiver.resetToFinalConsumer')
+        | translate
+    }}
+  </button>
+}

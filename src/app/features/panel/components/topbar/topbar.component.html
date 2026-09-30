@@ -1,0 +1,86 @@
+<header class="top">
+  <button
+    mat-icon-button
+    type="button"
+    class="top__toggle"
+    (click)="layout.toggleSidebar()"
+    [attr.aria-expanded]="layout.sidebarOpened()"
+    [attr.aria-label]="
+      (layout.sidebarCollapsed() ? 'topbar.expandSidebarAria' : 'topbar.collapseSidebarAria')
+        | translate
+    "
+    [matTooltip]="
+      (layout.sidebarCollapsed() ? 'topbar.expandSidebar' : 'topbar.collapseSidebar') | translate
+    "
+  >
+    <mat-icon>{{ layout.sidebarCollapsed() ? 'menu' : 'menu_open' }}</mat-icon>
+  </button>
+
+  <app-breadcrumb-bar class="top__crumb" />
+
+  <span class="top__spacer"></span>
+
+  <button
+    type="button"
+    class="top__search"
+    (click)="openSearch()"
+    [attr.aria-label]="'topbar.search.aria' | translate"
+  >
+    <mat-icon aria-hidden="true">search</mat-icon>
+    <span class="top__search-label">{{ 'topbar.search.button' | translate }}</span>
+    <kbd class="top__search-kbd">{{ shortcutLabel }}</kbd>
+  </button>
+
+  @if (dashboard.cash(); as cash) {
+    <a
+      class="top__cash"
+      [class.top__cash--closed]="!cash.open"
+      routerLink="/panel/pos"
+      [matTooltip]="cash.name ?? ''"
+    >
+      <i aria-hidden="true"></i>
+      <span class="top__cash-label">
+        {{ (cash.open ? 'topbar.cash.open' : 'topbar.cash.closed') | translate }}
+      </span>
+    </a>
+  }
+
+  <button
+    type="button"
+    class="top__ib"
+    [matMenuTriggerFor]="notificationsMenu"
+    [attr.aria-label]="'topbar.notificationsAria' | translate"
+    [matTooltip]="'topbar.notifications' | translate"
+  >
+    <mat-icon>notifications</mat-icon>
+    @if (dashboard.attention().length) {
+      <i class="top__dot" aria-hidden="true"></i>
+    }
+  </button>
+
+  <mat-menu #notificationsMenu="matMenu" class="notifications-panel" xPosition="before">
+    <p class="notif__title" role="presentation">
+      {{ 'dashboard.attention.title' | translate }}
+      @if (dashboard.attention().length) {
+        <span class="vk-pill vk-pill--acc vk-pill--sm">{{ dashboard.attention().length }}</span>
+      }
+    </p>
+    @for (item of dashboard.attention(); track $index) {
+      <a mat-menu-item class="notif__item" [routerLink]="item.link">
+        <span class="notif__row">
+          <span class="vk-pill vk-pill--dot vk-pill--{{ item.tone === 'neutral' ? '' : item.tone }}">
+            {{ item.tagKey | translate }}
+          </span>
+          <span class="notif__text">
+            <span class="notif__name">{{ item.title }}</span>
+            <small>{{ item.detailKey | translate: item.detailParams }}</small>
+          </span>
+        </span>
+      </a>
+    } @empty {
+      <p class="notif__empty" role="presentation">{{ 'dashboard.attention.empty' | translate }}</p>
+    }
+  </mat-menu>
+
+  <app-settings-menu class="top__settings" />
+</header>

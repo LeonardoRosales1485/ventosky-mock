@@ -1,0 +1,318 @@
+<app-page-header
+  [title]="'assemblies.form.title' | translate"
+  [description]="'assemblies.form.description' | translate"
+>
+  @if (preview(); as data) {
+    <span class="assembly-form__badge">{{ 'assemblies.form.willNumber' | translate }}</span>
+  }
+</app-page-header>
+
+<!--
+  Dos columnas que son las dos mitades de la operación: se produce a la izquierda, se consume a la
+  derecha. Todo en una pantalla porque es un commit atómico (RN-23) — no hay un paso intermedio que
+  persista una mitad sin la otra.
+-->
+<div class="assembly-form">
+  <!-- ─────────────────────────────  Qué se produce  ───────────────────────────── -->
+  <section class="assembly-form__card" aria-labelledby="assembly-produce-title">
+    <h2 class="assembly-form__card-title" id="assembly-produce-title">
+      {{ 'assemblies.form.produce.title' | translate }}
+    </h2>
+
+    <div class="assembly-form__field">
+      <span class="assembly-form__label">{{ 'assemblies.form.produce.product' | translate }}</span>
+      <button
+        mat-stroked-button
+        type="button"
+        class="assembly-form__picker"
+        (click)="onPickProduct()"
+        [disabled]="!canCreate"
+      >
+        <mat-icon aria-hidden="true">search</mat-icon>
+        {{ product()?.name || ('assemblies.form.produce.pickProduct' | translate) }}
+      </button>
+      <span class="assembly-form__hint">{{ 'assemblies.form.produce.onlyAssembled' | translate }}</span>
+    </div>
+
+    <div class="assembly-form__row">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'assemblies.form.produce.quantity' | translate }}</mat-label>
+        <input
+          matInput
+          type="number"
+          step="any"
+          min="0"
+          [value]="quantity()"
+          (input)="quantity.set($any($event.target).valueAsNumber)"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'assemblies.form.produce.warehouse' | translate }}</mat-label>
+        <mat-select [value]="warehouseUuid()" (valueChange)="onWarehouseChange($event)">
+          @for (warehouse of warehouses(); track warehouse.uuid) {
+            <mat-option [value]="warehouse.uuid">{{ warehouse.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <!--
+      «Con el stock de hoy podés armar N», y quién lo limita. El segundo dato es el que hace útil al
+      primero: sin él, el número sale de una cuenta que nadie puede rehacer de un vistazo, y el
+      operador no sabe qué comprar para poder armar más.
+    -->
+    @if (preview(); as data) {
+      <p class="assembly-form__max" [class.assembly-form__max--short]="data.shortage">
+        <span>{{ 'assemblies.form.produce.maxProducible' | translate }}</span>
+        <strong>{{ data.maxProducible ?? 0 }}</strong>
+        @if (data.limitingComponent) {
+          <span class="assembly-form__hint">
+            {{
+              'assemblies.form.produce.limitedBy'
+                | translate: { component: data.limitingComponent.name }
+            }}
+          </span>
+        }
+      </p>
+    }
+  </section>
+
+  <!-- ───────────────────────────  Lote del terminado  ─────────────────────────── -->
+  @if (needsBatch() || needsSerials()) {
+    <section class="assembly-form__card assembly-form__card--accent" aria-labelledby="assembly-batch-title">
+      <h2 class="assembly-form__card-title" id="assembly-batch-title">
+        {{ 'assemblies.form.batch.title' | translate }}
+      </h2>
+
+      @if (needsBatch()) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'assemblies.form.batch.number' | translate }}</mat-label>
+          <input matInput [value]="batchNumber()" (input)="batchNumber.set($any($event.target).value)" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'assemblies.form.batch.expiration' | translate }}</mat-label>
+          <input
+            matInput
+            type="date"
+            [value]="expirationDate()"
+            [max]="preview()?.suggestedExpirationDate || null"
+            (input)="expirationDate.set($any($event.target).value)"
+          />
+        </mat-form-field>
+
+        <!--
+          El sugerido NOMBRA al componente que lo impone. Es la regla que evita que la bandeja
+          sobreviva al jamón (RN-25), y decirla con el nombre adelante es lo que la hace entendible:
+          «se puede bajar, no subir» a secas se lee como un capricho del sistema.
+        -->
+        @if (preview()?.expirationDrivenBy; as driver) {
+          <p class="assembly-form__note">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <span>
+              {{
+                'assemblies.form.batch.suggestedBy'
+                  | translate: { component: driver.name, date: preview()?.suggestedExpirationDate }
+              }}
+            </span>
+          </p>
+        }
+        @if (expirationExceeded()) {
+          <p class="assembly-form__error" role="alert">
+            {{
+              'assemblies.form.batch.exceeds'
+                | translate: { date: preview()?.suggestedExpirationDate }
+            }}
+          </p>
+        }
+      }
+
+      <!-- La PC armada lleva SU serie: la que el cliente reclama en garantía, no la del gabinete. -->
+      @if (needsSerials()) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'assemblies.form.batch.serials' | translate }}</mat-label>
+          <textarea
+            matInput
+            rows="4"
+            [value]="serials()"
+            (input)="serials.set($any($event.target).value)"
+          ></textarea>
+        </mat-form-field>
+        <p
+          class="assembly-form__hint"
+          [class.assembly-form__error]="serialsMismatch()"
+          [attr.role]="serialsMismatch() ? 'alert' : null"
+        >
+          {{
+            'assemblies.form.batch.serialCount'
+              | translate: { informed: serialCount(), needed: quantity() ?? 0 }
+          }}
+        </p>
+      }
+    </section>
+  }
+
+  <!-- ─────────────────────────────  Qué se consume  ───────────────────────────── -->
+  <section class="assembly-form__card assembly-form__card--wide" aria-labelledby="assembly-consume-title">
+    <div class="assembly-form__card-header">
+      <h2 class="assembly-form__card-title" id="assembly-consume-title">
+        {{ 'assemblies.form.consume.title' | translate }}
+      </h2>
+      <span class="assembly-form__hint">{{ 'assemblies.form.consume.preloaded' | translate }}</span>
+    </div>
+
+    @if (!preview()) {
+      <p class="assembly-form__empty">{{ 'assemblies.form.consume.empty' | translate }}</p>
+    } @else {
+      <div class="assembly-form__table-scroll">
+        <table class="assembly-form__table">
+          <caption class="sr-only">{{ 'assemblies.form.consume.tableAria' | translate }}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{{ 'assemblies.form.consume.component' | translate }}</th>
+              <th scope="col" class="assembly-form__num">
+                {{ 'assemblies.form.consume.quantity' | translate }}
+              </th>
+              <th scope="col">{{ 'assemblies.form.consume.fromBatch' | translate }}</th>
+              <th scope="col" class="assembly-form__num">
+                {{ 'assemblies.form.consume.cost' | translate }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of preview()!.components; track row.component.uuid) {
+              <tr [class.assembly-form__row--short]="row.shortage">
+                <td>
+                  <span class="assembly-form__component">{{ row.component.name }}</span>
+                  @if (row.limiting) {
+                    <span class="assembly-form__flag">
+                      {{ 'assemblies.form.consume.limits' | translate }}
+                    </span>
+                  }
+                </td>
+                <td class="assembly-form__num">
+                  <!-- Editable para ESTE armado: si hoy se usó un poco más de queso, se registra lo
+                       que pasó. No toca la composición del producto (P10). -->
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                    <input
+                      matInput
+                      type="number"
+                      step="any"
+                      min="0"
+                      [value]="quantityOf(row.component.uuid, row.quantity)"
+                      (change)="
+                        onComponentQuantityChange(row.component.uuid, $any($event.target).value)
+                      "
+                      [attr.aria-label]="
+                        'assemblies.form.consume.quantityAria'
+                          | translate: { name: row.component.name }
+                      "
+                    />
+                  </mat-form-field>
+                </td>
+                <td>
+                  <!-- El reparto viene RESUELTO por la política de la sucursal: el operador de
+                       rotisería no elige lotes a mano todos los días. -->
+                  <div class="assembly-form__batches">
+                    @for (allocation of row.allocations; track allocation.batchUuid) {
+                      <span class="assembly-form__batch">
+                        {{ allocation.batchNumber }}
+                        @if (allocation.expirationDate) {
+                          <span class="assembly-form__batch-date">
+                            {{
+                              'assemblies.form.consume.expires'
+                                | translate: { date: allocation.expirationDate }
+                            }}
+                          </span>
+                        }
+                      </span>
+                    } @empty {
+                      <span class="assembly-form__hint">—</span>
+                    }
+                    @if (row.shortage) {
+                      <span class="assembly-form__error">
+                        {{
+                          'assemblies.form.consume.shortage'
+                            | translate: { available: row.availableQuantity ?? 0 }
+                        }}
+                      </span>
+                    }
+                  </div>
+                </td>
+                <td class="assembly-form__num">
+                  @if (row.cost !== null) {
+                    <app-currency-display [value]="row.cost" />
+                  } @else {
+                    —
+                  }
+                </td>
+              </tr>
+            }
+            <tr class="assembly-form__extra">
+              <td colspan="3">
+                <span>{{ 'assemblies.form.consume.extraCost' | translate }}</span>
+                <span class="assembly-form__hint">
+                  {{ 'assemblies.form.consume.extraCostHint' | translate }}
+                </span>
+              </td>
+              <td class="assembly-form__num">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <input
+                    matInput
+                    type="number"
+                    step="any"
+                    min="0"
+                    [value]="extraCost()"
+                    (input)="extraCost.set($any($event.target).valueAsNumber)"
+                    [attr.aria-label]="'assemblies.form.consume.extraCost' | translate"
+                  />
+                </mat-form-field>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <!-- ───────────────────────  El costo, y el botón que lo graba  ─────────────────────── -->
+  @if (preview(); as data) {
+    <section class="assembly-form__card assembly-form__card--wide assembly-form__totals">
+      <!--
+        El costo unitario se muestra COMO CUENTA —costo ÷ cantidad— y no como resultado: es lo que
+        queda congelado en el lote del terminado (RN-24), y un número que nadie puede rehacer es un
+        número que nadie revisa. Meses después, en el margen, ya es tarde.
+      -->
+      <dl class="assembly-form__cost">
+        <div>
+          <dt>{{ 'assemblies.form.totals.assemblyCost' | translate }}</dt>
+          <dd><app-currency-display [value]="data.totalCost ?? 0" /></dd>
+        </div>
+        <div class="assembly-form__divide" aria-hidden="true">÷ {{ data.quantity ?? 0 }} =</div>
+        <div class="assembly-form__cost--unit">
+          <dt>{{ 'assemblies.form.totals.unitCost' | translate }}</dt>
+          <dd><app-currency-display [value]="data.unitCost ?? 0" /></dd>
+        </div>
+      </dl>
+
+      <div class="assembly-form__actions">
+        <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="saving()">
+          {{ 'assemblies.form.actions.cancel' | translate }}
+        </button>
+        <button
+          mat-flat-button
+          type="button"
+          color="primary"
+          (click)="onSubmit()"
+          [disabled]="!canSubmit()"
+        >
+          @if (previewing()) {
+            <mat-icon aria-hidden="true">hourglass_empty</mat-icon>
+          }
+          {{ 'assemblies.form.actions.submit' | translate }}
+        </button>
+      </div>
+    </section>
+  }
+</div>

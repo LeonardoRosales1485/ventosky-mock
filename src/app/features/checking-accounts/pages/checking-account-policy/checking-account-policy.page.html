@@ -1,0 +1,291 @@
+<section class="policy">
+  <header class="policy__header">
+    <div>
+      <h1 class="policy__title">{{ 'checkingAccounts.companyPolicy.title' | translate }}</h1>
+      <p class="policy__description">
+        {{ 'checkingAccounts.companyPolicy.description' | translate }}
+      </p>
+    </div>
+    <!-- Cuántas declaraciones difieren de lo guardado. Es lo que hay que mirar antes de guardar. -->
+    @if (changedCount() > 0) {
+      <span class="policy__dirty">
+        {{ 'checkingAccounts.companyPolicy.unsaved' | translate: { count: changedCount() } }}
+      </span>
+    }
+  </header>
+
+  @if (loading()) {
+    <p class="policy__loading">{{ 'checkingAccounts.companyPolicy.loading' | translate }}</p>
+  } @else {
+    <!--
+      Modo y valor son **dos columnas y no un campo**: heredar, «sin tope» y fijar un número son tres
+      respuestas distintas, y un campo vacío no las distingue. La empresa no ofrece «heredar» —es el
+      peldaño más alto y no tiene de quién—, pero el reparto de columnas es el mismo que el del
+      override para que las dos pantallas se lean igual.
+    -->
+    <div class="policy__table-wrap">
+      <table class="policy__table">
+        <caption class="sr-only">
+          {{
+            'checkingAccounts.companyPolicy.title' | translate
+          }}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">{{ 'checkingAccounts.companyPolicy.columns.parameter' | translate }}</th>
+            <th scope="col">{{ 'checkingAccounts.companyPolicy.columns.mode' | translate }}</th>
+            <th scope="col">{{ 'checkingAccounts.companyPolicy.columns.value' | translate }}</th>
+            <th scope="col">{{ 'checkingAccounts.companyPolicy.columns.effective' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- ─────────────────────  Plazo de vencimiento  ───────────────────── -->
+          <tr [class.policy__row--changed]="dueDaysChanged()">
+            <th scope="row" class="policy__param">
+              <span class="policy__param-name">
+                {{ 'checkingAccounts.companyPolicy.dueDays.title' | translate }}
+              </span>
+              <code class="policy__param-key">DUE_DAYS</code>
+              <span class="policy__param-hint">
+                {{ 'checkingAccounts.companyPolicy.dueDays.hint' | translate }}
+                {{ 'checkingAccounts.companyPolicy.dueDays.zeroHint' | translate }}
+              </span>
+            </th>
+            <td class="policy__mode-cell">
+              {{ 'checkingAccounts.companyPolicy.modes.fixedValue' | translate }}
+            </td>
+            <td>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="policy__field">
+                <mat-label>{{ 'checkingAccounts.companyPolicy.dueDays.label' | translate }}</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  min="0"
+                  [ngModel]="dueDays()"
+                  (ngModelChange)="dueDays.set($event); onFormChange()"
+                  name="dueDays"
+                />
+                <span matTextSuffix>
+                  {{ 'checkingAccounts.companyPolicy.dueDays.suffix' | translate }}
+                </span>
+              </mat-form-field>
+            </td>
+            <!--
+              «Rige hoy» muestra el valor resuelto con su fuente, y en las filas tocadas el viejo
+              tachado: quien configura tiene que ver de dónde sale el número antes de cambiarlo.
+            -->
+            <td class="policy__effective">
+              <div class="policy__effective-box">
+                @if (saved(); as current) {
+                  @if (dueDaysChanged()) {
+                    <span class="policy__old">
+                      {{
+                        'checkingAccounts.policy.days'
+                          | translate: { days: current.resolved.dueDays }
+                      }}
+                    </span>
+                    <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+                    <span class="policy__new">
+                      {{ 'checkingAccounts.policy.days' | translate: { days: dueDays() ?? 0 } }}
+                    </span>
+                  } @else {
+                    <span>
+                      {{
+                        'checkingAccounts.policy.days'
+                          | translate: { days: current.resolved.dueDays }
+                      }}
+                    </span>
+                    <span class="policy__source">
+                      {{ sourceLabel(current.resolved.dueDaysSource) | translate }}
+                    </span>
+                  }
+                }
+              </div>
+            </td>
+          </tr>
+
+          <!-- ────────────────────────  Límite de deuda  ──────────────────────── -->
+          <tr [class.policy__row--changed]="limitChanged()">
+            <th scope="row" class="policy__param">
+              <span class="policy__param-name">
+                {{ 'checkingAccounts.companyPolicy.limit.title' | translate }}
+              </span>
+              <code class="policy__param-key">DEBT_LIMIT</code>
+              <!--
+                El límite se presenta como lo que es: un tope de VENTA. En una compra no se valida
+                —cuánto nos fía un proveedor lo decide el proveedor—, y callarlo sería dejar que
+                alguien crea que también lo protege del otro lado.
+              -->
+              <span class="policy__param-hint">
+                {{ 'checkingAccounts.companyPolicy.limit.salesOnly' | translate }}
+              </span>
+            </th>
+            <td class="policy__mode-cell">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="policy__field">
+                <mat-label>{{ 'checkingAccounts.companyPolicy.columns.mode' | translate }}</mat-label>
+                <mat-select
+                  [ngModel]="limitMode()"
+                  (ngModelChange)="limitMode.set($event); onFormChange()"
+                  name="limitMode"
+                >
+                  <mat-option value="UNLIMITED">
+                    {{ 'checkingAccounts.companyPolicy.limit.unlimited' | translate }}
+                  </mat-option>
+                  <mat-option value="AMOUNT">
+                    {{ 'checkingAccounts.companyPolicy.limit.amount' | translate }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </td>
+            <td>
+              @if (limitMode() === 'AMOUNT') {
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="policy__field">
+                  <mat-label>{{ 'checkingAccounts.companyPolicy.limit.label' | translate }}</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    min="0"
+                    [ngModel]="debtLimit()"
+                    (ngModelChange)="debtLimit.set($event); onFormChange()"
+                    name="debtLimit"
+                  />
+                </mat-form-field>
+              } @else {
+                <span class="policy__dash" aria-hidden="true">—</span>
+              }
+            </td>
+            <td class="policy__effective">
+              <div class="policy__effective-box">
+                @if (saved(); as current) {
+                  @if (limitChanged()) {
+                    <span class="policy__old">{{ limitLabel(current.resolved.debtLimit) }}</span>
+                    <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+                    <span class="policy__new">{{ limitLabel(debtLimitValue()) }}</span>
+                  } @else {
+                    <span>{{ limitLabel(current.resolved.debtLimit) }}</span>
+                    <span class="policy__source">
+                      {{ sourceLabel(current.resolved.debtLimitSource) | translate }}
+                    </span>
+                  }
+                }
+              </div>
+            </td>
+          </tr>
+
+          <!-- ───────────────────────  Modo de imputación  ─────────────────────── -->
+          <tr [class.policy__row--changed]="allocationChanged()">
+            <th scope="row" class="policy__param">
+              <span class="policy__param-name">
+                {{ 'checkingAccounts.companyPolicy.allocation.title' | translate }}
+              </span>
+              <code class="policy__param-key">ALLOCATION_MODE</code>
+              <span class="policy__param-hint">
+                {{ 'checkingAccounts.companyPolicy.allocation.hint' | translate }}
+              </span>
+            </th>
+            <td class="policy__mode-cell">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="policy__field">
+                <mat-label>{{ 'checkingAccounts.companyPolicy.columns.mode' | translate }}</mat-label>
+                <mat-select
+                  [ngModel]="allocationMode()"
+                  (ngModelChange)="allocationMode.set($event); onFormChange()"
+                  name="allocationMode"
+                >
+                  <mat-option value="AUTOMATIC">
+                    {{ 'checkingAccounts.companyPolicy.allocation.automatic' | translate }}
+                  </mat-option>
+                  <mat-option value="MANUAL">
+                    {{ 'checkingAccounts.companyPolicy.allocation.manual' | translate }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </td>
+            <td><span class="policy__dash" aria-hidden="true">—</span></td>
+            <td class="policy__effective">
+              <div class="policy__effective-box">
+                @if (saved(); as current) {
+                  @if (allocationChanged()) {
+                    <span class="policy__old">
+                      {{
+                        'checkingAccounts.allocationModes.' + current.resolved.allocationMode
+                          | translate
+                      }}
+                    </span>
+                    <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+                    <span class="policy__new">
+                      {{ 'checkingAccounts.allocationModes.' + allocationMode() | translate }}
+                    </span>
+                  } @else {
+                    <span>
+                      {{
+                        'checkingAccounts.allocationModes.' + current.resolved.allocationMode
+                          | translate
+                      }}
+                    </span>
+                    <span class="policy__source">
+                      {{ sourceLabel(current.resolved.allocationModeSource) | translate }}
+                    </span>
+                  }
+                }
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="policy__trail">{{ 'checkingAccounts.companyPolicy.trail' | translate }}</p>
+
+    <footer class="policy__actions">
+      <!--
+        Pasar la empresa a automático reprocesa cuentas y bajar el límite puede dejar cuentas por
+        encima del tope. Las dos consecuencias se miran antes de guardar, en un solo paso.
+      -->
+      @if (dirty()) {
+        <p class="policy__warning">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          {{ 'checkingAccounts.companyPolicy.impact.ask' | translate }}
+        </p>
+        <div class="policy__buttons">
+          <button mat-button type="button" (click)="onDiscard()">
+            {{ 'checkingAccounts.companyPolicy.discard' | translate }}
+          </button>
+          <button mat-stroked-button type="button" [disabled]="checking()" (click)="check()">
+            <mat-icon aria-hidden="true">query_stats</mat-icon>
+            {{ 'checkingAccounts.companyPolicy.impact.check' | translate }}
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="saving()"
+            (click)="save()"
+          >
+            <mat-icon aria-hidden="true">check</mat-icon>
+            {{ 'checkingAccounts.companyPolicy.save' | translate }}
+          </button>
+        </div>
+      }
+    </footer>
+
+    <!-- ────────────────────────  Lo que efectivamente pasó  ──────────────────── -->
+    @if (result(); as done) {
+      <section class="policy__result" aria-live="polite">
+        <mat-icon aria-hidden="true">task_alt</mat-icon>
+        {{
+          'checkingAccounts.companyPolicy.result.reprocess'
+            | translate: { accounts: done.accounts, allocations: done.allocations }
+        }}
+        <app-currency-display [value]="done.settledAmount" />
+        @if (done.failedAccounts.length) {
+          <span class="policy__result-failed">
+            {{
+              'checkingAccounts.companyPolicy.result.failed'
+                | translate: { count: done.failedAccounts.length }
+            }}
+          </span>
+        }
+      </section>
+    }
+  }
+</section>

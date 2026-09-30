@@ -1,0 +1,138 @@
+:host {
+  display: block;
+}
+
+table {
+  width: 100%;
+}
+
+/* ─────────────────────────────  La corrida  ───────────────────────────── */
+
+.consistency__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.consistency__figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.consistency__figure {
+  display: flex;
+  min-width: 11rem;
+  flex: 1 1 11rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface);
+  padding: 0.875rem 1rem;
+}
+
+.consistency__figure-label {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.consistency__figure-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.consistency__figure-value--alert {
+  color: var(--app-warning);
+}
+
+.consistency__figure-note {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+}
+
+.consistency__hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.consistency__hint-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+  flex: none;
+}
+
+/* ─────────────────────────────  La tabla  ───────────────────────────── */
+
+.consistency__party {
+  font-weight: 600;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+}
+
+.consistency__party:hover,
+.consistency__party:focus-visible {
+  text-decoration: underline;
+}
+
+.consistency__invariant {
+  font-family: var(--mat-sys-body-medium-font, monospace);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.consistency__dash {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/*
+  Revisada, no borrada: la fila baja de tono pero se queda, con la fecha en la que alguien la miró.
+*/
+.consistency__row--reviewed .mat-mdc-cell {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.consistency__reviewed {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+}
+
+.consistency__empty {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
+.consistency__empty-title {
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.consistency__empty-text {
+  margin: 0 auto;
+  max-width: 34rem;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.consistency__footnote {
+  margin: 1rem 0 0;
+  max-width: 52rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--mat-sys-on-surface-variant);
+}

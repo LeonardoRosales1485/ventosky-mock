@@ -1,0 +1,188 @@
+@let columns = displayedColumns();
+
+<app-page-header
+  [title]="title()"
+  [description]="'priceLists.prices.description' | translate"
+  [showBack]="true"
+  [backLabel]="'priceLists.prices.back' | translate"
+  (back)="onBack()"
+/>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'priceLists.prices.loading' | translate"
+  maxHeight="32rem"
+>
+  <div tableWrapperHeader class="price-list-prices__header">
+    <app-table-toolbar
+      [search]="searchQuery()"
+      [activeFilters]="activeFilters()"
+      [searchPlaceholder]="'priceLists.prices.searchPlaceholder' | translate"
+      (searchChange)="searchQuery.set($event)"
+      (refresh)="onRefresh()"
+      (filtersClick)="onToggleFilters()"
+      (clearFilters)="onClearFilters()"
+    />
+
+    @if (filtersOpen()) {
+      <div
+        class="price-list-prices__filters"
+        [attr.aria-label]="'priceLists.prices.filtersAria' | translate"
+      >
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'priceLists.prices.filters.brand' | translate }}</mat-label>
+          <mat-select
+            [value]="brandFilter()"
+            (valueChange)="onBrandChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{
+              'priceLists.prices.filters.all' | translate
+            }}</mat-option>
+            @for (brand of brands(); track brand.uuid) {
+              <mat-option [value]="brand.uuid">{{ brand.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'priceLists.prices.filters.category' | translate }}</mat-label>
+          <mat-select
+            [value]="categoryFilter()"
+            (valueChange)="onCategoryChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{
+              'priceLists.prices.filters.all' | translate
+            }}</mat-option>
+            @for (category of categories(); track category.uuid) {
+              <mat-option
+                [value]="category.uuid"
+                [matTooltip]="category.path"
+                [style.--category-depth]="category.depth"
+                class="price-list-prices__category"
+              >
+                {{ category.name }}
+              </mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{ 'priceLists.prices.filters.categoryHint' | translate }}</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'priceLists.prices.filters.type' | translate }}</mat-label>
+          <mat-select
+            [value]="typeFilter()"
+            (valueChange)="onTypeChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{
+              'priceLists.prices.filters.typeAll' | translate
+            }}</mat-option>
+            @for (type of productTypes; track type) {
+              <mat-option [value]="type">{{ 'products.types.' + type | translate }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+  </div>
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    [attr.aria-label]="'priceLists.prices.tableAria' | translate"
+  >
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'priceLists.prices.columns.name' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let product">
+        <span class="price-list-prices__name">{{ product.name }}</span>
+        @if (product.barcode) {
+          <span class="price-list-prices__barcode">{{ product.barcode }}</span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="sku">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'priceLists.prices.columns.sku' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let product">{{ product.sku || '—' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="brand">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'priceLists.prices.columns.brand' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let product">{{ product.brand?.name || '—' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="category">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'priceLists.prices.columns.category' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let product">{{ product.category?.name || '—' }}</td>
+    </ng-container>
+
+    <!--
+      El precio en ESTA lista. No es ordenable: vive en otra tabla y el JOIN multiplicaría la fila
+      del producto por sus listas. «Sin precio» no es cero: es que la lista no lo cotiza.
+    -->
+    <ng-container matColumnDef="price">
+      <th mat-header-cell *matHeaderCellDef class="price-list-prices__price-header">
+        {{ 'priceLists.prices.columns.price' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let product" class="price-list-prices__price-cell">
+        <app-currency-display
+          [value]="priceOf(product)"
+          [emptyLabel]="'priceLists.prices.noPrice' | translate"
+        />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'priceLists.prices.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let product" class="actions-cell">
+        <app-row-actions
+          [actions]="rowActions()"
+          [ariaLabel]="'priceLists.prices.actions.rowAria' | translate"
+          (actionClick)="onRowAction($event, product)"
+        />
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="columns.length"
+      >
+        @if (!paginator.loading()) {
+          {{ 'priceLists.prices.empty' | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'priceLists.prices.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

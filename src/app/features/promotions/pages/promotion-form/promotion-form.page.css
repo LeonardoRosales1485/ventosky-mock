@@ -1,0 +1,145 @@
+:host {
+  display: block;
+}
+
+.promotion-form__body {
+  padding-block: 1.25rem;
+}
+
+.promotion-form__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.promotion-form__card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+/* Las secciones están numeradas: el formulario guía la carga en siete pasos, en orden. */
+.promotion-form__step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Un campo de un solo dato no gana nada por ocupar el ancho de la pantalla. */
+.promotion-form__half {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.promotion-form__radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+}
+
+.promotion-form__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface);
+}
+
+.promotion-form__panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.promotion-form__panel-title mat-icon {
+  color: var(--mat-sys-primary);
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.promotion-form__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.promotion-form__empty {
+  margin: 0;
+  padding: 1.25rem 1rem;
+  border: 1px dashed var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Errores que no caben en un `mat-error`: el conjunto elegible vacío vive en la colección. */
+.promotion-form__error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-error);
+}
+
+/* Las reglas que el usuario no puede adivinar: la cascada, el precio final, el todo-o-nada. */
+.promotion-form__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--app-info-container);
+  color: var(--app-on-info-container);
+  font-size: 0.8125rem;
+}
+
+.promotion-form__note mat-icon {
+  flex: none;
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Sangría por nivel para que el select deje ver la jerarquía del árbol de categorías. */
+.promotion-form__category-option {
+  padding-inline-start: calc(1rem + (var(--category-depth, 0) * 1rem));
+}
+
+/* Material apaga los eventos de las opciones deshabilitadas, y con ellos el tooltip que explica por
+   qué ésta no se puede tocar. Se reponen: el clic igual no selecciona, `MatOption` lo ignora. */
+.promotion-form__category-option--covered {
+  pointer-events: auto;
+}
+
+.promotion-form__option-name {
+  margin-inline-end: 0.5rem;
+}
+
+.promotion-form__option-meta {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}

@@ -1,0 +1,13 @@
+:host {
+  display: block;
+}
+
+.company-list {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.company-list__item + .company-list__item {
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}

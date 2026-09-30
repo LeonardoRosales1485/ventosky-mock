@@ -1,0 +1,36 @@
+<mat-sidenav-container
+  class="panel-shell h-dvh bg-[var(--vk-bg)]"
+  [class.panel-shell--collapsed]="!layout.isMobile() && layout.sidebarCollapsed()"
+  [class.panel-shell--mobile]="layout.isMobile()"
+  [class.panel-shell--immersive]="layout.immersive()"
+>
+  <mat-sidenav
+    class="sidebar-drawer"
+    [mode]="layout.sidenavMode()"
+    [opened]="layout.sidebarOpened()"
+    [fixedInViewport]="layout.isMobile()"
+    (openedChange)="onSidenavOpenedChange($event)"
+  >
+    <app-sidebar (logout)="onLogout()" />
+  </mat-sidenav>
+
+  <mat-sidenav-content class="panel-content relative flex h-full min-w-0 flex-col">
+    <!--
+      En modo inmersivo el shell no aporta cromo: la pantalla activa ocupa el viewport entero y es
+      ella la que se hace cargo de ofrecer la salida. El `router-outlet` no se mueve de lugar, así
+      que la ruta, los guards y el ítem del sidebar siguen siendo los mismos.
+    -->
+    @if (!layout.immersive()) {
+      <app-topbar class="panel-topbar" />
+    }
+
+    <div class="panel-content__inner relative flex-1">
+      <main class="panel-main relative z-[1]">
+        <div class="panel-main__inner vk-enter flex flex-col">
+          <router-outlet />
+        </div>
+      </main>
+
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>

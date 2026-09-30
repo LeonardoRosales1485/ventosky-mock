@@ -1,0 +1,223 @@
+<app-page-header
+  [title]="'checkingAccounts.consistency.title' | translate"
+  [description]="'checkingAccounts.consistency.description' | translate"
+>
+  <button mat-flat-button color="primary" type="button" [disabled]="running()" (click)="onRun()">
+    @if (running()) {
+      <mat-spinner diameter="18" aria-hidden="true" />
+    } @else {
+      <mat-icon aria-hidden="true">fact_check</mat-icon>
+    }
+    {{ 'checkingAccounts.consistency.run' | translate }}
+  </button>
+</app-page-header>
+
+<!--
+  Los números de la corrida sólo se muestran cuando hubo una: el backend no expone cuándo corrió por
+  última vez, y estampar una fecha que nadie firmó sobre una verificación es peor que no estamparla.
+-->
+<section class="consistency__summary" [attr.aria-label]="'checkingAccounts.consistency.summaryAria' | translate">
+  @if (lastRun(); as report) {
+    <div class="consistency__figures">
+      <div class="consistency__figure">
+        <span class="consistency__figure-label">
+          {{ 'checkingAccounts.consistency.accountsChecked' | translate }}
+        </span>
+        <span class="consistency__figure-value">{{ report.accountsChecked }}</span>
+      </div>
+      <div class="consistency__figure">
+        <span class="consistency__figure-label">
+          {{ 'checkingAccounts.consistency.found' | translate }}
+        </span>
+        <span
+          class="consistency__figure-value"
+          [class.consistency__figure-value--alert]="report.discrepancies > 0"
+        >
+          {{ report.discrepancies }}
+        </span>
+      </div>
+      <div class="consistency__figure">
+        <span class="consistency__figure-label">
+          {{ 'checkingAccounts.consistency.lastRun' | translate }}
+        </span>
+        <span class="consistency__figure-note">
+          {{ 'checkingAccounts.consistency.lastRunJustNow' | translate }}
+        </span>
+      </div>
+    </div>
+  }
+
+  <p class="consistency__hint">
+    <mat-icon class="consistency__hint-icon" aria-hidden="true">schedule</mat-icon>
+    {{ 'checkingAccounts.consistency.scheduleHint' | translate }}
+  </p>
+</section>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'checkingAccounts.consistency.loading' | translate"
+  maxHeight="32rem"
+>
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    [attr.aria-label]="'checkingAccounts.consistency.tableAria' | translate"
+  >
+    <ng-container matColumnDef="dateDetected">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'checkingAccounts.consistency.columns.detected' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">
+        {{ row.dateDetected | localizedDate: 'short' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="party">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'checkingAccounts.columns.party' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">
+        <a class="consistency__party" [routerLink]="accountPath(row)">{{ partyName(row) }}</a>
+      </td>
+    </ng-container>
+
+    <!-- El invariante va con su nombre técnico: es el que nombra la regla en el análisis. -->
+    <ng-container matColumnDef="invariantCode">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'checkingAccounts.consistency.columns.invariant' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">
+        <span
+          class="consistency__invariant"
+          [matTooltip]="'checkingAccounts.consistency.invariants.' + row.invariantCode | translate"
+        >
+          {{ row.invariantCode }}
+        </span>
+      </td>
+    </ng-container>
+
+    <!--
+      «El cache dice» y «las partidas dicen», y no «esperado / real»: el punto de la fila es que la
+      verdad son las partidas, y el par de nombres es lo único que lo dice sin una nota al pie.
+    -->
+    <ng-container matColumnDef="cachedValue">
+      <th mat-header-cell *matHeaderCellDef class="numeric-header">
+        {{ 'checkingAccounts.consistency.columns.cached' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row" class="numeric-cell">
+        @if (row.invariantCode === 'BALANCE') {
+          <app-currency-display [value]="+row.cachedValue" />
+        } @else {
+          {{ 'checkingAccounts.delinquency.' + row.cachedValue | translate }}
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="derivedValue">
+      <th mat-header-cell *matHeaderCellDef class="numeric-header">
+        {{ 'checkingAccounts.consistency.columns.derived' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row" class="numeric-cell">
+        @if (row.invariantCode === 'BALANCE') {
+          <app-currency-display [value]="+row.derivedValue" />
+        } @else {
+          {{ 'checkingAccounts.delinquency.' + row.derivedValue | translate }}
+        }
+      </td>
+    </ng-container>
+
+    <!-- En morosidad la diferencia va en guión y no en cero: entre dos niveles no hay resta. -->
+    <ng-container matColumnDef="difference">
+      <th mat-header-cell *matHeaderCellDef class="numeric-header">
+        {{ 'checkingAccounts.consistency.columns.difference' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row" class="numeric-cell">
+        @if (row.difference !== null) {
+          <app-currency-display [value]="row.difference" tone="auto" [showSign]="true" />
+        } @else {
+          <span class="consistency__dash" aria-hidden="true">—</span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'checkingAccounts.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let row" class="actions-cell">
+        @if (isResolved(row)) {
+          <!--
+            La fila revisada se queda, en gris y con su fecha: borrarla dejaría al próximo lector sin
+            saber si la cuenta ya se revisó o si nunca falló.
+          -->
+          <span class="consistency__reviewed">
+            {{
+              'checkingAccounts.consistency.reviewedOn'
+                | translate: { date: row.resolvedAt | localizedDate: 'shortDate' }
+            }}
+          </span>
+        } @else {
+          <button
+            mat-stroked-button
+            type="button"
+            [disabled]="recalculating() === row.uuid"
+            (click)="onRecalculate(row)"
+          >
+            {{ 'checkingAccounts.consistency.recalculate.action' | translate }}
+          </button>
+        }
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr
+      mat-row
+      *matRowDef="let row; columns: displayedColumns"
+      [class.consistency__row--reviewed]="isResolved(row)"
+    ></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell consistency__empty" [attr.colspan]="displayedColumns.length">
+        @if (!paginator.loading()) {
+          <span class="consistency__empty-title">
+            {{ 'checkingAccounts.consistency.empty.title' | translate }}
+          </span>
+          <span class="consistency__empty-text">
+            @if (lastRun(); as report) {
+              {{
+                'checkingAccounts.consistency.empty.checked'
+                  | translate: { accounts: report.accountsChecked }
+              }}
+            } @else {
+              {{ 'checkingAccounts.consistency.empty.never' | translate }}
+            }
+          </span>
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'checkingAccounts.consistency.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>
+
+<!--
+  El pie no es una nota de diseño: es la regla que explica por qué la pantalla no arregla sola lo que
+  encuentra, y por qué recalcular deja rastro en vez de limpiar la fila.
+-->
+<p class="consistency__footnote">
+  {{ 'checkingAccounts.consistency.footnote' | translate }}
+</p>

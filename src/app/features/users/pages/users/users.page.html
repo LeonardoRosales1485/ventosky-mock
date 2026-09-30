@@ -1,0 +1,106 @@
+<app-page-header
+  [title]="'users.title' | translate"
+  [description]="'users.description' | translate"
+>
+  @if (canCreate()) {
+    <button mat-flat-button type="button" color="primary" (click)="onCreate()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      {{ 'users.actions.create' | translate }}
+    </button>
+  }
+</app-page-header>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'users.loading' | translate"
+>
+  <app-table-toolbar
+    tableWrapperHeader
+    [search]="searchQuery()"
+    [activeFilters]="activeFilters()"
+    (searchChange)="searchQuery.set($event)"
+    (refresh)="onRefresh()"
+    (filtersClick)="onFiltersClick()"
+    (clearFilters)="onClearFilters()"
+  />
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    class="w-full"
+    [attr.aria-label]="'users.tableAria' | translate"
+  >
+    <ng-container matColumnDef="username">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'users.columns.username' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let user">{{ user.username }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="email">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'users.columns.email' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let user">{{ user.email || '—' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="phone">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'users.columns.phone' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let user">{{ user.phone || '—' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="dateCreated">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'users.columns.dateCreated' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let user">
+        {{ user.dateCreated | localizedDate: 'mediumDate' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'users.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let user" class="actions-cell">
+        <app-row-actions
+          [actions]="rowActions()"
+          [ariaLabel]="'users.actions.rowAria' | translate"
+          (actionClick)="onRowAction($event, user)"
+        />
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="displayedColumns.length"
+      >
+        @if (!paginator.loading()) {
+          {{ 'users.empty' | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'users.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

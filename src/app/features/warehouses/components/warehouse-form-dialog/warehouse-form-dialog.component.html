@@ -1,0 +1,48 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    {{ (isEdit ? 'warehouses.dialog.editTitle' : 'warehouses.dialog.createTitle') | translate }}
+  </h2>
+
+  <mat-dialog-content>
+    <div class="flex flex-col gap-2 pt-2">
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'warehouses.columns.name' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="warehouseForm.name"
+          [attr.aria-label]="'warehouses.columns.name' | translate"
+        />
+        @if (warehouseForm.name().touched() && warehouseForm.name().invalid()) {
+          <mat-error>{{ warehouseForm.name().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'warehouses.columns.priority' | translate }}</mat-label>
+        <input
+          matInput
+          type="number"
+          step="1"
+          autocomplete="off"
+          [formField]="warehouseForm.priority"
+          [attr.aria-label]="'warehouses.columns.priority' | translate"
+        />
+        <mat-hint>{{ 'warehouses.dialog.priorityHint' | translate }}</mat-hint>
+        @if (warehouseForm.priority().touched() && warehouseForm.priority().invalid()) {
+          <mat-error>{{ warehouseForm.priority().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'warehouses.dialog.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit">
+      {{ (isEdit ? 'warehouses.dialog.save' : 'warehouses.dialog.create') | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

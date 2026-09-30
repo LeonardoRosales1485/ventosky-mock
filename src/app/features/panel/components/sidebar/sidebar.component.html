@@ -1,0 +1,130 @@
+<div class="sb" [attr.aria-label]="'nav.sidebarAria' | translate" role="navigation">
+  <!-- Marca: Ventosky y la empresa activa. -->
+  <div class="sb-brand">
+    <div class="sb-brand__logo" aria-hidden="true">V</div>
+    @if (showLabels()) {
+      <div class="sb-brand__text sidebar-label">
+        <b>{{ 'brand.name' | translate }}</b>
+        <small [matTooltip]="companyLabel()" matTooltipShowDelay="300">{{ companyLabel() }}</small>
+      </div>
+    }
+  </div>
+
+  <!-- Sucursal: con más de una es el disparador del cambio. -->
+  @if (branchName(); as branch) {
+    @if (switchableBranches().length > 1) {
+      <button
+        type="button"
+        class="sb-branch"
+        [matMenuTriggerFor]="branchMenu"
+        [matTooltip]="showLabels() ? '' : branch"
+        matTooltipPosition="right"
+        [attr.aria-label]="'nav.branchSwitcher.openAria' | translate: { branch }"
+      >
+        <mat-icon aria-hidden="true">storefront</mat-icon>
+        @if (showLabels()) {
+          <span class="sb-branch__name sidebar-label">{{ branch }}</span>
+          <mat-icon class="sb-branch__caret" aria-hidden="true">unfold_more</mat-icon>
+        }
+      </button>
+    } @else {
+      <div class="sb-branch sb-branch--static" [matTooltip]="showLabels() ? '' : branch" matTooltipPosition="right">
+        <mat-icon aria-hidden="true">storefront</mat-icon>
+        @if (showLabels()) {
+          <span class="sb-branch__name sidebar-label">{{ branch }}</span>
+        }
+      </div>
+    }
+  }
+
+  <mat-menu #branchMenu="matMenu" class="branch-menu-panel">
+    <p class="branch-menu__title" role="presentation">
+      {{ 'nav.branchSwitcher.title' | translate }}
+    </p>
+    @for (branch of switchableBranches(); track branch.uuid) {
+      @let isCurrent = branch.uuid === auth.selectedBranchUuid();
+      <button
+        mat-menu-item
+        type="button"
+        (click)="onSwitchBranch(branch.uuid)"
+        [attr.aria-current]="isCurrent ? 'true' : null"
+      >
+        <mat-icon aria-hidden="true">{{ isCurrent ? 'check' : 'storefront' }}</mat-icon>
+        <span>{{ branch.name || ('auth.selectBranch.unnamed' | translate) }}</span>
+        @if (!branch.active) {
+          <span class="branch-menu__inactive">
+            {{ 'auth.selectBranch.inactive' | translate }}
+          </span>
+        }
+      </button>
+    }
+    <p class="branch-menu__hint" role="presentation">
+      {{ 'nav.branchSwitcher.hint' | translate }}
+    </p>
+  </mat-menu>
+
+  <nav class="sb-nav" aria-label="Main">
+    @for (section of sections(); track section.id) {
+      <div class="sb-group">
+        @if (!section.hidden) {
+          @if (showLabels()) {
+            <p class="sb-group__title sidebar-label">{{ section.labelKey | translate }}</p>
+          } @else {
+            <hr class="sb-group__rule" />
+          }
+        }
+
+        @for (item of section.items; track item.route) {
+          <a
+            class="sb-link"
+            [routerLink]="item.route"
+            routerLinkActive="sidebar-link--active"
+            ariaCurrentWhenActive="page"
+            [matTooltip]="showLabels() ? '' : (item.labelKey | translate)"
+            matTooltipPosition="right"
+            (click)="onNavigate()"
+          >
+            <mat-icon class="sb-link__icon" aria-hidden="true">{{ item.icon }}</mat-icon>
+            @if (showLabels()) {
+              <span class="sb-link__label sidebar-label">{{ item.labelKey | translate }}</span>
+              @if (isImmersive(item.route)) {
+                <mat-icon
+                  class="sb-link__ext"
+                  aria-hidden="true"
+                  [matTooltip]="'nav.opensFullscreen' | translate"
+                >
+                  open_in_full
+                </mat-icon>
+              }
+            }
+          </a>
+        }
+      </div>
+    }
+  </nav>
+
+  <!-- Usuario: nombre, rol y salida. -->
+  <div class="sb-me">
+    <div class="sb-me__avatar" aria-hidden="true">
+      {{ user()?.username?.charAt(0) ?? '' | uppercase }}
+    </div>
+    @if (showLabels()) {
+      <div class="sb-me__text sidebar-label">
+        <span>{{ user()?.username }}</span>
+        @if (roleLabel(); as role) {
+          <small>{{ role }}</small>
+        }
+      </div>
+      <button
+        mat-icon-button
+        type="button"
+        class="sb-me__logout"
+        (click)="logout.emit()"
+        [attr.aria-label]="'topbar.logoutAria' | translate"
+        [matTooltip]="'topbar.logout' | translate"
+      >
+        <mat-icon>logout</mat-icon>
+      </button>
+    }
+  </div>
+</div>

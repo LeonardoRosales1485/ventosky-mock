@@ -1,0 +1,101 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    {{
+      (isEdit ? 'cashRegisters.dialog.editTitle' : 'cashRegisters.dialog.createTitle') | translate
+    }}
+  </h2>
+
+  <mat-dialog-content>
+    <!-- Sin sucursales no hay caja posible: el estado vacío manda a crearlas, no a reintentar. -->
+    <app-load-state
+      [state]="catalogsState()"
+      [loadingMessage]="'cashRegisters.dialog.loadingCatalogs' | translate"
+      [errorMessage]="'cashRegisters.dialog.catalogsError' | translate"
+      [idleMessage]="'cashRegisters.dialog.noBranches' | translate"
+      idleIcon="store"
+      [retryable]="true"
+      [retryLabel]="'cashRegisters.dialog.retry' | translate"
+      minHeight="10rem"
+      (retry)="loadCatalogs()"
+    >
+      <div class="cash-register-form__fields">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>{{ 'cashRegisters.columns.name' | translate }}</mat-label>
+          <input
+            matInput
+            type="text"
+            autocomplete="off"
+            [formField]="cashRegisterForm.name"
+            [attr.aria-label]="'cashRegisters.columns.name' | translate"
+          />
+          @if (cashRegisterForm.name().touched() && cashRegisterForm.name().invalid()) {
+            <mat-error>{{ cashRegisterForm.name().errors() | fieldError }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>{{ 'cashRegisters.columns.branch' | translate }}</mat-label>
+          <mat-select
+            [value]="cashRegisterForm.branchUuid().value()"
+            (valueChange)="onBranchChange($event)"
+            [attr.aria-label]="'cashRegisters.columns.branch' | translate"
+          >
+            @for (branch of branches(); track branch.uuid) {
+              <mat-option [value]="branch.uuid">{{ branch.name }}</mat-option>
+            }
+          </mat-select>
+          @if (branchChanged()) {
+            <mat-hint>{{ 'cashRegisters.dialog.branchChangedHint' | translate }}</mat-hint>
+          }
+          @if (cashRegisterForm.branchUuid().touched() && cashRegisterForm.branchUuid().invalid()) {
+            <mat-error>{{ cashRegisterForm.branchUuid().errors() | fieldError }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>{{ 'cashRegisters.columns.assignedUsers' | translate }}</mat-label>
+          <mat-select
+            multiple
+            [value]="cashRegisterForm.assignedUserUuids().value()"
+            (valueChange)="onAssignedUsersChange($event)"
+            [attr.aria-label]="'cashRegisters.columns.assignedUsers' | translate"
+          >
+            @for (user of users(); track user.uuid) {
+              <mat-option [value]="user.uuid">{{ user.username }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{ 'cashRegisters.dialog.assignedUsersHint' | translate }}</mat-hint>
+        </mat-form-field>
+
+        <mat-checkbox
+          [checked]="cashRegisterForm.active().value()"
+          (change)="onActiveChange($event.checked)"
+        >
+          {{ 'cashRegisters.columns.active' | translate }}
+        </mat-checkbox>
+
+        <!-- Desactivar una caja abierta no cierra su sesión: el arqueo sigue pendiente. -->
+        @if (isOpen && !cashRegisterForm.active().value()) {
+          <p class="cash-register-form__warning">
+            <mat-icon aria-hidden="true">warning_amber</mat-icon>
+            <span>{{ 'cashRegisters.dialog.deactivateOpenWarning' | translate }}</span>
+          </p>
+        }
+      </div>
+    </app-load-state>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'cashRegisters.dialog.cancel' | translate }}
+    </button>
+    <button
+      mat-flat-button
+      color="primary"
+      type="submit"
+      [disabled]="catalogsState() !== LoadState.Success"
+    >
+      {{ (isEdit ? 'cashRegisters.dialog.save' : 'cashRegisters.dialog.create') | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

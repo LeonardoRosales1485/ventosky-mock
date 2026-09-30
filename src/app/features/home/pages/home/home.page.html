@@ -1,0 +1,119 @@
+<app-page-header
+  [title]="'home.greeting' | translate: { name: userName() }"
+  [description]="today() + (branchName() ? ' · ' + branchName() : '')"
+/>
+
+@let s = summary();
+
+<div class="home-hero">
+  <a class="home-big" [routerLink]="salesPath">
+    <div class="home-big__label">{{ 'home.kpi.monthSales' | translate: { month: monthName() } }}</div>
+    <div class="home-big__value">
+      @if (s) {
+        <app-currency-display [value]="s.monthSales.total" />
+      } @else {
+        —
+      }
+    </div>
+    <div class="home-big__detail">
+      @if (s) {
+        {{ 'home.kpi.monthSalesDetail' | translate: { count: s.monthSales.count } }}
+        <app-currency-display [value]="s.monthSales.average" />
+      }
+    </div>
+    <div class="home-spark" aria-hidden="true">
+      @for (bar of bars(); track bar.day) {
+        <i [class.on]="bar.on" [style.height.%]="bar.height"></i>
+      }
+    </div>
+    <div class="home-axis">
+      <span>{{ axis().start }}</span>
+      @if (axis().peak) {
+        <span>{{ axis().peak }} · <app-currency-display [value]="axis().peakAmount" [maximumFractionDigits]="0" [minimumFractionDigits]="0" /></span>
+      }
+      <span>{{ axis().end }}</span>
+    </div>
+  </a>
+
+  <div class="home-minis">
+    <div class="vk-card home-mini">
+      <div class="home-mini__label"><mat-icon aria-hidden="true">receipt_long</mat-icon>{{ 'home.kpi.purchases' | translate: { month: lastMonthName() } }}</div>
+      <div class="home-mini__value">
+        @if (s) {
+          <app-currency-display [value]="s.lastMonthPurchases.total" />
+        } @else {
+          —
+        }
+      </div>
+      <div class="home-mini__detail">{{ 'home.kpi.purchasesDetail' | translate: { count: s?.lastMonthPurchases?.count ?? 0 } }}</div>
+    </div>
+    <a class="vk-card home-mini" [routerLink]="productsPath">
+      <div class="home-mini__label"><mat-icon aria-hidden="true">inventory_2</mat-icon>{{ 'home.kpi.products' | translate }}</div>
+      <div class="home-mini__value">{{ s?.products?.forSale ?? '—' }}</div>
+      <div class="home-mini__detail">{{ 'home.kpi.productsDetail' | translate: { count: s?.products?.optimal ?? 0 } }}</div>
+    </a>
+    <div class="vk-card home-mini">
+      <div class="home-mini__label"><mat-icon aria-hidden="true">group</mat-icon>{{ 'home.kpi.customers' | translate }}</div>
+      <div class="home-mini__value">{{ s?.customers?.count ?? '—' }}</div>
+      <div class="home-mini__detail home-mini__detail--ellipsis">{{ customerNames() }}</div>
+    </div>
+    <a class="vk-card home-mini" [routerLink]="expirationsPath">
+      <div class="home-mini__label"><mat-icon aria-hidden="true">event_busy</mat-icon>{{ 'home.kpi.expiring' | translate }}</div>
+      <div class="home-mini__value">{{ s?.expiring?.count ?? '—' }}</div>
+      <div class="home-mini__detail">
+        @if (s?.expiring?.first; as first) {
+          <span class="vk-pill vk-pill--dot vk-pill--warn vk-pill--sm">{{ first }}</span>
+        } @else {
+          {{ 'home.kpi.expiringNone' | translate }}
+        }
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="home-row">
+  <section class="vk-card">
+    <header class="vk-card__header">
+      <h2 class="vk-card__title">{{ 'home.quick.title' | translate }}</h2>
+    </header>
+    <div class="home-actions">
+      @for (action of actions; track action.key) {
+        <a class="home-act" [routerLink]="action.link">
+          <span class="home-act__icon"><mat-icon aria-hidden="true">{{ action.icon }}</mat-icon></span>
+          <span>
+            <b>{{ 'home.quick.' + action.key + '.title' | translate }}</b>
+            <small>{{ 'home.quick.' + action.key + '.detail' | translate }}</small>
+          </span>
+        </a>
+      }
+    </div>
+  </section>
+
+  <section class="vk-card">
+    <header class="vk-card__header">
+      <h2 class="vk-card__title">{{ 'dashboard.attention.title' | translate }}</h2>
+      <span class="vk-spacer"></span>
+      @if (s?.attention?.length) {
+        <span class="vk-pill vk-pill--acc">{{ s!.attention.length }}</span>
+      }
+    </header>
+    @if (s?.attention?.length) {
+      <ul class="home-alist">
+        @for (item of s!.attention; track $index) {
+          <li>
+            <a [routerLink]="item.link">
+              <span [class]="pillClass(item.tone)">{{ item.tagKey | translate }}</span>
+              <span class="home-alist__text">
+                {{ item.title }}
+                <small>{{ item.detailKey | translate: item.detailParams }}</small>
+              </span>
+              <mat-icon class="vk-mut" aria-hidden="true">chevron_right</mat-icon>
+            </a>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="home-empty">{{ (s ? 'dashboard.attention.empty' : 'home.loading') | translate }}</p>
+    }
+  </section>
+</div>

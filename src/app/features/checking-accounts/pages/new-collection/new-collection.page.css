@@ -1,0 +1,350 @@
+:host {
+  display: block;
+}
+
+.collection__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.collection__title {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+
+.collection__description {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+  max-width: 42rem;
+}
+
+.collection__grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 64rem) {
+  .collection__grid {
+    grid-template-columns: minmax(0, 3fr) minmax(20rem, 2fr);
+    align-items: start;
+  }
+}
+
+.collection__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.collection__card {
+  padding: 1rem 1.25rem 1.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-lowest);
+}
+
+.collection__card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.collection__card-title mat-icon {
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.collection__hint mat-icon,
+.collection__reason mat-icon,
+.collection__subtitle {
+  margin: 0.5rem 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.collection__row {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.collection__payment {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
+}
+
+.collection__payment mat-form-field:first-of-type {
+  flex: 1 1 12rem;
+}
+
+.collection__payment-amount {
+  flex: 0 1 10rem;
+}
+
+.collection__payments-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.collection__payments-total {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+  font-weight: 600;
+}
+
+.collection__payments-total--error {
+  color: var(--app-error);
+}
+
+.collection__error {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--app-error);
+}
+
+.collection__hint,
+.collection__empty {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ────────────────────────────  La imputación  ──────────────────────────── */
+
+/* Saldo y vencido del titular elegido: dos datos, no uno. */
+.collection__figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.5rem;
+}
+
+.collection__figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.collection__figure-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.collection__figure-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.collection__leftover {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  background: var(--app-success-container);
+  color: var(--app-on-success-container);
+}
+
+/* ────────────────────────  Los medios y el total  ──────────────────────── */
+
+.collection__cash-badge {
+  flex: none;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: var(--app-warning-container);
+  color: var(--app-on-warning-container);
+}
+
+/*
+  El importe es un total calculado y no un campo: se lo pinta como un dato de lectura para que no
+  se lea como algo que se puede escribir.
+*/
+.collection__total {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 0.75rem;
+  align-items: baseline;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.collection__total-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.collection__total-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.collection__total-hint {
+  grid-column: 1 / -1;
+  font-size: 0.6875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ────────────────────────────  El reparto  ──────────────────────────── */
+
+.collection__mode {
+  margin-bottom: 0.75rem;
+}
+
+.collection__split {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  margin-bottom: 0.5rem;
+}
+
+.collection__split th {
+  padding: 0.25rem 0.375rem;
+  text-align: start;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.collection__split td {
+  padding: 0.375rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  vertical-align: middle;
+}
+
+.collection__split .numeric-header,
+.collection__split .numeric-cell {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.collection__split-due {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.collection__split-input {
+  width: 6.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--mat-sys-outline);
+  border-radius: 0.25rem;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.collection__split-input:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 1px;
+}
+
+.collection__settled {
+  font-size: 0.75rem;
+  color: var(--app-success);
+}
+
+.collection__split-totals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.collection__unassigned--negative {
+  color: var(--app-error);
+  font-weight: 600;
+}
+
+/* Borde ámbar y sin fondo: marca la simulación sin competir con la tabla, que es lo que se lee. */
+.collection__simulation {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--app-warning);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ────────────────────────────  El pie  ──────────────────────────── */
+
+.collection__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.collection__receipt-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.collection__footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}

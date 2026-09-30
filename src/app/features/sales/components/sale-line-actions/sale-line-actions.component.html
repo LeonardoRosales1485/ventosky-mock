@@ -1,0 +1,83 @@
+@if (line(); as selected) {
+  <p class="line__title">
+    {{ 'sales.line.title' | translate: { index: index() } }}
+  </p>
+  <p class="line__name">{{ selected.product.name }}</p>
+
+  <div class="line__grid" role="group" [attr.aria-label]="'sales.line.groupAria' | translate">
+    <button type="button" class="line__action" (click)="quantityEdit.emit()">
+      <span>{{ 'sales.line.quantity' | translate }}</span>
+      <kbd aria-hidden="true">{{ shortcuts.quantity }}</kbd>
+    </button>
+
+    <!--
+      La lista es el único importe que se toca en una venta de ventosky: no hay descuento por línea
+      —el backend fija `discountAmount` en 0—, así que lo que cambia lo que se cobra es con qué
+      lista se está valorizando esta fila.
+    -->
+    @if (canChoosePriceList()) {
+      <button
+        type="button"
+        class="line__action"
+        [matMenuTriggerFor]="priceListMenu"
+        [attr.aria-keyshortcuts]="shortcuts.priceList"
+      >
+        <span>{{ 'sales.line.priceList' | translate }}</span>
+        <kbd aria-hidden="true">{{ shortcuts.priceList }}</kbd>
+      </button>
+    }
+
+    @if (showsBatch()) {
+      <button type="button" class="line__action" (click)="batchPick.emit()">
+        <span>{{ 'sales.line.batch' | translate }}</span>
+        <kbd aria-hidden="true">{{ shortcuts.batch }}</kbd>
+      </button>
+    }
+
+    @if (showsSerials()) {
+      <button type="button" class="line__action" (click)="serialPick.emit()">
+        <span>{{ 'sales.line.serials' | translate }}</span>
+        <kbd aria-hidden="true">{{ shortcuts.serials }}</kbd>
+      </button>
+    }
+
+    <button type="button" class="line__action line__action--remove" (click)="remove.emit()">
+      <span>{{ 'sales.line.remove' | translate }}</span>
+      <kbd aria-hidden="true">{{ keyLabels.remove }}</kbd>
+    </button>
+  </div>
+
+  <mat-menu #priceListMenu [aria-label]="'sales.cart.priceList' | translate">
+    <button
+      mat-menu-item
+      type="button"
+      role="menuitemradio"
+      [attr.aria-checked]="isChosen(AUTO_PRICE_LIST_VALUE)"
+      (click)="priceListChange.emit(AUTO_PRICE_LIST_VALUE)"
+    >
+      <mat-icon aria-hidden="true" [class.line__check--off]="!isChosen(AUTO_PRICE_LIST_VALUE)"
+        >check</mat-icon
+      >
+      {{ 'sales.cart.priceListAuto' | translate }}
+    </button>
+
+    @for (list of priceLists(); track list.uuid) {
+      <button
+        mat-menu-item
+        type="button"
+        role="menuitemradio"
+        [attr.aria-checked]="isChosen(list.uuid)"
+        (click)="priceListChange.emit(list.uuid)"
+      >
+        <mat-icon aria-hidden="true" [class.line__check--off]="!isChosen(list.uuid)">check</mat-icon>
+        {{ list.name }}
+      </button>
+    }
+  </mat-menu>
+} @else {
+  <!--
+    El carrito vacío no esconde el panel: el hueco enseña que las flechas eligen una línea, y que el
+    panel aparezca de golpe al cargar el primer producto correría todo lo de arriba de lugar.
+  -->
+  <p class="line__empty">{{ 'sales.line.empty' | translate: { keys: keyLabels.select } }}</p>
+}

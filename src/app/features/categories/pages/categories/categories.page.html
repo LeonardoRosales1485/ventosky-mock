@@ -1,0 +1,129 @@
+<app-page-header
+  [title]="'categories.title' | translate"
+  [description]="'categories.description' | translate"
+>
+  <button mat-flat-button type="button" color="primary" (click)="onCreateRoot()">
+    <mat-icon aria-hidden="true">add</mat-icon>
+    {{ 'categories.actions.create' | translate }}
+  </button>
+</app-page-header>
+
+<section class="categories-toolbar" [attr.aria-label]="'categories.toolbarAria' | translate">
+  <mat-form-field appearance="outline" class="categories-toolbar__filter" subscriptSizing="dynamic">
+    <mat-icon matPrefix aria-hidden="true">filter_list</mat-icon>
+    <mat-label>{{ 'categories.filterPlaceholder' | translate }}</mat-label>
+    <input
+      matInput
+      type="search"
+      autocomplete="off"
+      [ngModel]="filterQuery()"
+      (ngModelChange)="onFilterChange($event)"
+      [attr.aria-label]="'categories.filterAria' | translate"
+    />
+    @if (filterQuery()) {
+      <button
+        matIconButton
+        matSuffix
+        type="button"
+        [attr.aria-label]="'categories.actions.clearFilter' | translate"
+        (click)="onFilterChange('')"
+      >
+        <mat-icon aria-hidden="true">close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  <div class="categories-toolbar__actions">
+    <button
+      mat-stroked-button
+      type="button"
+      [disabled]="loading() || !hasNodes()"
+      [matTooltip]="
+        (anyExpanded() ? 'categories.actions.collapseAll' : 'categories.actions.expandAll')
+          | translate
+      "
+      (click)="onToggleExpandAll()"
+    >
+      <mat-icon aria-hidden="true">
+        {{ anyExpanded() ? 'unfold_less' : 'unfold_more' }}
+      </mat-icon>
+      {{
+        (anyExpanded() ? 'categories.actions.collapseAll' : 'categories.actions.expandAll')
+          | translate
+      }}
+    </button>
+
+    <button
+      matIconButton
+      type="button"
+      [disabled]="loading()"
+      [attr.aria-label]="'categories.actions.refresh' | translate"
+      [matTooltip]="'categories.actions.refresh' | translate"
+      (click)="onRefresh()"
+    >
+      <mat-icon aria-hidden="true">refresh</mat-icon>
+    </button>
+  </div>
+</section>
+
+<section
+  class="categories-tree"
+  [attr.aria-label]="'categories.treeAria' | translate"
+  [attr.aria-busy]="loading() || moving()"
+>
+  @if (loading()) {
+    <div
+      class="categories-tree__loading"
+      role="status"
+      [attr.aria-label]="'categories.loading' | translate"
+    >
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (!hasNodes()) {
+    <p class="categories-tree__empty">
+      {{ 'categories.empty' | translate }}
+    </p>
+  } @else {
+    <div class="categories-tree__list">
+      <!--
+        Un único cdkDropList para todo el árbol: el padre destino no lo resuelve el CDK (que
+        siempre elegía la lista raíz por ser la que contiene a todas), sino el nodo que está
+        bajo el puntero. Ver CategoriesPage.resolveDropParentUuid().
+      -->
+      <div
+        #treeRoot
+        class="categories-tree__root"
+        cdkDropList
+        [cdkDropListData]="roots()"
+        [cdkDropListSortingDisabled]="true"
+        (cdkDropListDropped)="onDrop($event)"
+      >
+        @for (node of roots(); track node.uuid) {
+          <app-category-tree-node
+            [node]="node"
+            [depth]="0"
+            [filterQuery]="filterQuery()"
+            [dropTargetUuid]="dropTargetUuid()"
+            (toggled)="onToggle($event)"
+            (addChild)="onAddChild($event)"
+            (edit)="onEdit($event)"
+            (remove)="onDelete($event)"
+            (dragStarted)="onDragStarted()"
+            (dragMoved)="onDragMoved($event)"
+            (dragEnded)="onDragEnded()"
+          />
+        }
+
+        @if (dragging()) {
+          <div
+            class="categories-tree__root-zone"
+            [class.categories-tree__root-zone--active]="rootTargeted()"
+          >
+            <mat-icon aria-hidden="true">vertical_align_top</mat-icon>
+            {{ 'categories.dropToRoot' | translate }}
+          </div>
+        }
+      </div>
+    </div>
+  }
+</section>

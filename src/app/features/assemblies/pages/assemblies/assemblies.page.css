@@ -1,0 +1,68 @@
+:host {
+  display: block;
+}
+
+table {
+  width: 100%;
+}
+
+.assemblies-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.assemblies-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0 0.25rem 0.5rem;
+}
+
+/* El número del armado es lo que se dicta por teléfono: monoespaciado, para leerlo sin confundir
+   ceros con oes. */
+.assemblies-id {
+  font-family: var(--app-font-mono, ui-monospace, monospace);
+  white-space: nowrap;
+}
+
+.assemblies-product__name {
+  display: block;
+}
+
+.assemblies-product__batch {
+  display: block;
+  font-family: var(--app-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.assemblies-num,
+.assemblies-num-header {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.assemblies-chip {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.assemblies-chip--done {
+  background: var(--app-success-container, var(--mat-sys-secondary-container));
+  color: var(--app-on-success-container, var(--mat-sys-on-secondary-container));
+}
+
+.assemblies-chip--cancelled {
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Un armado cancelado sigue en el listado —es historia, no un error— pero atenuado: lo que importa
+   de él es que ya no sostiene ninguna unidad. */
+.assemblies-row--cancelled {
+  color: var(--mat-sys-on-surface-variant);
+}

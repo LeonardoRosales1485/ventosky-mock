@@ -1,0 +1,205 @@
+<h2 mat-dialog-title>{{ 'products.stockAdjustment.batches.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="batch-allocation__lead">
+    {{
+      'products.stockAdjustment.batches.lead'
+        | translate
+          : {
+              product: data.productName,
+              warehouse: data.warehouseName,
+            }
+    }}
+  </p>
+
+  <!-- El restante es el dato que decide si se puede guardar: va arriba y en vivo. -->
+  <div
+    class="batch-allocation__summary"
+    [class.batch-allocation__summary--done]="remaining() === 0"
+    [class.batch-allocation__summary--over]="remaining() < 0"
+    role="status"
+  >
+    <div class="batch-allocation__summary-item">
+      <span class="batch-allocation__summary-label">
+        {{
+          (isIngreso
+            ? 'products.stockAdjustment.batches.toDistributeIn'
+            : 'products.stockAdjustment.batches.toDistributeOut'
+          ) | translate
+        }}
+      </span>
+      <strong class="batch-allocation__summary-value">{{ target }}</strong>
+    </div>
+    <div class="batch-allocation__summary-item">
+      <span class="batch-allocation__summary-label">
+        {{ 'products.stockAdjustment.batches.remaining' | translate }}
+      </span>
+      <strong class="batch-allocation__summary-value">{{ remaining() }}</strong>
+    </div>
+  </div>
+
+  <table class="batch-allocation__table">
+    <caption class="sr-only">
+      {{
+        'products.stockAdjustment.batches.tableAria' | translate
+      }}
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">{{ 'products.stockAdjustment.batches.batch' | translate }}</th>
+        <th scope="col" class="batch-allocation__numeric">
+          {{ 'products.stockAdjustment.batches.available' | translate }}
+        </th>
+        <th scope="col" class="batch-allocation__quantity">
+          {{ 'products.stockAdjustment.batches.quantity' | translate }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.uuid) {
+        <tr>
+          <th scope="row">
+            <span class="batch-allocation__batch-number">
+              {{ row.batchNumber || ('products.stockAdjustment.batches.unnamed' | translate) }}
+            </span>
+            <span class="batch-allocation__batch-meta">
+              @if (row.expirationDate) {
+                {{
+                  'products.stockAdjustment.batches.expires' | translate: { date: row.expirationDate }
+                }}
+              }
+              @if (row.expirationDate && row.unitCost !== null) {
+                ·
+              }
+              @if (row.unitCost !== null) {
+                {{ 'products.stockAdjustment.batches.cost' | translate: { cost: row.unitCost } }}
+              }
+            </span>
+          </th>
+          <td class="batch-allocation__numeric">{{ row.available }}</td>
+          <td class="batch-allocation__quantity">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <input
+                matInput
+                type="number"
+                min="0"
+                [step]="step"
+                [value]="row.quantity"
+                (input)="onQuantityChange(row.uuid, $any($event.target).value)"
+                [attr.aria-label]="
+                  'products.stockAdjustment.batches.quantityAria'
+                    | translate: { batch: row.batchNumber || '—' }
+                "
+                [attr.aria-invalid]="overdrawn().has(row.uuid) || imprecise().has(row.uuid)"
+              />
+              <button
+                matSuffix
+                mat-icon-button
+                type="button"
+                [disabled]="remaining() <= 0"
+                (click)="onFillRemaining(row.uuid)"
+                [attr.aria-label]="'products.stockAdjustment.batches.fill' | translate"
+                [title]="'products.stockAdjustment.batches.fill' | translate"
+              >
+                <mat-icon>vertical_align_bottom</mat-icon>
+              </button>
+            </mat-form-field>
+
+            @if (overdrawn().has(row.uuid)) {
+              <span class="batch-allocation__error">
+                {{
+                  'products.stockAdjustment.batches.overdrawn'
+                    | translate: { available: row.available }
+                }}
+              </span>
+            } @else if (imprecise().has(row.uuid)) {
+              <span class="batch-allocation__error">
+                {{ 'products.stockAdjustment.batches.imprecise' | translate }}
+              </span>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <!-- Abrir una partida sólo tiene sentido en el ingreso: no se descuenta de lo que no existe. -->
+  @if (isIngreso) {
+    <div class="batch-allocation__new">
+      <mat-checkbox
+        [checked]="newBatch().enabled"
+        (change)="onNewBatchToggle($event.checked)"
+      >
+        {{ 'products.stockAdjustment.batches.newBatch' | translate }}
+      </mat-checkbox>
+
+      @if (newBatch().enabled) {
+        <div class="batch-allocation__new-fields">
+          @if (batchTracked) {
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'products.stockAdjustment.batches.batchNumber' | translate }}</mat-label>
+              <input
+                matInput
+                type="text"
+                autocomplete="off"
+                [value]="newBatch().batchNumber"
+                (input)="onNewBatchNumberChange($any($event.target).value)"
+              />
+            </mat-form-field>
+          }
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'products.stockAdjustment.batches.quantity' | translate }}</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              [step]="step"
+              [value]="newBatch().quantity"
+              (input)="onNewBatchQuantityChange($any($event.target).value)"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'products.stockAdjustment.fields.unitCost' | translate }}</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              step="0.01"
+              [value]="newBatch().unitCost"
+              (input)="onNewBatchCostChange($any($event.target).value)"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>
+              {{
+                (expirationRequired
+                  ? 'products.stockAdjustment.batches.expirationRequired'
+                  : 'products.stockAdjustment.batches.expiration'
+                ) | translate
+              }}
+            </mat-label>
+            <input
+              matInput
+              type="date"
+              [required]="expirationRequired"
+              [value]="newBatch().expirationDate"
+              (input)="onNewBatchExpirationChange($any($event.target).value)"
+            />
+          </mat-form-field>
+        </div>
+      }
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" mat-dialog-close>
+    {{ 'products.stockAdjustment.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary" type="button" [disabled]="!canConfirm()" (click)="onConfirm()">
+    {{ 'products.stockAdjustment.batches.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,181 @@
+<div class="product-search">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="product-search__field">
+    <!--
+      El ícono del prefijo dice en qué modo está el campo y es, además, cómo se cambia con el mouse:
+      el atajo de teclado sirve para quien ya lo sabe, el botón para quien lo está descubriendo.
+    -->
+    <button
+      matPrefix
+      mat-icon-button
+      type="button"
+      class="product-search__mode"
+      [attr.aria-label]="toggleKey() | translate: { key: shortcut }"
+      [matTooltip]="toggleKey() | translate: { key: shortcut }"
+      (click)="onToggleMode()"
+    >
+      <mat-icon aria-hidden="true">{{ modeIcon() }}</mat-icon>
+    </button>
+
+    <input
+      #searchInput
+      matInput
+      type="text"
+      autocomplete="off"
+      enterkeyhint="enter"
+      [placeholder]="placeholderKey() | translate"
+      [attr.aria-label]="inputAriaKey() | translate"
+      [attr.aria-describedby]="describedBy()"
+      [attr.aria-invalid]="lastError() ? 'true' : null"
+      [matAutocomplete]="productAutocomplete"
+      [matAutocompleteDisabled]="scanning()"
+      (input)="onTermChange(searchInput.value)"
+      (keydown.enter)="onEnter($event)"
+      (keydown.f2)="onToggleMode($event)"
+    />
+
+    @if (searching()) {
+      <mat-spinner
+        matSuffix
+        diameter="20"
+        [attr.aria-label]="'purchases.search.searching' | translate"
+      />
+    }
+
+    <!--
+      El filtro por proveedor: sólo existe cuando hay uno elegido, y se apaga desde acá. El estado
+      se lee del ícono y del tooltip, no de un color: tachado es «sin filtro», que es lo que hay que
+      poder ver de un vistazo antes de escribir.
+    -->
+    <kbd matSuffix class="vk-kbd product-search__kbd" aria-hidden="true">{{ shortcut }}</kbd>
+
+    @if (supplier(); as supplier) {
+      <button
+        matSuffix
+        mat-icon-button
+        type="button"
+        [attr.aria-pressed]="supplierFilterEnabled()"
+        [attr.aria-label]="supplierFilterKey() | translate: { name: supplier.name }"
+        [matTooltip]="supplierFilterKey() | translate: { name: supplier.name }"
+        (click)="onToggleSupplierFilter()"
+      >
+        <mat-icon aria-hidden="true">{{ supplierFilterIcon() }}</mat-icon>
+      </button>
+    }
+
+    <!--
+      En modo lector el panel queda deshabilitado (`matAutocompleteDisabled`), así que ni se abre ni
+      le agrega semántica de combobox al campo: ahí adentro no hay nada que elegir.
+    -->
+    <mat-autocomplete
+      #productAutocomplete
+      autoActiveFirstOption
+      [displayWith]="displayEmpty"
+      (optionSelected)="onSuggestionSelected($event.option.value)"
+    >
+      @for (row of suggestionRows(); track suggestionKey(row)) {
+        <mat-option [value]="row">
+          @if (row.kind === 'model') {
+            <!-- El modelo aparece una vez: elegirlo abre el selector de variante (RN-12). -->
+            <span class="product-search__option-name">{{ row.modelName }}</span>
+            <span class="product-search__option-meta">
+              {{ 'purchases.search.modelVariants' | translate: { count: row.variants.length } }} ·
+              {{ 'purchases.search.stock' | translate: { stock: row.totalStock } }}
+            </span>
+          } @else {
+            <span class="product-search__option-name">{{ row.product.name }}</span>
+            <span class="product-search__option-meta">
+              @if (row.product.sku) {
+                {{ 'purchases.search.sku' | translate: { sku: row.product.sku } }} ·
+              }
+              @if (row.product.barcode) {
+                {{ 'purchases.search.barcode' | translate: { barcode: row.product.barcode } }} ·
+              }
+              {{ 'purchases.search.stock' | translate: { stock: row.product.totalStock ?? 0 } }}
+            </span>
+          }
+        </mat-option>
+      }
+
+      <!-- Deshabilitada a propósito: es el resultado de la búsqueda, no una opción que se pueda elegir. -->
+      @if (noResults()) {
+        <mat-option disabled>
+          {{ noResultsKey() | translate: { name: activeSupplier()?.name } }}
+        </mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+
+  <button
+    mat-stroked-button
+    type="button"
+    class="product-search__advanced"
+    [matTooltip]="'purchases.search.advancedHint' | translate"
+    (click)="onAdvancedSearch()"
+  >
+    <mat-icon aria-hidden="true">manage_search</mat-icon>
+    {{ 'purchases.search.advanced' | translate }}
+  </button>
+</div>
+
+<!--
+  El toast ya interrumpió al lector de pantalla, así que esto no vuelve a anunciarse: queda como el
+  registro visible de por qué el último código no entró.
+-->
+@if (lastError(); as error) {
+  <p class="product-search__error" id="purchase-search-error">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span>{{ error }}</span>
+  </p>
+}
+
+<!--
+  El desarme de la última etiqueta de balanza leída: prefijo · código interno · valor · verificador.
+  En una compra es menos frecuente que en el mostrador —lo pesable llega por bulto—, pero cuando pasa
+  es el mismo dato el que hace diagnosticable un formato mal cargado.
+-->
+@if (lastScale(); as scale) {
+  <p class="product-search__scale" aria-live="polite">
+    <mat-icon aria-hidden="true">scale</mat-icon>
+    <span class="product-search__scale-parts">
+      <span class="product-search__scale-part">
+        <span class="product-search__scale-label">{{ 'purchases.search.scale.prefix' | translate }}</span>
+        <span class="product-search__scale-value">{{ scale.prefix }}</span>
+      </span>
+      <span class="product-search__scale-part">
+        <span class="product-search__scale-label">{{ 'purchases.search.scale.code' | translate }}</span>
+        <span class="product-search__scale-value">{{ scale.scaleCode }}</span>
+      </span>
+      <span class="product-search__scale-part">
+        <span class="product-search__scale-label">{{
+          scale.valueType === 'AMOUNT'
+            ? ('purchases.search.scale.amount' | translate)
+            : ('purchases.search.scale.weight' | translate)
+        }}</span>
+        <span class="product-search__scale-value">{{ scale.rawValue }}</span>
+      </span>
+      <span class="product-search__scale-part">
+        <span class="product-search__scale-label">{{ 'purchases.search.scale.check' | translate }}</span>
+        <span class="product-search__scale-value">{{ scale.checkDigit }}</span>
+      </span>
+    </span>
+    @if (scale.valueType === 'WEIGHT') {
+      <span class="product-search__scale-read">
+        {{ 'purchases.search.scale.read' | translate: { quantity: scale.quantity } }}
+      </span>
+    }
+  </p>
+}
+
+<!--
+  Qué hace el campo ahora mismo y con qué se cambia. Es región viva porque el atajo se aprieta con
+  el foco en el campo: sin esto, quien no ve la pantalla no se entera de que cambió de modo.
+-->
+<p class="product-search__hint" id="purchase-search-mode" aria-live="polite">
+  <mat-icon aria-hidden="true">{{ modeIcon() }}</mat-icon>
+  <span>{{ hintKey() | translate: { key: shortcut } }}</span>
+  @if (activeSupplier(); as supplier) {
+    <span class="product-search__hint-filter">
+      {{ 'purchases.search.supplierFilter.active' | translate: { name: supplier.name } }}
+    </span>
+  }
+</p>

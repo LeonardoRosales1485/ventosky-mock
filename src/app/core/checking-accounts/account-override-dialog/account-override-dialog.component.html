@@ -1,0 +1,114 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title class="override__title">
+    <mat-icon aria-hidden="true" class="override__title-icon">gpp_maybe</mat-icon>
+    {{ 'checkingAccounts.overrideDialog.title' | translate }}
+    <!-- Cuánto se pasa, arriba de todo: es el número que decide qué hacer. -->
+    <span class="override__badge">
+      {{ 'checkingAccounts.overrideDialog.exceedsBy' | translate }}
+      <app-currency-display [value]="data.detail.excess ?? 0" />
+    </span>
+  </h2>
+
+  <mat-dialog-content>
+    <p class="override__message">
+      {{ 'checkingAccounts.overrideDialog.message' | translate: { party: data.partyName } }}
+    </p>
+
+    <!--
+      Los cuatro números que explican el rechazo, tal como los mandó el backend. La pantalla no los
+      recalcula: dos aritméticas para el mismo rechazo terminan discrepando, y el día que cambie una
+      regla habría dos versiones de la verdad.
+    -->
+    <dl class="override__facts">
+      <div class="override__fact">
+        <dt>{{ 'checkingAccounts.overrideDialog.balance' | translate }}</dt>
+        <dd><app-currency-display [value]="data.detail.balance ?? 0" /></dd>
+      </div>
+      <div class="override__fact">
+        <dt>{{ 'checkingAccounts.overrideDialog.limit' | translate }}</dt>
+        <dd><app-currency-display [value]="data.detail.debtLimit ?? 0" /></dd>
+      </div>
+      <div class="override__fact">
+        <dt>{{ 'checkingAccounts.overrideDialog.requested' | translate }}</dt>
+        <dd><app-currency-display [value]="data.detail.requested ?? 0" /></dd>
+      </div>
+      <div class="override__fact override__fact--available">
+        <dt>{{ 'checkingAccounts.overrideDialog.available' | translate }}</dt>
+        <dd><app-currency-display [value]="available" /></dd>
+      </div>
+    </dl>
+
+    <!--
+      Las dos salidas que no exigen autorizar nada. Se dicen antes que el forzado a propósito: la
+      mayoría de las veces alcanzan, y quien cobra en el mostrador no decide cuánto se fía de más.
+    -->
+    <ul class="override__ways">
+      <li>
+        {{
+          'checkingAccounts.overrideDialog.wayTakeAvailable'
+            | translate: { amount: formatAmount(available) }
+        }}
+      </li>
+      <li>
+        {{
+          'checkingAccounts.overrideDialog.wayChargeRest'
+            | translate: { amount: formatAmount(data.detail.excess ?? 0) }
+        }}
+      </li>
+    </ul>
+
+    <section
+      class="override__force"
+      [class.override__force--locked]="!data.canOverride"
+      aria-labelledby="override-force"
+    >
+      <h3 class="override__force-title" id="override-force">
+        {{
+          'checkingAccounts.overrideDialog.wayForce'
+            | translate: { amount: formatAmount(data.detail.requested ?? 0) }
+        }}
+      </h3>
+
+      @if (data.canOverride) {
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>{{ 'checkingAccounts.overrideDialog.reason' | translate }}</mat-label>
+          <textarea
+            matInput
+            rows="3"
+            [formField]="reasonForm.reason"
+            [attr.aria-label]="'checkingAccounts.overrideDialog.reason' | translate"
+          ></textarea>
+          <!-- Queda estampado en la deuda: es lo que se lee cuando alguien pregunta meses después. -->
+          <mat-hint>{{ 'checkingAccounts.overrideDialog.reasonHint' | translate }}</mat-hint>
+          @if (reasonForm.reason().touched() && reasonForm.reason().invalid()) {
+            <mat-error>{{ reasonForm.reason().errors() | fieldError }}</mat-error>
+          }
+        </mat-form-field>
+      } @else {
+        <!--
+          El control queda visible y deshabilitado, con el permiso que le falta a la vista.
+          Esconderlo dejaría al cajero sin saber qué pedir.
+        -->
+        <p class="override__missing">
+          <mat-icon aria-hidden="true">lock</mat-icon>
+          {{
+            'checkingAccounts.overrideDialog.needsPermission'
+              | translate
+                : { permission: data.detail.overridePermission ?? 'checking_account.override_limit' }
+          }}
+        </p>
+      }
+    </section>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'checkingAccounts.overrideDialog.cancel' | translate }}
+    </button>
+    @if (data.canOverride) {
+      <button mat-flat-button type="submit" color="primary">
+        {{ 'checkingAccounts.overrideDialog.confirm' | translate }}
+      </button>
+    }
+  </mat-dialog-actions>
+</form>

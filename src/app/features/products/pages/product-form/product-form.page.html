@@ -1,0 +1,1696 @@
+<form (submit)="onSubmit($event)">
+  <app-page-header
+    [title]="(isEdit ? 'products.form.editTitle' : 'products.form.createTitle') | translate"
+    [description]="
+      (isEdit ? 'products.form.editDescription' : 'products.form.createDescription') | translate
+    "
+    [showBack]="true"
+    [backLabel]="'products.form.back' | translate"
+    (back)="onCancel()"
+  >
+    <button mat-stroked-button type="button" [disabled]="saving()" (click)="onCancel()">
+      {{ 'products.form.cancel' | translate }}
+    </button>
+    <!-- El archivado no se guarda: `POST /product/save` responde 400, así que el botón se saca en
+         vez de dejarlo apagado. Un botón deshabilitado invita a averiguar qué falta; acá no falta
+         nada, la ficha es de consulta y el banner lo dice. -->
+    @if (!archived()) {
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        [disabled]="saving() || loadState() !== LoadState.Success"
+      >
+        {{ (isEdit ? 'products.form.saveChanges' : 'products.form.save') | translate }}
+      </button>
+    }
+  </app-page-header>
+
+  <app-load-state
+    [state]="loadState()"
+    [loadingMessage]="
+      (isEdit ? 'products.form.loadingProduct' : 'products.form.loading') | translate
+    "
+    [errorMessage]="'products.form.loadError' | translate"
+    [retryable]="true"
+    (retry)="onRetry()"
+    minHeight="24rem"
+  >
+    <!--
+      Por qué esta ficha no se edita, dicho arriba y una sola vez.
+
+      Es una `<section>` con nombre accesible y no un `role="status"`: la región y su texto entran al
+      DOM juntos —el formulario recién termina de cargar acá—, y una región viva que nace con su
+      contenido adentro no anuncia nada en buena parte de los lectores de pantalla. Como landmark
+      con nombre, en cambio, se encuentra siempre, y está primera en el contenido.
+    -->
+    @if (archived()) {
+      <section class="product-form__archived-banner" aria-labelledby="archived-title">
+        <mat-icon aria-hidden="true">inventory</mat-icon>
+        <div>
+          <p class="product-form__archived-title" id="archived-title">
+            {{ 'products.form.archived.title' | translate }}
+          </p>
+          <p class="product-form__archived-text">
+            {{ 'products.form.archived.description' | translate }}
+          </p>
+        </div>
+      </section>
+    }
+
+    <mat-tab-group
+      [selectedIndex]="selectedTab()"
+      (selectedIndexChange)="selectedTab.set($event)"
+      [attr.aria-label]="'products.form.tabsAria' | translate"
+    >
+      <!-- ─────────────────────────────  General  ───────────────────────────── -->
+      <mat-tab [label]="'products.form.tabs.general' | translate">
+        <div class="product-form__tab grid gap-4 lg:grid-cols-3">
+          <div class="flex flex-col gap-4 lg:col-span-2">
+            <section class="product-form__card" aria-labelledby="primary-info-title">
+              <h2 class="product-form__card-title" id="primary-info-title">
+                <mat-icon aria-hidden="true">info</mat-icon>
+                {{ 'products.form.sections.primaryInfo' | translate }}
+              </h2>
+
+              <div class="grid items-start gap-2 sm:grid-cols-2">
+                <mat-form-field appearance="outline" class="sm:col-span-2">
+                  <mat-label>{{ 'products.form.fields.name' | translate }}</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    autocomplete="off"
+                    [formField]="productForm.name"
+                    [attr.aria-label]="'products.form.fields.name' | translate"
+                  />
+                  @if (productForm.name().touched() && productForm.name().invalid()) {
+                    <mat-error>{{ productForm.name().errors() | fieldError }}</mat-error>
+                  }
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'products.form.fields.sku' | translate }}</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    autocomplete="off"
+                    [formField]="productForm.sku"
+                    [attr.aria-label]="'products.form.fields.sku' | translate"
+                  />
+                  @if (productForm.sku().touched() && productForm.sku().invalid()) {
+                    <mat-error>{{ productForm.sku().errors() | fieldError }}</mat-error>
+                  }
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'products.form.fields.category' | translate }}</mat-label>
+                  <mat-select
+                    [value]="productForm.categoryUuid().value()"
+                    [disabled]="archived()"
+                    (valueChange)="onCategoryChange($event)"
+                    [attr.aria-label]="'products.form.fields.category' | translate"
+                  >
+                    @for (category of categories(); track category.uuid) {
+                      <mat-option
+                        [value]="category.uuid"
+                        [matTooltip]="category.path"
+                        [style.--category-depth]="category.depth"
+                        class="product-form__category-option"
+                      >
+                        {{ category.name }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                  @if (
+                    productForm.categoryUuid().touched() && productForm.categoryUuid().invalid()
+                  ) {
+                    <mat-error>{{ productForm.categoryUuid().errors() | fieldError }}</mat-error>
+                  }
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'products.form.fields.brand' | translate }}</mat-label>
+                  <mat-select
+                    [value]="productForm.brandUuid().value()"
+                    [disabled]="archived()"
+                    (valueChange)="onBrandChange($event)"
+                    [attr.aria-label]="'products.form.fields.brand' | translate"
+                  >
+                    <mat-option [value]="null">{{
+                      'products.form.fields.noBrand' | translate
+                    }}</mat-option>
+                    @for (brand of brands(); track brand.uuid) {
+                      <mat-option [value]="brand.uuid">{{ brand.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            </section>
+
+            <!--
+              Los tres ejes del producto, en un solo bloque para que la combinación se lea de un
+              vistazo. Lo que la combinación no permite queda deshabilitado y visible, nunca
+              oculto: el usuario ve por qué no puede.
+            -->
+            <section class="product-form__card" aria-labelledby="axes-title">
+              <h2 class="product-form__card-title" id="axes-title">
+                <mat-icon aria-hidden="true">category</mat-icon>
+                {{ 'products.form.sections.axes' | translate }}
+              </h2>
+
+              <div class="product-form__axis">
+                <span class="product-form__axis-label" id="type-label">
+                  {{ 'products.form.fields.type' | translate }}
+                </span>
+                <!-- `(change)` y no `(valueChange)`: el grupo emite `valueChange` también al recibir
+                     el `[value]` inicial, antes de tener sus botones, con `undefined`. -->
+                <mat-button-toggle-group
+                  [value]="productForm.productType().value()"
+                  [disabled]="archived()"
+                  (change)="onTypeChange($event.value)"
+                  [hideSingleSelectionIndicator]="true"
+                  aria-labelledby="type-label"
+                >
+                  @for (type of productTypes; track type) {
+                    <mat-button-toggle [value]="type">
+                      {{ 'products.types.' + type | translate }}
+                    </mat-button-toggle>
+                  }
+                </mat-button-toggle-group>
+              </div>
+
+              <div class="product-form__axis">
+                <span class="product-form__axis-label" id="stock-tracking-label">
+                  {{ 'products.form.fields.stockTracking' | translate }}
+                </span>
+                <!-- El `disabled` sale del esquema: el eje se apaga entero con un servicio o un kit. -->
+                <mat-radio-group
+                  class="product-form__radio-row"
+                  [value]="productForm.stockTracking().value()"
+                  (change)="onStockTrackingChange($event.value)"
+                  [disabled]="productForm.stockTracking().disabled()"
+                  aria-labelledby="stock-tracking-label"
+                >
+                  @for (mode of stockTrackingModes(); track mode) {
+                    <mat-radio-button [value]="mode">
+                      {{ 'products.stockTrackingModes.' + mode | translate }}
+                    </mat-radio-button>
+                  }
+                </mat-radio-group>
+                @if (stockTrackingLocked()) {
+                  <p class="product-form__hint">
+                    {{ 'products.form.hints.stockTrackingLocked' | translate }}
+                  </p>
+                }
+                @if (
+                  productForm.stockTracking().touched() && productForm.stockTracking().invalid()
+                ) {
+                  <p class="product-form__error" role="alert">
+                    {{ productForm.stockTracking().errors() | fieldError }}
+                  </p>
+                }
+              </div>
+
+              @if (expirationOffered()) {
+                <div class="grid items-start gap-2 sm:grid-cols-2">
+                  <div class="product-form__axis">
+                    <span class="product-form__axis-label" id="expiration-label">
+                      {{ 'products.form.fields.expirationControl' | translate }}
+                    </span>
+                    <mat-button-toggle-group
+                      [value]="productForm.expirationControl().value()"
+                      (change)="onExpirationControlChange($event.value)"
+                      [disabled]="productForm.expirationControl().disabled()"
+                      [hideSingleSelectionIndicator]="true"
+                      aria-labelledby="expiration-label"
+                    >
+                      @for (control of expirationControls; track control) {
+                        <mat-button-toggle [value]="control">
+                          {{ 'products.expirationControls.' + control | translate }}
+                        </mat-button-toggle>
+                      }
+                    </mat-button-toggle-group>
+                    @if (expirationLocked()) {
+                      <p class="product-form__hint">
+                        {{ 'products.form.hints.expirationLocked' | translate }}
+                      </p>
+                    }
+                  </div>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'products.form.fields.expirationAlertDays' | translate }}</mat-label>
+                    <input
+                      matInput
+                      type="number"
+                      step="1"
+                      [formField]="productForm.expirationAlertDays"
+                      [attr.aria-label]="'products.form.fields.expirationAlertDays' | translate"
+                    />
+                    <mat-hint>{{ 'products.form.hints.expirationAlertDays' | translate }}</mat-hint>
+                    @if (
+                      productForm.expirationAlertDays().touched() &&
+                      productForm.expirationAlertDays().invalid()
+                    ) {
+                      <mat-error>{{ productForm.expirationAlertDays().errors() | fieldError }}</mat-error>
+                    }
+                  </mat-form-field>
+                </div>
+              }
+
+              <p class="product-form__note">
+                <mat-icon aria-hidden="true">info</mat-icon>
+                <span>{{
+                  (expirationOffered() ? 'products.form.hints.axes' : 'products.form.hints.axesBasic')
+                    | translate
+                }}</span>
+              </p>
+            </section>
+
+            <!-- ─────────────  Componentes (§6.2)  ───────────── -->
+            <!-- Sólo con `type = KIT`: es la única naturaleza que tiene composición, y en el resto
+                 del catálogo el bloque no diría nada.
+
+                 Va pegado a los ejes y no en una solapa aparte: la composición **es** la naturaleza
+                 del producto —lo que un kit vende es su lista de componentes—, y mandarla a otra
+                 solapa obligaba a ir y volver para entender qué se está dando de alta. -->
+            @if (isKitProduct()) {
+              <!-- El modo del kit va ARRIBA DE TODO porque cambia el resto de la pantalla: con
+                   «armado» el producto conserva sus solapas de stock y «disponible» pasa a leerse
+                   «podés armar». La regla con la que se elige cabe en una línea, y está a la vista. -->
+              <section class="product-form__card product-form__kit-mode" aria-labelledby="kit-mode-title">
+                <h2 class="product-form__card-title" id="kit-mode-title">
+                  <mat-icon aria-hidden="true">tune</mat-icon>
+                  {{ 'products.form.sections.kitMode' | translate }}
+                  <span class="product-form__hint">{{ 'products.form.kit.modeHint' | translate }}</span>
+                </h2>
+
+                <mat-radio-group
+                  class="product-form__kit-modes"
+                  [value]="productForm.kitMode().value()"
+                  (change)="onKitModeChange($any($event.value))"
+                  [disabled]="!canEditKit || archived()"
+                  [attr.aria-label]="'products.form.sections.kitMode' | translate"
+                >
+                  @for (mode of kitModes; track mode) {
+                    <!-- «Virtual» se traba con la razón A LA VISTA —hay N unidades armadas— y no
+                         simplemente en gris: un radio deshabilitado sin explicación manda a adivinar
+                         (RN-28). -->
+                    @let blocked = mode === 'EXPLODE' && virtualModeBlockedReason() !== null;
+                    <mat-radio-button [value]="mode" [disabled]="!canEditKit || blocked">
+                      <span class="product-form__kit-mode-name">
+                        {{ 'products.form.kit.mode.' + mode | translate }}
+                      </span>
+                      <span class="product-form__hint">
+                        @if (blocked) {
+                          {{
+                            'products.form.kit.mode.explodeBlocked'
+                              | translate: { stock: virtualModeBlockedReason() }
+                          }}
+                        } @else {
+                          {{ 'products.form.kit.mode.' + mode + 'Hint' | translate }}
+                        }
+                      </span>
+                    </mat-radio-button>
+                  }
+                </mat-radio-group>
+              </section>
+
+              <section class="product-form__card" aria-labelledby="kit-items-title">
+                <div class="product-form__card-header">
+                  <h2 class="product-form__card-title" id="kit-items-title">
+                    <mat-icon aria-hidden="true">widgets</mat-icon>
+                    @if (isAssembledKitProduct()) {
+                      {{ 'products.form.sections.kitRecipe' | translate }}
+                    } @else {
+                      {{ 'products.form.sections.kitItems' | translate }}
+                    }
+                  </h2>
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    (click)="onAddKitItem()"
+                    [disabled]="!canEditKit || archived()"
+                  >
+                    <mat-icon aria-hidden="true">add</mat-icon>
+                    {{ 'products.form.kit.add' | translate }}
+                  </button>
+                </div>
+
+                @if (!canEditKit) {
+                  <p class="product-form__note">
+                    <mat-icon aria-hidden="true">lock</mat-icon>
+                    <span>{{ 'products.form.kit.readOnly' | translate }}</span>
+                  </p>
+                }
+
+                @if (productForm.kitItems().value().length === 0) {
+                  <p class="product-form__empty">{{ 'products.form.kit.empty' | translate }}</p>
+                } @else {
+                  <div class="product-form__table-scroll">
+                    <table class="product-form__table">
+                      <caption class="sr-only">
+                        {{
+                          'products.form.kit.tableAria' | translate
+                        }}
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">{{ 'products.form.kit.component' | translate }}</th>
+                          <th scope="col" class="product-form__table-price">
+                            {{ 'products.form.kit.quantity' | translate }}
+                          </th>
+                          <th scope="col" class="product-form__table-price">
+                            @if (isAssembledKitProduct()) {
+                              {{ 'products.form.kit.componentCost' | translate }}
+                            } @else {
+                              {{ 'products.form.kit.listPrice' | translate }}
+                            }
+                          </th>
+                          <th scope="col" class="product-form__table-price">
+                            {{ 'products.form.kit.stock' | translate }}
+                          </th>
+                          <th scope="col" class="product-form__table-price">
+                            @if (isAssembledKitProduct()) {
+                              {{ 'products.form.kit.assembleCoverage' | translate }}
+                            } @else {
+                              {{ 'products.form.kit.coverage' | translate }}
+                            }
+                          </th>
+                          <th scope="col" class="product-form__table-remove">
+                            <span class="sr-only">{{ 'products.form.kit.actions' | translate }}</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (kitField of productForm.kitItems; track $index) {
+                          @let row = kitRows()[$index];
+                          <tr
+                            [class.product-form__kit-bottleneck]="isKitBottleneck(row)"
+                            [class.product-form__kit-unusable]="isComponentUnusableInAssembly(row)"
+                          >
+                            <td>
+                              <span class="product-form__kit-name">{{ row.componentName }}</span>
+                              @if (row.componentSku) {
+                                <span class="product-form__hint">{{ row.componentSku }}</span>
+                              }
+                              <!-- Se muestra con el motivo en la fila, y no desaparece del buscador
+                                   sin explicación: un armado sólo consume lo que existe (RN-27). -->
+                              @if (isComponentUnusableInAssembly(row)) {
+                                <span class="product-form__kit-flag product-form__kit-flag--warn">
+                                  {{ 'products.form.kit.componentNeedsStock' | translate }}
+                                </span>
+                              }
+                            </td>
+                            <td class="product-form__table-price">
+                              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                                <input
+                                  matInput
+                                  type="number"
+                                  step="any"
+                                  [formField]="kitField.quantity"
+                                  [attr.aria-label]="
+                                    'products.form.kit.quantityAria'
+                                      | translate: { name: row.componentName }
+                                  "
+                                />
+                                @if (kitField.quantity().touched() && kitField.quantity().invalid()) {
+                                  <mat-error>{{ kitField.quantity().errors() | fieldError }}</mat-error>
+                                }
+                              </mat-form-field>
+                            </td>
+                            <td class="product-form__table-price">
+                              @let money = isAssembledKitProduct() ? row.componentCost : row.listPrice;
+                              @if (money !== null) {
+                                <app-currency-display [value]="money" />
+                              } @else {
+                                <span class="product-form__hint">—</span>
+                              }
+                            </td>
+                            <td class="product-form__table-price">
+                              @if (row.limitsAvailability) {
+                                {{ row.stock ?? 0 }}
+                              } @else {
+                                <span class="product-form__hint">—</span>
+                              }
+                            </td>
+                            <!-- «Alcanza para» es lo que hace legible el mínimo: se ve cuál componente
+                                 manda sin hacer la cuenta (RN-07). El que no lleva stock lo dice, en
+                                 vez de mostrar un cero que se leería como agotado. -->
+                            <td class="product-form__table-price">
+                              @if (kitCoverage(row); as coverage) {
+                                {{ coverage }}
+                                @if (isKitBottleneck(row)) {
+                                  <span class="product-form__kit-flag">
+                                    {{ 'products.form.kit.bottleneck' | translate }}
+                                  </span>
+                                }
+                              } @else if (!row.limitsAvailability) {
+                                <span class="product-form__hint">
+                                  {{ 'products.form.kit.doesNotLimit' | translate }}
+                                </span>
+                              } @else {
+                                <span class="product-form__hint">0</span>
+                              }
+                            </td>
+                            <td class="product-form__table-remove">
+                              <button
+                                mat-icon-button
+                                type="button"
+                                (click)="onRemoveKitItem($index)"
+                                [disabled]="!canEditKit || archived()"
+                                [matTooltip]="'products.form.kit.remove' | translate"
+                                [attr.aria-label]="
+                                  'products.form.kit.removeAria' | translate: { name: row.componentName }
+                                "
+                              >
+                                <mat-icon>delete_outline</mat-icon>
+                              </button>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- El disponible del kit: derivado, no persistido. Es la cuenta de arriba, dicha
+                       una vez y con la fórmula a la vista. -->
+                  <!-- Cada cifra en su bloque: son las dos que resumen la pantalla, y en una sola
+                       línea el rótulo de la segunda se lee como la continuación del valor de la
+                       primera. -->
+                  <dl class="product-form__summary">
+                    <div>
+                      <dt>
+                        @if (isAssembledKitProduct()) {
+                          {{ 'products.form.kit.canAssemble' | translate }}
+                        } @else {
+                          {{ 'products.form.kit.availability' | translate }}
+                        }
+                        <span class="product-form__hint">
+                          {{ 'products.form.kit.availabilityFormula' | translate }}
+                        </span>
+                      </dt>
+                      <dd>
+                        @if (kitAvailability() !== null) {
+                          {{ kitAvailability() }}
+                        } @else {
+                          <span class="product-form__hint">
+                            {{ 'products.form.kit.availabilityUnknown' | translate }}
+                          </span>
+                        }
+                      </dd>
+                    </div>
+
+                    <!-- El costo estimado del terminado: lo que saldría armar UNO hoy, sin
+                         adicionales. No es `cost`, que en un kit armado es el costo real congelado de
+                         lo que ya hay en el estante (RN-24). -->
+                    @if (isAssembledKitProduct()) {
+                      <div>
+                        <dt>
+                          {{ 'products.form.kit.estimatedUnitCost' | translate }}
+                          <span class="product-form__hint">
+                            {{ 'products.form.kit.estimatedUnitCostHint' | translate }}
+                          </span>
+                        </dt>
+                        <dd>
+                          @if (kitCompositionCost(); as estimated) {
+                            <app-currency-display [value]="estimated" />
+                          } @else {
+                            <span class="product-form__hint">—</span>
+                          }
+                        </dd>
+                      </div>
+                    }
+                  </dl>
+                }
+
+                @if (productForm.kitItems().touched() && productForm.kitItems().errors().length > 0) {
+                  <p class="product-form__error" role="alert">
+                    {{ productForm.kitItems().errors() | fieldError }}
+                  </p>
+                }
+
+                <p class="product-form__note">
+                  <mat-icon aria-hidden="true">info</mat-icon>
+                  @if (isAssembledKitProduct()) {
+                    <span>{{ 'products.form.kit.assembleHint' | translate }}</span>
+                  } @else {
+                    <span>{{ 'products.form.kit.nestingHint' | translate }}</span>
+                  }
+                </p>
+
+                <!-- «La composición es la receta. El stock aparece cuando se registra un armado.»
+                     El acceso directo va acá, en la pantalla donde se termina de entender qué es un
+                     kit armado, y sólo en la edición: un producto sin guardar no se puede armar. -->
+                @if (isAssembledKitProduct() && isEdit) {
+                  <div class="product-form__kit-cta">
+                    <span>{{ 'products.form.kit.assembleCta' | translate }}</span>
+                    <a mat-flat-button [routerLink]="newAssemblyPath" [queryParams]="{ product: productUuid }">
+                      <mat-icon aria-hidden="true">precision_manufacturing</mat-icon>
+                      {{ 'products.form.kit.newAssembly' | translate }}
+                    </a>
+                  </div>
+                }
+              </section>
+            }
+
+            <!-- Varios códigos por producto: el del fabricante, el de la caja, el reetiquetado. -->
+            <section class="product-form__card" aria-labelledby="barcodes-title">
+              <div class="product-form__card-header">
+                <h2 class="product-form__card-title" id="barcodes-title">
+                  <mat-icon aria-hidden="true">qr_code_2</mat-icon>
+                  {{ 'products.form.sections.barcodes' | translate }}
+                </h2>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="archived()"
+                  (click)="onAddBarcode()"
+                >
+                  <mat-icon aria-hidden="true">add</mat-icon>
+                  {{ 'products.form.barcodes.add' | translate }}
+                </button>
+              </div>
+
+              @if (productForm.barcodes().value().length === 0) {
+                <p class="product-form__empty">{{ 'products.form.barcodes.empty' | translate }}</p>
+              } @else {
+                <div class="product-form__table-scroll">
+                  <table class="product-form__table">
+                    <caption class="sr-only">
+                      {{
+                        'products.form.barcodes.tableAria' | translate
+                      }}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">{{ 'products.form.barcodes.code' | translate }}</th>
+                        <th scope="col" class="product-form__table-select">
+                          {{ 'products.form.barcodes.primary' | translate }}
+                        </th>
+                        <th scope="col" class="product-form__table-remove">
+                          <span class="sr-only">{{ 'products.form.barcodes.actions' | translate }}</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (barcodeField of productForm.barcodes; track $index) {
+                        <tr>
+                          <td>
+                            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                              <input
+                                #barcodeInput
+                                matInput
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                [formField]="barcodeField.barcode"
+                                [attr.aria-label]="
+                                  'products.form.barcodes.codeAria' | translate: { index: $index + 1 }
+                                "
+                              />
+                              @if (
+                                barcodeField.barcode().touched() && barcodeField.barcode().invalid()
+                              ) {
+                                <mat-error>{{
+                                  barcodeField.barcode().errors() | fieldError
+                                }}</mat-error>
+                              }
+                            </mat-form-field>
+                          </td>
+                          <td class="product-form__table-select">
+                            <mat-radio-button
+                              name="primaryBarcode"
+                              [checked]="barcodeField.isPrimary().value()"
+                              [disabled]="archived()"
+                              (change)="onSetPrimaryBarcode($index)"
+                              [attr.aria-label]="
+                                'products.form.barcodes.primaryAria' | translate: { index: $index + 1 }
+                              "
+                            />
+                          </td>
+                          <td class="product-form__table-remove">
+                            <button
+                              mat-icon-button
+                              type="button"
+                              (click)="onRemoveBarcode($index)"
+                              [disabled]="archived()"
+                              [matTooltip]="'products.form.barcodes.remove' | translate"
+                              [attr.aria-label]="
+                                'products.form.barcodes.removeAria' | translate: { index: $index + 1 }
+                              "
+                            >
+                              <mat-icon>delete_outline</mat-icon>
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                @if (productForm.barcodes().touched() && productForm.barcodes().invalid()) {
+                  @if (productForm.barcodes().errors().length > 0) {
+                    <p class="product-form__error" role="alert">
+                      {{ productForm.barcodes().errors() | fieldError }}
+                    </p>
+                  }
+                }
+              }
+
+              <p class="product-form__hint">{{ 'products.form.barcodes.hint' | translate }}</p>
+            </section>
+
+            <!-- Los atributos son los de la categoría elegida más los heredados de sus padres. -->
+            @if (attributesLoading() || productForm.attributes().value().length > 0) {
+              <section class="product-form__card" aria-labelledby="attributes-title">
+                <h2 class="product-form__card-title" id="attributes-title">
+                  <mat-icon aria-hidden="true">tune</mat-icon>
+                  {{ 'products.form.sections.attributes' | translate }}
+                </h2>
+
+                @if (attributesLoading()) {
+                  <p class="product-form__hint">
+                    {{ 'products.form.attributes.loading' | translate }}
+                  </p>
+                } @else {
+                  <div class="grid items-start gap-2 sm:grid-cols-2">
+                    @for (attributeField of productForm.attributes; track $index) {
+                      @let attribute = attributeField().value();
+
+                      @switch (attribute.type) {
+                        @case ('boolean') {
+                          <div class="product-form__toggle">
+                            <mat-slide-toggle
+                              [checked]="attribute.rawValue === 'true'"
+                              [disabled]="archived()"
+                              (change)="onAttributeBooleanChange($index, $event.checked)"
+                            >
+                              {{ attribute.name }}
+                            </mat-slide-toggle>
+                          </div>
+                        }
+
+                        @case ('date') {
+                          <mat-form-field appearance="outline">
+                            <mat-label>{{ attribute.name }}</mat-label>
+                            <input
+                              matInput
+                              type="date"
+                              [formField]="attributeField.rawValue"
+                              [attr.aria-label]="attribute.name"
+                            />
+                            @if (
+                              attributeField.rawValue().touched() &&
+                              attributeField.rawValue().invalid()
+                            ) {
+                              <mat-error>{{
+                                attributeField.rawValue().errors() | fieldError
+                              }}</mat-error>
+                            }
+                          </mat-form-field>
+                        }
+
+                        @default {
+                          <mat-form-field appearance="outline">
+                            <mat-label>{{ attribute.name }}</mat-label>
+                            <input
+                              matInput
+                              type="text"
+                              autocomplete="off"
+                              [attr.inputmode]="
+                                attribute.type === 'number' || attribute.type === 'decimal'
+                                  ? 'decimal'
+                                  : null
+                              "
+                              [formField]="attributeField.rawValue"
+                              [attr.aria-label]="attribute.name"
+                            />
+                            @if (
+                              attributeField.rawValue().touched() &&
+                              attributeField.rawValue().invalid()
+                            ) {
+                              <mat-error>{{
+                                attributeField.rawValue().errors() | fieldError
+                              }}</mat-error>
+                            }
+                          </mat-form-field>
+                        }
+                      }
+                    }
+                  </div>
+
+                  <p class="product-form__hint">
+                    {{ 'products.form.attributes.hint' | translate }}
+                  </p>
+
+                  @if (isEdit) {
+                    <p class="product-form__hint">
+                      {{ 'products.form.attributes.editHint' | translate }}
+                    </p>
+                  }
+                }
+              </section>
+            }
+          </div>
+
+          <section class="product-form__card h-fit" aria-labelledby="metrics-title">
+            <h2 class="product-form__card-title" id="metrics-title">
+              <mat-icon aria-hidden="true">straighten</mat-icon>
+              {{ 'products.form.sections.metrics' | translate }}
+            </h2>
+
+            <div class="flex flex-col gap-2">
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'products.form.fields.unitMeasure' | translate }}</mat-label>
+                <mat-select
+                  [value]="productForm.unitMeasure().value()"
+                  [disabled]="archived()"
+                  (valueChange)="onUnitMeasureChange($event)"
+                  [attr.aria-label]="'products.form.fields.unitMeasure' | translate"
+                >
+                  @for (unit of unitMeasures; track unit) {
+                    <mat-option [value]="unit">
+                      {{ 'products.unitMeasures.' + unit | translate }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Pesable: el producto se identifica con la etiqueta que imprime la balanza, que no
+                   es un código de barras (RN-18). Necesita una unidad con decimales, pero quién lo
+                   decide es el backend: el hint lo dice y el error se marca acá al guardar. -->
+              <div class="product-form__axis">
+                <mat-checkbox
+                  [checked]="productForm.isWeighable().value()"
+                  [disabled]="archived()"
+                  (change)="onWeighableChange($event.checked)"
+                  [aria-label]="'products.form.fields.isWeighable' | translate"
+                >
+                  {{ 'products.form.fields.isWeighable' | translate }}
+                </mat-checkbox>
+                <p class="product-form__hint">{{ 'products.form.hints.isWeighable' | translate }}</p>
+                @if (productForm.isWeighable().touched() && productForm.isWeighable().invalid()) {
+                  <p class="product-form__error" role="alert">
+                    {{ productForm.isWeighable().errors() | fieldError }}
+                  </p>
+                }
+              </div>
+
+              @if (productForm.isWeighable().value()) {
+                <!-- `subscriptSizing="dynamic"`: el hint ocupa dos o tres renglones y el alto fijo
+                     del subscript lo dejaba pisando el campo de abajo. -->
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>{{ 'products.form.fields.scaleCode' | translate }}</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    [formField]="productForm.scaleCode"
+                    [attr.aria-label]="'products.form.fields.scaleCode' | translate"
+                  />
+                  <!-- Con formato configurado el hint dice el largo exacto que se va a exigir: el
+                       error solo llegaría después de escribir un código que nunca iba a resolver. -->
+                  <mat-hint>
+                    @if (scaleCodeLength(); as length) {
+                      {{
+                        'products.form.hints.scaleCodeLength'
+                          | translate: { length, sample: scaleCodeSample() }
+                      }}
+                    } @else {
+                      {{ 'products.form.hints.scaleCode' | translate }}
+                    }
+                  </mat-hint>
+                  @if (productForm.scaleCode().touched() && productForm.scaleCode().invalid()) {
+                    <mat-error>{{ productForm.scaleCode().errors() | fieldError }}</mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Sin formato de balanza en la empresa, el código se guarda igual pero no hay
+                     etiqueta que lo resuelva: se dice acá y no se bloquea el guardado. -->
+                @if (scaleFormatMissing()) {
+                  <p class="product-form__note">
+                    <mat-icon aria-hidden="true">info</mat-icon>
+                    <span>{{ 'products.form.hints.scaleFormatMissing' | translate }}</span>
+                  </p>
+                }
+              }
+
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'products.form.fields.taxRate' | translate }}</mat-label>
+                <!-- Mover la alícuota mueve todos los precios finales de la solapa Precios. -->
+                <input
+                  matInput
+                  type="number"
+                  step="0.01"
+                  [formField]="productForm.taxRate"
+                  (input)="onTaxRateInput($event)"
+                  [attr.aria-label]="'products.form.fields.taxRate' | translate"
+                />
+                <span matTextSuffix>%</span>
+                @if (productForm.taxRate().touched() && productForm.taxRate().invalid()) {
+                  <mat-error>{{ productForm.taxRate().errors() | fieldError }}</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'products.form.fields.lowStock' | translate }}</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  step="1"
+                  [formField]="productForm.lowStock"
+                  [attr.aria-label]="'products.form.fields.lowStock' | translate"
+                />
+                @if (productForm.lowStock().touched() && productForm.lowStock().invalid()) {
+                  <mat-error>{{ productForm.lowStock().errors() | fieldError }}</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'products.form.fields.optimalStock' | translate }}</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  step="1"
+                  [formField]="productForm.optimalStock"
+                  [attr.aria-label]="'products.form.fields.optimalStock' | translate"
+                />
+                @if (productForm.optimalStock().touched() && productForm.optimalStock().invalid()) {
+                  <mat-error>{{ productForm.optimalStock().errors() | fieldError }}</mat-error>
+                }
+              </mat-form-field>
+
+              <!--
+                Sin control de existencias no hay lote que aporte el costo: se declara acá, y es
+                el que la solapa Precios usa para el margen. Con stock queda deshabilitado, porque
+                el costo real lo escribe cada compra.
+              -->
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'products.form.fields.standardCost' | translate }}</mat-label>
+                <span matTextPrefix>$&nbsp;</span>
+                <input
+                  matInput
+                  type="number"
+                  step="0.01"
+                  [formField]="productForm.standardCost"
+                  [attr.aria-label]="'products.form.fields.standardCost' | translate"
+                />
+                @if (productForm.standardCost().touched() && productForm.standardCost().invalid()) {
+                  <mat-error>{{ productForm.standardCost().errors() | fieldError }}</mat-error>
+                }
+              </mat-form-field>
+
+              <p class="product-form__note">
+                <mat-icon aria-hidden="true">lightbulb</mat-icon>
+                <span>
+                  {{
+                    (tracksStock()
+                      ? 'products.form.hints.stockThresholds'
+                      : 'products.form.hints.standardCost'
+                    ) | translate
+                  }}
+                </span>
+              </p>
+            </div>
+          </section>
+        </div>
+      </mat-tab>
+
+      <!-- ─────────────────────────────  Precios  ───────────────────────────── -->
+      <mat-tab [label]="'products.form.tabs.pricing' | translate">
+        <div class="product-form__tab grid gap-4 lg:grid-cols-3">
+          <div class="flex flex-col gap-4 lg:col-span-2">
+            <!-- ─────────────  Precio del kit (§6.3)  ───────────── -->
+            <!-- Sólo en un kit: es de dónde sale su precio, y cambia si la grilla de listas se
+                 edita a mano o queda en modo lectura. -->
+            @if (isKitProduct()) {
+              <section class="product-form__card" aria-labelledby="kit-pricing-title">
+                <h2 class="product-form__card-title" id="kit-pricing-title">
+                  <mat-icon aria-hidden="true">calculate</mat-icon>
+                  {{ 'products.form.sections.kitPricing' | translate }}
+                </h2>
+
+                <!-- `(change)` y no `(valueChange)`, igual que en los ejes. Cada modo va con su
+                     frase: «precio propio» contra «suma de las partes» es la decisión real, y no se
+                     resuelve leyendo OWN_PRICE / SUM_COMPONENTS. -->
+                <mat-radio-group
+                  class="product-form__kit-pricing"
+                  [value]="productForm.kitPricing().value()"
+                  (change)="onKitPricingChange($event.value)"
+                  [disabled]="!canEditKit || archived()"
+                  [attr.aria-label]="'products.form.sections.kitPricing' | translate"
+                >
+                  @for (pricing of kitPricings; track pricing) {
+                    <mat-radio-button [value]="pricing">
+                      {{ 'products.form.kit.pricing.' + pricing | translate }}
+                      <span class="product-form__hint">
+                        {{ 'products.form.kit.pricing.' + pricing + 'Hint' | translate }}
+                      </span>
+                    </mat-radio-button>
+                  }
+                </mat-radio-group>
+
+                @if (productForm.kitPricing().value() === 'SUM_COMPONENTS') {
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                    <mat-label>{{ 'products.form.kit.discountPercent' | translate }}</mat-label>
+                    <input
+                      matInput
+                      type="number"
+                      step="any"
+                      [formField]="productForm.kitDiscountPercent"
+                    />
+                    <span matTextSuffix>%</span>
+                    @if (
+                      productForm.kitDiscountPercent().touched() &&
+                      productForm.kitDiscountPercent().invalid()
+                    ) {
+                      <mat-error>
+                        {{ productForm.kitDiscountPercent().errors() | fieldError }}
+                      </mat-error>
+                    }
+                  </mat-form-field>
+
+                  <!-- El precio calculado se muestra en lectura y con su desglose: el número solo
+                       no dice de dónde sale, y es el que el backend recalcula en cada venta. -->
+                  <dl class="product-form__summary">
+                    <dt>{{ 'products.form.kit.computedPrice' | translate }}</dt>
+                    <dd>
+                      @if (kitComputedPrice(); as computed) {
+                        <app-currency-display [value]="computed" />
+                      } @else {
+                        <span class="product-form__hint">
+                          {{ 'products.form.kit.computedPriceUnknown' | translate }}
+                        </span>
+                      }
+                    </dd>
+                  </dl>
+                  <p class="product-form__hint">
+                    {{ 'products.form.kit.computedPriceHint' | translate }}
+                  </p>
+                }
+              </section>
+            }
+
+            <section class="product-form__card" aria-labelledby="price-lists-title">
+              <h2 class="product-form__card-title" id="price-lists-title">
+                <mat-icon aria-hidden="true">sell</mat-icon>
+                {{ 'products.form.sections.priceLists' | translate }}
+              </h2>
+
+              @if (priceLists().length === 0) {
+                <p class="product-form__empty">
+                  {{ 'products.form.priceLists.empty' | translate }}
+                </p>
+              } @else {
+                <!-- Dos columnas de precio más el nombre de la lista no entran en una pantalla
+                     angosta: la grilla scrollea sola en vez de desbordar la tarjeta. -->
+                <div class="product-form__table-scroll">
+                  <table class="product-form__table">
+                    <caption class="sr-only">
+                      {{
+                        'products.form.priceLists.tableAria' | translate
+                      }}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">{{ 'products.form.priceLists.name' | translate }}</th>
+                        <th scope="col" class="product-form__table-price">
+                          {{ 'products.form.priceLists.price' | translate }}
+                        </th>
+                        <th scope="col" class="product-form__table-price">
+                          {{ 'products.form.priceLists.finalPrice' | translate }}
+                          <!-- La alícuota se repite acá porque es la que explica la diferencia
+                               entre las dos columnas, y se vive editando desde General. -->
+                          <span class="product-form__table-tax">
+                            {{
+                              'products.form.priceLists.taxShare' | translate: { rate: taxRate() }
+                            }}
+                          </span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (priceField of productForm.prices; track $index) {
+                        @let entry = priceField().value();
+
+                        <tr>
+                          <th scope="row">
+                            <span class="product-form__price-name">
+                              {{ priceListName(entry.priceListUuid) }}
+                            </span>
+                            @if (isPrincipalPriceList(entry.priceListUuid)) {
+                              <span class="product-form__badge">
+                                {{ 'products.form.priceLists.principal' | translate }}
+                              </span>
+                            }
+                            @if (isRuleManaged(entry.priceListUuid)) {
+                              <span
+                                class="product-form__badge product-form__badge--rule"
+                                [matTooltip]="
+                                  'products.form.priceLists.ruleBadgeTooltip'
+                                    | translate
+                                      : {
+                                          name: priceRule()?.name,
+                                          percent: rulePercent(entry.priceListUuid),
+                                        }
+                                "
+                              >
+                                <mat-icon aria-hidden="true">bolt</mat-icon>
+                                {{ 'products.form.priceLists.ruleBadge' | translate }}
+                              </span>
+                            }
+                          </th>
+                          <td class="product-form__table-price">
+                            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                              <span matTextPrefix>$&nbsp;</span>
+                              <!--
+                                El `disabled` no se ata acá: lo decide el esquema y `[formField]` lo
+                                propaga al `matInput`, que además lo pinta como deshabilitado. El
+                                `(input)` sólo recalcula la otra punta del precio.
+                              -->
+                              <input
+                                matInput
+                                type="number"
+                                step="0.01"
+                                [formField]="priceField.price"
+                                (input)="onBasePriceInput($index, $event)"
+                                [attr.aria-label]="
+                                  'products.form.priceLists.priceAria'
+                                    | translate: { name: priceListName(entry.priceListUuid) }
+                                "
+                              />
+                              @if (priceField.price().touched() && priceField.price().invalid()) {
+                                <mat-error>{{
+                                  priceField.price().errors() | fieldError
+                                }}</mat-error>
+                              }
+                            </mat-form-field>
+                          </td>
+                          <td class="product-form__table-price">
+                            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                              <span matTextPrefix>$&nbsp;</span>
+                              <input
+                                matInput
+                                type="number"
+                                step="0.01"
+                                [formField]="priceField.finalPrice"
+                                (input)="onFinalPriceInput($index, $event)"
+                                [attr.aria-label]="
+                                  'products.form.priceLists.finalPriceAria'
+                                    | translate: { name: priceListName(entry.priceListUuid) }
+                                "
+                              />
+                              @if (
+                                priceField.finalPrice().touched() &&
+                                priceField.finalPrice().invalid()
+                              ) {
+                                <mat-error>{{
+                                  priceField.finalPrice().errors() | fieldError
+                                }}</mat-error>
+                              }
+                            </mat-form-field>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Una regla sin listas en esta sucursal se resuelve pero no recalcula nada, así
+                     que la nota sale sólo cuando hay algún precio efectivamente bloqueado. -->
+                @if (hasRuleManagedPrices()) {
+                  <p class="product-form__note">
+                    <mat-icon aria-hidden="true">bolt</mat-icon>
+                    <span>
+                      {{
+                        'products.form.priceLists.ruleNote'
+                          | translate: { name: priceRule()?.name, rounding: ruleRoundingLabel() }
+                      }}
+                    </span>
+                  </p>
+                }
+
+                <p class="product-form__hint">
+                  {{ 'products.form.priceLists.finalPriceHint' | translate: { rate: taxRate() } }}
+                </p>
+
+                <p class="product-form__hint">{{ 'products.form.priceLists.hint' | translate }}</p>
+
+                @if (isEdit) {
+                  <p class="product-form__hint">
+                    {{ 'products.form.priceLists.editHint' | translate }}
+                  </p>
+                }
+              }
+            </section>
+
+            <!-- ─────────────  Margen de ganancia contra el costo  ───────────── -->
+            <section class="product-form__card" aria-labelledby="margins-title">
+              <h2 class="product-form__card-title" id="margins-title">
+                <mat-icon aria-hidden="true">trending_up</mat-icon>
+                {{ 'products.form.sections.margins' | translate }}
+              </h2>
+
+              @if (!isEdit) {
+                <p class="product-form__empty">
+                  {{ 'products.form.margins.emptyOnCreate' | translate }}
+                </p>
+              } @else if (!hasCost()) {
+                <!-- El costo lo persiste cada entrada de stock: sin compras no hay contra qué medir. -->
+                <p class="product-form__empty">{{ 'products.form.margins.noCost' | translate }}</p>
+              } @else {
+                <dl class="product-form__summary">
+                  <dt>
+                    {{ 'products.form.margins.cost' | translate }}
+                    @if (costMethodKey(); as methodKey) {
+                      <span class="product-form__badge">{{ methodKey | translate }}</span>
+                    }
+                  </dt>
+                  <dd><app-currency-display [value]="cost()" /></dd>
+                </dl>
+
+                @if (marginRows().length === 0) {
+                  <p class="product-form__empty">
+                    {{ 'products.form.margins.noPrices' | translate }}
+                  </p>
+                } @else {
+                  <div class="product-form__table-scroll">
+                    <table class="product-form__table">
+                      <caption class="sr-only">
+                        {{
+                          'products.form.margins.tableAria' | translate
+                        }}
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">{{ 'products.form.margins.list' | translate }}</th>
+                          <th scope="col" class="product-form__table-price">
+                            {{ 'products.form.margins.profit' | translate }}
+                          </th>
+                          <th scope="col" class="product-form__table-percent">
+                            {{ 'products.form.margins.margin' | translate }}
+                          </th>
+                          <th scope="col" class="product-form__table-percent">
+                            {{ 'products.form.margins.markup' | translate }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of marginRows(); track row.priceListUuid) {
+                          <tr>
+                            <th scope="row">{{ row.name }}</th>
+                            <td class="product-form__table-price">
+                              <app-currency-display [value]="row.profit" tone="auto" />
+                            </td>
+                            <td
+                              class="product-form__table-percent"
+                              [class.product-form__percent--loss]="row.profit < 0"
+                            >
+                              <!-- Un precio en 0 no admite dividir: no hay margen que informar. -->
+                              @if (row.marginPercent === null) {
+                                —
+                              } @else {
+                                {{ row.marginPercent }} %
+                              }
+                            </td>
+                            <td
+                              class="product-form__table-percent"
+                              [class.product-form__percent--loss]="row.profit < 0"
+                            >
+                              {{ row.markupPercent }} %
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- El cálculo, explícito: es la única forma de que los dos porcentajes no se
+                       confundan entre sí ni con el precio final con impuestos. -->
+                  <p class="product-form__note">
+                    <mat-icon aria-hidden="true">functions</mat-icon>
+                    <span>{{ 'products.form.margins.formula' | translate }}</span>
+                  </p>
+                }
+              }
+            </section>
+
+            <section class="product-form__card" aria-labelledby="tax-rules-title">
+              <h2 class="product-form__card-title" id="tax-rules-title">
+                <mat-icon aria-hidden="true">percent</mat-icon>
+                {{ 'products.form.sections.taxRules' | translate }}
+              </h2>
+
+              <dl class="product-form__summary">
+                <dt>{{ 'products.form.fields.taxRate' | translate }}</dt>
+                <dd>{{ productForm.taxRate().value() ?? 0 }}%</dd>
+              </dl>
+
+              <button
+                mat-stroked-button
+                type="button"
+                (click)="selectedTab.set(generalTab)"
+                class="self-start"
+              >
+                <mat-icon aria-hidden="true">edit</mat-icon>
+                {{ 'products.form.taxRules.editInGeneral' | translate }}
+              </button>
+
+              <p class="product-form__hint">{{ 'products.form.taxRules.hint' | translate }}</p>
+            </section>
+          </div>
+
+          <section class="product-form__card h-fit" aria-labelledby="price-history-title">
+            <h2 class="product-form__card-title" id="price-history-title">
+              <mat-icon aria-hidden="true">history</mat-icon>
+              {{ 'products.form.sections.priceHistory' | translate }}
+            </h2>
+
+            <!-- En el alta no hay serie: el historial se arma con los cambios que vengan después,
+                 y el producto todavía no tiene ni uuid con el que consultarlos. -->
+            @if (!isEdit) {
+              <p class="product-form__empty">
+                {{ 'products.form.priceHistory.empty' | translate }}
+              </p>
+            } @else if (!canViewPriceHistory) {
+              <p class="product-form__empty">
+                {{ 'products.form.priceHistory.noPermission' | translate }}
+              </p>
+            } @else {
+              <p class="product-form__hint">
+                {{ 'products.form.priceHistory.hint' | translate }}
+              </p>
+
+              <button
+                mat-flat-button
+                color="primary"
+                type="button"
+                class="self-start"
+                (click)="onOpenPriceHistory()"
+              >
+                <mat-icon aria-hidden="true">show_chart</mat-icon>
+                {{ 'products.form.priceHistory.open' | translate }}
+              </button>
+            }
+          </section>
+        </div>
+      </mat-tab>
+
+      <!-- ──────────────────────  Inventario y sucursales  ────────────────────── -->
+      <mat-tab [label]="'products.form.tabs.inventory' | translate">
+        <div class="product-form__tab flex flex-col gap-4">
+          <section class="product-form__card" aria-labelledby="branches-title">
+            <h2 class="product-form__card-title" id="branches-title">
+              <mat-icon aria-hidden="true">store</mat-icon>
+              {{ 'products.form.sections.branches' | translate }}
+            </h2>
+
+            @if (!canAssignBranches) {
+              <p class="product-form__empty">
+                {{ 'products.form.branches.noPermission' | translate }}
+              </p>
+            } @else if (branches().length === 0) {
+              <p class="product-form__empty">{{ 'products.form.branches.empty' | translate }}</p>
+            } @else {
+              <table class="product-form__table">
+                <caption class="sr-only">
+                  {{
+                    'products.form.branches.tableAria' | translate
+                  }}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col" class="product-form__table-select">
+                      <mat-checkbox
+                        [checked]="allBranchesSelected()"
+                        [indeterminate]="someBranchesSelected()"
+                        [disabled]="archived()"
+                        (change)="onToggleAllBranches($event.checked)"
+                        [attr.aria-label]="'products.form.branches.selectAll' | translate"
+                      />
+                    </th>
+                    <th scope="col">{{ 'products.form.branches.name' | translate }}</th>
+                    <th scope="col">{{ 'products.form.branches.status' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (branch of branches(); track branch.uuid) {
+                    <tr>
+                      <td class="product-form__table-select">
+                        <mat-checkbox
+                          [checked]="isBranchSelected(branch.uuid)"
+                          [disabled]="archived()"
+                          (change)="onBranchToggle(branch.uuid, $event.checked)"
+                          [attr.aria-label]="branch.name"
+                        />
+                      </td>
+                      <th scope="row">{{ branch.name }}</th>
+                      <td>
+                        <span class="product-form__badge">
+                          {{ 'products.form.branches.active' | translate }}
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+
+              <p class="product-form__hint">{{ 'products.form.branches.hint' | translate }}</p>
+            }
+          </section>
+
+          <!--
+            A quién se le compra el producto. Vive en Inventario y no en General porque es del
+            circuito de abastecimiento, al lado de «se compra / se vende»: lo que habilita es que
+            el buscador de la compra ofrezca sólo lo que ese proveedor provee.
+          -->
+          <section class="product-form__card" aria-labelledby="suppliers-title">
+            <h2 class="product-form__card-title" id="suppliers-title">
+              <mat-icon aria-hidden="true">local_shipping</mat-icon>
+              {{ 'products.form.sections.suppliers' | translate }}
+            </h2>
+
+            @if (canViewSuppliers) {
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'products.form.suppliers.search' | translate }}</mat-label>
+                <input
+                  matInput
+                  type="text"
+                  autocomplete="off"
+                  [value]="supplierSearch()"
+                  [disabled]="archived()"
+                  (input)="onSupplierSearchInput($event)"
+                  [matAutocomplete]="supplierAutocomplete"
+                />
+                <mat-hint>{{ 'products.form.suppliers.searchHint' | translate }}</mat-hint>
+                <mat-autocomplete
+                  #supplierAutocomplete
+                  (optionSelected)="onSupplierSelected($event.option.value)"
+                >
+                  @for (supplier of supplierSuggestions(); track supplier.uuid) {
+                    <mat-option [value]="supplier">{{ supplier.name }}</mat-option>
+                  }
+                </mat-autocomplete>
+              </mat-form-field>
+            }
+
+            @if (selectedSuppliers().length === 0) {
+              <p class="product-form__empty">
+                {{
+                  (canViewSuppliers
+                    ? 'products.form.suppliers.empty'
+                    : 'products.form.suppliers.noPermission'
+                  ) | translate
+                }}
+              </p>
+            } @else {
+              <mat-chip-set [attr.aria-label]="'products.form.suppliers.selectedAria' | translate">
+                @for (supplier of selectedSuppliers(); track supplier.uuid) {
+                  <mat-chip
+                    [removable]="canViewSuppliers && !archived()"
+                    (removed)="onRemoveSupplier(supplier.uuid)"
+                  >
+                    {{ supplier.name }}
+                    @if (canViewSuppliers && !archived()) {
+                      <button
+                        matChipRemove
+                        type="button"
+                        [attr.aria-label]="
+                          'products.form.suppliers.remove' | translate: { name: supplier.name }
+                        "
+                      >
+                        <mat-icon>cancel</mat-icon>
+                      </button>
+                    }
+                  </mat-chip>
+                }
+              </mat-chip-set>
+            }
+
+            <p class="product-form__hint">{{ 'products.form.suppliers.hint' | translate }}</p>
+          </section>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            <section class="product-form__card" aria-labelledby="batches-title">
+              <h2 class="product-form__card-title" id="batches-title">
+                <mat-icon aria-hidden="true">inventory_2</mat-icon>
+                {{ 'products.form.sections.batches' | translate }}
+              </h2>
+
+              <p class="product-form__empty">{{ 'products.form.batches.empty' | translate }}</p>
+            </section>
+
+            <section class="product-form__card" aria-labelledby="availability-title">
+              <h2 class="product-form__card-title" id="availability-title">
+                <mat-icon aria-hidden="true">settings</mat-icon>
+                {{ 'products.form.sections.availability' | translate }}
+              </h2>
+
+              <div class="product-form__toggle-row">
+                <div class="flex min-w-0 flex-col">
+                  <span class="product-form__toggle-label">
+                    {{ 'products.form.fields.isForSale' | translate }}
+                  </span>
+                  <span class="product-form__toggle-description">
+                    {{ 'products.form.hints.isForSale' | translate }}
+                  </span>
+                </div>
+                <mat-slide-toggle
+                  [checked]="productForm.isForSale().value()"
+                  [disabled]="archived()"
+                  (change)="onForSaleChange($event.checked)"
+                  [attr.aria-label]="'products.form.fields.isForSale' | translate"
+                />
+              </div>
+
+              <div class="product-form__toggle-row">
+                <div class="flex min-w-0 flex-col">
+                  <span class="product-form__toggle-label">
+                    {{ 'products.form.fields.isForPurchase' | translate }}
+                  </span>
+                  <span class="product-form__toggle-description">
+                    {{ 'products.form.hints.isForPurchase' | translate }}
+                  </span>
+                </div>
+                <mat-slide-toggle
+                  [checked]="productForm.isForPurchase().value()"
+                  [disabled]="archived()"
+                  (change)="onForPurchaseChange($event.checked)"
+                  [attr.aria-label]="'products.form.fields.isForPurchase' | translate"
+                />
+              </div>
+            </section>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- ──────────────────────────────  Empaques  ────────────────────────────── -->
+      <!-- Va antes de Stock porque Stock es condicional: con una solapa condicional en el medio,
+           los índices de las que siguen se corren según el producto. -->
+      <mat-tab [label]="'products.form.tabs.packagings' | translate">
+        <div class="product-form__tab flex flex-col gap-4">
+          <section class="product-form__card" aria-labelledby="packagings-title">
+            <div class="product-form__card-header">
+              <h2 class="product-form__card-title" id="packagings-title">
+                <mat-icon aria-hidden="true">inventory_2</mat-icon>
+                {{ 'products.form.sections.packagings' | translate }}
+              </h2>
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="archived()"
+                (click)="onAddPackaging()"
+              >
+                <mat-icon aria-hidden="true">add</mat-icon>
+                {{ 'products.form.packagings.add' | translate }}
+              </button>
+            </div>
+
+            <!-- La conversión se muestra en la misma pantalla que la declara: es la única forma de
+                 que «factor 100» no se lea como un segundo saldo (RN-16). La unidad base queda a la
+                 vista en el encabezado de la grilla. -->
+            <p class="product-form__note">
+              <mat-icon aria-hidden="true">info</mat-icon>
+              <span>
+                {{
+                  'products.form.packagings.baseUnit'
+                    | translate: { unit: 'products.unitMeasures.' + productForm.unitMeasure().value() | translate }
+                }}
+              </span>
+            </p>
+
+            @if (productForm.packagings().value().length === 0) {
+              <p class="product-form__empty">{{ 'products.form.packagings.empty' | translate }}</p>
+            } @else {
+              <div class="product-form__table-scroll">
+                <table class="product-form__table">
+                  <caption class="sr-only">
+                    {{
+                      'products.form.packagings.tableAria' | translate
+                    }}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{{ 'products.form.packagings.name' | translate }}</th>
+                      <th scope="col">{{ 'products.form.packagings.factor' | translate }}</th>
+                      <th scope="col">{{ 'products.form.packagings.barcode' | translate }}</th>
+                      <th scope="col" class="product-form__table-select">
+                        {{ 'products.form.packagings.purchaseDefault' | translate }}
+                      </th>
+                      <th scope="col" class="product-form__table-select">
+                        {{ 'products.form.packagings.saleDefault' | translate }}
+                      </th>
+                      <th scope="col" class="product-form__table-remove">
+                        <span class="sr-only">{{ 'products.form.packagings.actions' | translate }}</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (packagingField of productForm.packagings; track $index) {
+                      <tr>
+                        <td>
+                          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                            <input
+                              #packagingInput
+                              matInput
+                              type="text"
+                              autocomplete="off"
+                              [formField]="packagingField.name"
+                              [attr.aria-label]="
+                                'products.form.packagings.nameAria' | translate: { index: $index + 1 }
+                              "
+                            />
+                            @if (packagingField.name().touched() && packagingField.name().invalid()) {
+                              <mat-error>{{ packagingField.name().errors() | fieldError }}</mat-error>
+                            }
+                          </mat-form-field>
+                        </td>
+                        <td>
+                          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                            <input
+                              matInput
+                              type="number"
+                              step="any"
+                              [formField]="packagingField.factor"
+                              [attr.aria-label]="
+                                'products.form.packagings.factorAria' | translate: { index: $index + 1 }
+                              "
+                            />
+                            @if (
+                              packagingField.factor().touched() && packagingField.factor().invalid()
+                            ) {
+                              <mat-error>{{ packagingField.factor().errors() | fieldError }}</mat-error>
+                            }
+                          </mat-form-field>
+                          <!-- La equivalencia, dicha con la unidad base: «1 = 100 un». -->
+                          @if (packagingEquivalence($index); as equivalence) {
+                            <span class="product-form__hint">{{ equivalence }}</span>
+                          }
+                        </td>
+                        <td>
+                          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                            <input
+                              matInput
+                              type="text"
+                              inputmode="numeric"
+                              autocomplete="off"
+                              [formField]="packagingField.barcode"
+                              [attr.aria-label]="
+                                'products.form.packagings.barcodeAria' | translate: { index: $index + 1 }
+                              "
+                            />
+                            @if (
+                              packagingField.barcode().touched() && packagingField.barcode().invalid()
+                            ) {
+                              <mat-error>{{ packagingField.barcode().errors() | fieldError }}</mat-error>
+                            }
+                          </mat-form-field>
+                        </td>
+                        <td class="product-form__table-select">
+                          <!-- Checkbox y no radio: el default es opcional, y con radio no habría
+                               forma de dejar al producto sin ninguno. La exclusividad la aplica el
+                               handler, que desmarca los demás. -->
+                          <mat-checkbox
+                            [checked]="packagingField.isPurchaseDefault().value()"
+                            [disabled]="archived()"
+                            (change)="onTogglePackagingDefault($index, 'purchase')"
+                            [aria-label]="
+                              'products.form.packagings.purchaseDefaultAria'
+                                | translate: { index: $index + 1 }
+                            "
+                          />
+                        </td>
+                        <td class="product-form__table-select">
+                          <mat-checkbox
+                            [checked]="packagingField.isSaleDefault().value()"
+                            [disabled]="archived()"
+                            (change)="onTogglePackagingDefault($index, 'sale')"
+                            [aria-label]="
+                              'products.form.packagings.saleDefaultAria'
+                                | translate: { index: $index + 1 }
+                            "
+                          />
+                        </td>
+                        <td class="product-form__table-remove">
+                          <button
+                            mat-icon-button
+                            type="button"
+                            (click)="onRemovePackaging($index)"
+                            [disabled]="archived()"
+                            [matTooltip]="'products.form.packagings.remove' | translate"
+                            [attr.aria-label]="
+                              'products.form.packagings.removeAria' | translate: { index: $index + 1 }
+                            "
+                          >
+                            <mat-icon>delete_outline</mat-icon>
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              @if (productForm.packagings().touched() && productForm.packagings().errors().length > 0) {
+                <p class="product-form__error" role="alert">
+                  {{ productForm.packagings().errors() | fieldError }}
+                </p>
+              }
+            }
+
+            <p class="product-form__hint">{{ 'products.form.packagings.hint' | translate }}</p>
+          </section>
+        </div>
+      </mat-tab>
+
+      <!-- ────────────────────────────────  Stock  ──────────────────────────────── -->
+      <!-- Sin control de existencias la solapa no se muestra: no hay saldo, lotes ni ajuste que
+           mostrar, y una solapa vacía diría menos que ninguna (§8).
+
+           Con el producto archivado **sí** se muestra, en modo consulta: quien llega desde un
+           comprobante viejo puede querer ver dónde quedó ese saldo. Sólo lectura es que no se
+           escriba, no que se muestre menos. -->
+      @if (tracksStock()) {
+        <mat-tab [label]="'products.form.tabs.stock' | translate">
+          <!-- `matTabContent` la hace perezosa: sus tres lecturas (distribución, depósitos, motivos)
+               sólo salen cuando alguien abre la solapa, no cada vez que se edita un producto. -->
+          <ng-template matTabContent>
+            <!-- Ojo: `<form>` del producto envolviendo todo. La solapa no anida otro: confirma su
+                 ajuste con su propio botón contra `/stock/adjustment`. -->
+            <app-product-stock-tab
+              [productUuid]="productUuid"
+              [productName]="productName()"
+              [productModel]="productModel()"
+              [productSku]="productForm.sku().value()"
+              [unitDecimalPlaces]="unitDecimalPlaces()"
+              [stockTracking]="productForm.stockTracking().value()"
+              [expirationControl]="productForm.expirationControl().value()"
+              [readOnly]="archived()"
+            />
+          </ng-template>
+        </mat-tab>
+      }
+    </mat-tab-group>
+  </app-load-state>
+</form>

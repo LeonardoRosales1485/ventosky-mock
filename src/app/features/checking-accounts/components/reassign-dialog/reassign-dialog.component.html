@@ -1,0 +1,105 @@
+<h2 mat-dialog-title>{{ 'checkingAccounts.reassignDialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <!--
+    Una sola operacion y no dos: el backend inserta la reversion y la imputacion nueva en la misma
+    transaccion, asi que el cobro nunca queda en el aire.
+  -->
+  <p class="reassign__lead">{{ 'checkingAccounts.reassignDialog.lead' | translate }}</p>
+
+  <p class="reassign__origin">
+    {{ 'checkingAccounts.reassignDialog.from' | translate }}
+    <strong>{{ data.allocation.debtPublicId ?? data.allocation.debtUuid }}</strong>
+    ·
+    <app-currency-display [value]="data.activeAmount" />
+  </p>
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'checkingAccounts.reassignDialog.target' | translate }}</mat-label>
+    <mat-select [value]="debtUuid()" (valueChange)="onTargetChange($event)">
+      @for (debt of data.debts; track debt.uuid) {
+        <mat-option [value]="debt.uuid">
+          {{ debt.publicId ?? debt.description }} ·
+          {{ debt.dateDue | localizedDate: 'shortDate' }}
+        </mat-option>
+      }
+    </mat-select>
+    @if (data.debts.length === 0) {
+      <mat-hint>{{ 'checkingAccounts.reassignDialog.noTargets' | translate }}</mat-hint>
+    }
+  </mat-form-field>
+
+  @if (target(); as target) {
+    <div class="reassign__target">
+      <app-debt-state-chip [state]="target.state" />
+      <span>
+        {{ 'checkingAccounts.columns.pendingAmount' | translate }}:
+        <app-currency-display [value]="target.pendingAmount" />
+      </span>
+    </div>
+  }
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'checkingAccounts.reassignDialog.amount' | translate }}</mat-label>
+    <input
+      matInput
+      type="number"
+      min="0"
+      [max]="maxAmount()"
+      step="0.01"
+      [value]="amount()"
+      (input)="onAmountChange($any($event.target).value)"
+    />
+    <span matTextPrefix>$&nbsp;</span>
+    <mat-hint>
+      {{ 'checkingAccounts.reassignDialog.amountHint' | translate }}
+      <app-currency-display [value]="maxAmount()" />
+    </mat-hint>
+  </mat-form-field>
+
+  <!--
+    El destino no puede recibir más de lo que todavía debe. El mensaje nombra los dos números: con
+    un «importe inválido» a secas hay que ir a buscar cuál de los dos está mal.
+  -->
+  @if (target(); as target) {
+    @if (!amountValid() && amount() > 0) {
+      <p class="reassign__error" role="alert">
+        {{
+          'checkingAccounts.reassignDialog.overTarget'
+            | translate
+              : {
+                  debt: target.publicId ?? target.description,
+                  pending: formatAmount(target.pendingAmount),
+                  amount: formatAmount(amount()),
+                }
+        }}
+      </p>
+    }
+  }
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'checkingAccounts.reassignDialog.reason' | translate }}</mat-label>
+    <textarea
+      matInput
+      rows="2"
+      [value]="reason()"
+      (input)="reason.set($any($event.target).value)"
+    ></textarea>
+    <mat-hint>{{ 'checkingAccounts.reassignDialog.reasonHint' | translate }}</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">
+    {{ 'checkingAccounts.actions.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [disabled]="!canSubmit()"
+    (click)="onConfirm()"
+  >
+    {{ 'checkingAccounts.reassignDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

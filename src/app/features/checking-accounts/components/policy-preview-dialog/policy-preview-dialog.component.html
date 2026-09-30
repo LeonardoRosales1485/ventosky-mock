@@ -1,0 +1,82 @@
+<h2 mat-dialog-title>{{ 'checkingAccounts.companyPolicy.preview.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="preview__lead">{{ 'checkingAccounts.companyPolicy.preview.lead' | translate }}</p>
+
+  <!--
+    El bloque de reproceso aparece sólo cuando el guardado es una transición de manual a automático.
+    Que no esté es distinto de «no imputaría nada»: el camino inverso simplemente no reprocesa.
+  -->
+  @if (reprocess(); as reprocess) {
+    <section class="preview__block" aria-labelledby="preview-reprocess">
+      <h3 class="preview__block-title" id="preview-reprocess">
+        {{ 'checkingAccounts.companyPolicy.preview.reprocessTitle' | translate }}
+      </h3>
+
+      <dl class="preview__figures">
+        <div class="preview__figure">
+          <dt>{{ 'checkingAccounts.companyPolicy.preview.accounts' | translate }}</dt>
+          <!-- «3 de 412» y no «3»: sin el denominador no se sabe si tocó casi todo o casi nada. -->
+          <dd>
+            {{
+              'checkingAccounts.companyPolicy.preview.accountsOf'
+                | translate: { touched: reprocess.accounts, evaluated: reprocess.evaluatedAccounts }
+            }}
+          </dd>
+        </div>
+        <div class="preview__figure">
+          <dt>{{ 'checkingAccounts.companyPolicy.preview.allocations' | translate }}</dt>
+          <dd>{{ reprocess.allocations }}</dd>
+        </div>
+        <div class="preview__figure">
+          <dt>{{ 'checkingAccounts.companyPolicy.preview.settled' | translate }}</dt>
+          <dd><app-currency-display [value]="reprocess.settledAmount" /></dd>
+        </div>
+      </dl>
+
+      <p class="preview__note">
+        {{ 'checkingAccounts.companyPolicy.preview.reprocessNote' | translate }}
+      </p>
+    </section>
+  }
+
+  <!--
+    No bloquea el guardado: el límite gobierna operaciones nuevas y no reescribe el pasado. Pero
+    desde mañana el mostrador les va a rebotar ventas que hoy entraban.
+  -->
+  @if (data.preview.accountsOverLimit > 0) {
+    <section class="preview__block preview__block--warning" aria-labelledby="preview-over">
+      <h3 class="preview__block-title" id="preview-over">
+        {{ 'checkingAccounts.companyPolicy.preview.overLimitTitle' | translate }}
+        <span class="preview__count">{{ data.preview.accountsOverLimit }}</span>
+      </h3>
+      <p class="preview__note">
+        {{ 'checkingAccounts.companyPolicy.preview.overLimitNote' | translate }}
+      </p>
+      <p class="preview__note">
+        {{ 'checkingAccounts.companyPolicy.preview.overLimitScope' | translate }}
+      </p>
+    </section>
+  }
+
+  @if (harmless()) {
+    <p class="preview__none">
+      <mat-icon aria-hidden="true">check_circle</mat-icon>
+      {{ 'checkingAccounts.companyPolicy.impact.none' | translate }}
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="false">
+    {{ 'checkingAccounts.companyPolicy.preview.backToEdit' | translate }}
+  </button>
+  <button mat-flat-button color="primary" type="button" [mat-dialog-close]="true">
+    {{
+      (reprocess()
+        ? 'checkingAccounts.companyPolicy.preview.saveAndReprocess'
+        : 'checkingAccounts.companyPolicy.save'
+      ) | translate
+    }}
+  </button>
+</mat-dialog-actions>

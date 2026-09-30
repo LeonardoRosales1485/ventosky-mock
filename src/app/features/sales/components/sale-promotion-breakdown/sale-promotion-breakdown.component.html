@@ -1,0 +1,37 @@
+<ul class="promotion-breakdown">
+  @for (promotion of promotions(); track promotion.promotionKey) {
+    <li
+      class="promotion-breakdown__row"
+      [class.promotion-breakdown__row--suggested]="promotion.status === 'SUGGESTED'"
+      [class.promotion-breakdown__row--dropped]="promotion.status === 'DROPPED'"
+    >
+      <span class="promotion-breakdown__head">
+        <span class="promotion-breakdown__name">{{ promotion.name }}</span>
+        <app-currency-display
+          class="promotion-breakdown__amount"
+          [value]="-promotion.amount"
+          [tone]="promotion.status === 'APPLIED' ? 'positive' : 'neutral'"
+        />
+      </span>
+
+      <span class="promotion-breakdown__detail">
+        <!-- Sin fallback: acá el nombre ya está en la línea de arriba, así que un tipo que no se
+             sabe describir deja la ranura vacía en vez de repetirlo. -->
+        <app-sale-promotion-detail [detail]="promotion.detail" />
+
+        @if (promotion.status === 'SUGGESTED') {
+          <span class="promotion-breakdown__reason">{{
+            'sales.totals.promotionSuggested'
+              | translate: { methods: promotion.requiredMethods.join(', ') }
+          }}</span>
+        }
+        @if (promotion.status === 'DROPPED') {
+          <span class="promotion-breakdown__reason">{{
+            'sales.totals.promotionDropped'
+              | translate: { methods: promotion.requiredMethods.join(', ') }
+          }}</span>
+        }
+      </span>
+    </li>
+  }
+</ul>

@@ -1,0 +1,44 @@
+<button
+  mat-stroked-button
+  type="button"
+  class="action-bar__cancel"
+  [disabled]="!canDiscard() || submitting()"
+  (click)="discard.emit()"
+>
+  <mat-icon aria-hidden="true">close</mat-icon>
+  {{ 'purchases.actions.cancel' | translate }}
+</button>
+
+<!--
+  El motivo ocupa el centro de la barra y no un tooltip del botón: es lo que hay que resolver, y un
+  tooltip no se abre sobre un botón deshabilitado.
+-->
+@if (blockedReasonKey(); as reasonKey) {
+  <p class="action-bar__reason" role="status">
+    <mat-icon aria-hidden="true">info</mat-icon>
+    <span>{{ reasonKey | translate }}</span>
+  </p>
+}
+
+<div class="action-bar__closing">
+  <p class="action-bar__total">
+    <span class="action-bar__total-label">{{ 'purchases.totals.total' | translate }}</span>
+    <app-currency-display class="action-bar__total-value" [value]="totalAmount()" />
+  </p>
+
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    class="action-bar__confirm"
+    [disabled]="!canConfirm() || submitting()"
+    (click)="confirm.emit()"
+  >
+    @if (submitting()) {
+      <mat-spinner diameter="20" />
+    } @else {
+      <mat-icon aria-hidden="true">check_circle</mat-icon>
+    }
+    {{ confirmLabelKey() | translate }}
+  </button>
+</div>

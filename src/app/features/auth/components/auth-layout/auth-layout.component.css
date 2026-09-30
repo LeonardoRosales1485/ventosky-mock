@@ -1,0 +1,27 @@
+/*
+  The hero shows a dark artwork, so its text stays light in both themes.
+  The theme gradient sits underneath as the fallback while the image loads.
+*/
+.auth-hero {
+  background: linear-gradient(
+    135deg,
+    var(--mat-sys-primary) 0%,
+    var(--mat-sys-tertiary) 55%,
+    var(--mat-sys-secondary) 100%
+  );
+  color: #fff;
+}
+
+/* Keeps the copy readable over the lighter areas of the artwork. */
+.auth-hero__scrim {
+  background: linear-gradient(
+    135deg,
+    rgb(0 0 0 / 0.45) 0%,
+    rgb(0 0 0 / 0.2) 55%,
+    rgb(0 0 0 / 0.4) 100%
+  );
+}
+
+.auth-hero__description {
+  color: color-mix(in srgb, currentColor 90%, transparent);
+}

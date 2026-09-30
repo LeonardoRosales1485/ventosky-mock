@@ -1,0 +1,358 @@
+.timeline__debt {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+}
+
+.timeline__loading {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.timeline__empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* La línea vertical la dibuja el borde del marcador; cada entrada cuelga de ella. */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline__entry {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+/* La reversión se distingue de un vistazo: es lo que alguien va a buscar al abrir esto. */
+.timeline__entry--reversal {
+  border-left: 3px solid var(--mat-sys-error);
+}
+
+.timeline__marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.timeline__marker mat-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+}
+
+.timeline__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.timeline__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-weight: 600;
+}
+
+.timeline__badge {
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.timeline__meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.timeline__reason {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
+.timeline__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+}
+
+.timeline__active {
+  margin-right: auto;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ─────────────────────────  El panel de contexto  ───────────────────────── */
+
+/*
+  Dos columnas: el contexto al costado y la línea de tiempo —lo que se viene a leer— a la derecha.
+
+  **La segunda pista va con `minmax(0, 1fr)` y no con `1fr`.** Un `1fr` pelado es
+  `minmax(auto, 1fr)`, y ese `auto` impide que la pista baje del ancho mínimo de su contenido: las
+  tarjetas de la línea de tiempo se negaban a achicarse, empujaban el ancho del diálogo y aparecía
+  una barra horizontal con el texto partido letra por letra. Con el mínimo en cero la pista achica y
+  el contenido se acomoda adentro.
+*/
+.timeline__layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* Lo mismo un nivel más adentro: sin esto, el hijo vuelve a imponer su mínimo. */
+.timeline__main {
+  min-width: 0;
+}
+
+@media (max-width: 60rem) {
+  .timeline__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.timeline__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/*
+  Cada bloque es una tarjeta: son dos preguntas distintas —de dónde salió y qué se hizo con su
+  vencimiento— y separarlas deja claro dónde termina una y empieza la otra.
+*/
+.timeline__card {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+  overflow: hidden;
+}
+
+.timeline__card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container);
+}
+
+.timeline__card-head h3 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.timeline__card-head mat-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Cuántas veces se prorrogó, sin tener que contar la lista. */
+.timeline__count {
+  margin-left: auto;
+  min-width: 1.25rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-align: center;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.timeline__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  min-width: 0;
+}
+
+.timeline__chip {
+  align-self: flex-start;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* El enlace a la operación es la acción de esta tarjeta, así que se ve como una y no como texto. */
+.timeline__order {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 40%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+}
+
+.timeline__order:hover,
+.timeline__order:focus-visible {
+  background: color-mix(in srgb, var(--mat-sys-primary) 16%, transparent);
+}
+
+.timeline__order-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+.timeline__order-label {
+  font-size: 0.6875rem;
+  opacity: 0.85;
+}
+
+.timeline__order-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline__order mat-icon {
+  flex: none;
+  margin-left: auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+}
+
+.timeline__note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Etiqueta arriba y valor abajo: en una columna angosta, dos por fila no entran sin partirse. */
+.timeline__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
+  gap: 0.5rem;
+  margin: 0.125rem 0 0;
+}
+
+.timeline__facts div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  min-width: 0;
+}
+
+.timeline__facts dt {
+  font-size: 0.6875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.timeline__facts dd {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El vencimiento vigente es el dato que se viene a mirar en esta tarjeta. */
+.timeline__due {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline__due-original {
+  margin: -0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.timeline__extensions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Un borde y no un punto: la prórroga es un tramo entre dos fechas, no un instante. */
+.timeline__extension {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-left: 0.625rem;
+  border-left: 2px solid var(--mat-sys-outline-variant);
+  min-width: 0;
+}
+
+.timeline__extension-dates {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline__extension-dates mat-icon {
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.timeline__extension-reason {
+  font-size: 0.75rem;
+  font-style: italic;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.timeline__extension-when {
+  font-size: 0.6875rem;
+  color: var(--mat-sys-on-surface-variant);
+}

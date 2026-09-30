@@ -1,0 +1,72 @@
+.policy__lead {
+  margin: 0 0 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.policy__row {
+  margin: 0 0 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem 1rem;
+}
+
+.policy__legend {
+  padding: 0 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+/*
+  Dos tonos y no cinco, igual que el chip de configuración: resaltado es lo que este nivel decidió,
+  gris es lo heredado. El nombre del nivel va en el texto, que es donde se lee sin decodificar color.
+*/
+.policy__origin {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.policy__origin--own {
+  color: var(--mat-sys-primary);
+  font-weight: 600;
+}
+
+.policy__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.policy__mode {
+  flex: 1 1 11rem;
+  min-width: 10rem;
+}
+
+.policy__value {
+  flex: 1 1 9rem;
+  min-width: 8rem;
+}
+
+.policy__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.policy__note-icon {
+  width: 1.0625rem;
+  height: 1.0625rem;
+  font-size: 1.0625rem;
+  flex: none;
+  color: var(--app-info);
+}
+
+.policy__note--muted {
+  padding-inline-start: 1.5625rem;
+}

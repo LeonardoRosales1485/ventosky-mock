@@ -1,0 +1,34 @@
+<header class="page-header">
+  <div class="page-header__lead">
+    @if (showBack()) {
+      @let backAria = backLabel() ?? ('pageHeader.back' | translate);
+
+      <button
+        matIconButton
+        type="button"
+        class="page-header__back"
+        [attr.aria-label]="backAria"
+        [matTooltip]="backAria"
+        (click)="back.emit()"
+      >
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      </button>
+    }
+
+    <div class="page-header__text">
+      <h1 class="page-header__title">
+        {{ title() }}
+      </h1>
+
+      @if (description(); as descriptionText) {
+        <p class="page-header__desc">
+          {{ descriptionText }}
+        </p>
+      }
+    </div>
+  </div>
+
+  <div class="page-header__actions">
+    <ng-content />
+  </div>
+</header>

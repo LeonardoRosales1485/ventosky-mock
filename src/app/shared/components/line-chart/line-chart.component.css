@@ -1,0 +1,25 @@
+/*
+  El cromo del gráfico se declara como variables propias y no leyendo los tokens de Material desde
+  el TypeScript: así el componente tiene un único lugar donde cambiar de paleta, y quien lo usa
+  puede pisar cualquiera de estos colores desde su propia hoja.
+*/
+:host {
+  display: block;
+
+  --line-chart-muted: var(--mat-sys-on-surface-variant);
+  --line-chart-grid: var(--mat-sys-outline-variant);
+  --line-chart-axis: var(--mat-sys-outline);
+  /* Color del anillo de los puntos: es el fondo de la tarjeta que contiene al gráfico. */
+  --line-chart-surface: var(--mat-sys-surface-container-low);
+  --line-chart-tooltip-surface: var(--mat-sys-inverse-surface);
+  --line-chart-tooltip-ink: var(--mat-sys-inverse-on-surface);
+}
+
+/*
+  El alto lo fija el contenedor y Chart.js dibuja adentro: incluye la banda de etiquetas del eje X,
+  para que la tarjeta no termine con un scroll vertical propio de dos píxeles.
+*/
+.line-chart {
+  position: relative;
+  width: 100%;
+}

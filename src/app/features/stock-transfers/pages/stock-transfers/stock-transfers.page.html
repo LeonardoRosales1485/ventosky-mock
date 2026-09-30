@@ -1,0 +1,214 @@
+<app-page-header
+  [title]="'stockTransfers.list.title' | translate"
+  [description]="'stockTransfers.list.description' | translate"
+>
+  @if (canDispatch) {
+    <button mat-flat-button type="button" color="primary" (click)="onCreate()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      {{ 'stockTransfers.list.actions.create' | translate }}
+    </button>
+  }
+</app-page-header>
+
+<!--
+  El aviso va arriba de la tabla y no adentro porque no describe una fila: describe lo que esta
+  sucursal tiene detenido. Mientras esos traslados no se confirmen, esas unidades no están en
+  ningún saldo y no se pueden vender.
+-->
+@if (pendingReception() > 0) {
+  <div class="transfers-alert" role="status">
+    <mat-icon class="transfers-alert__icon" aria-hidden="true">schedule</mat-icon>
+    <p class="transfers-alert__text">
+      <strong>
+        {{
+          'stockTransfers.list.pendingReception'
+            | translate: { count: pendingReception(), branch: activeBranch()?.name ?? '' }
+        }}
+      </strong>
+      {{ 'stockTransfers.list.pendingReceptionHint' | translate }}
+    </p>
+    <button mat-button type="button" (click)="onShowPending()">
+      {{ 'stockTransfers.list.actions.showPending' | translate }}
+    </button>
+  </div>
+}
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'stockTransfers.list.loading' | translate"
+  maxHeight="32rem"
+>
+  <div tableWrapperHeader class="transfers-header">
+    <app-table-toolbar
+      [search]="searchQuery()"
+      [activeFilters]="activeFilters()"
+      [searchPlaceholder]="'stockTransfers.list.searchPlaceholder' | translate"
+      (searchChange)="searchQuery.set($event)"
+      (refresh)="onRefresh()"
+      (filtersClick)="onToggleFilters()"
+      (clearFilters)="onClearFilters()"
+    />
+
+    @if (filtersOpen()) {
+      <div
+        class="transfers-filters"
+        [attr.aria-label]="'stockTransfers.list.filtersAria' | translate"
+      >
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'stockTransfers.list.filters.status' | translate }}</mat-label>
+          <mat-select
+            [value]="statusFilter()"
+            (valueChange)="onStatusChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">
+              {{ 'stockTransfers.list.filters.all' | translate }}
+            </mat-option>
+            <mat-option value="IN_TRANSIT">
+              {{ 'stockTransfers.status.IN_TRANSIT' | translate }}
+            </mat-option>
+            <mat-option value="RECEIVED">
+              {{ 'stockTransfers.status.RECEIVED' | translate }}
+            </mat-option>
+            <mat-option value="CANCELLED">
+              {{ 'stockTransfers.status.CANCELLED' | translate }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'stockTransfers.list.filters.mode' | translate }}</mat-label>
+          <mat-select
+            [value]="modeFilter()"
+            (valueChange)="onModeChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">
+              {{ 'stockTransfers.list.filters.all' | translate }}
+            </mat-option>
+            <mat-option value="DEFERRED">
+              {{ 'stockTransfers.modes.DEFERRED' | translate }}
+            </mat-option>
+            <mat-option value="IMMEDIATE">
+              {{ 'stockTransfers.modes.IMMEDIATE' | translate }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+  </div>
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    [attr.aria-label]="'stockTransfers.list.tableAria' | translate"
+  >
+    <!-- La fecha y el número van juntos: son las dos formas de nombrar el mismo traslado. -->
+    <ng-container matColumnDef="dateCreated">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'stockTransfers.list.columns.dateCreated' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let transfer" class="transfers-date">
+        <span class="transfers-date__value">
+          {{ (transfer.dateCreated | localizedDate: 'short') || '—' }}
+        </span>
+        <span class="transfers-date__id">
+          {{ transfer.publicId || ('stockTransfers.list.noPublicId' | translate) }}
+        </span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="quantity">
+      <th mat-header-cell *matHeaderCellDef class="transfers-qty-header">
+        {{ 'stockTransfers.list.columns.quantity' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let transfer" class="transfers-qty">
+        <span class="transfers-qty__value">
+          {{ 'stockTransfers.units' | translate: { count: transfer.quantity ?? 0 } }}
+        </span>
+        <span class="transfers-qty__products">
+          {{ 'stockTransfers.products' | translate: { count: transfer.productCount ?? 0 } }}
+        </span>
+      </td>
+    </ng-container>
+
+    <!--
+      Origen y destino se leen como sucursal + depósito: el traslado entre dos depósitos de la
+      misma sucursal y el que cruza sucursales se distinguen sólo por la primera línea.
+    -->
+    <ng-container matColumnDef="source">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'stockTransfers.list.columns.source' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let transfer">
+        <span class="transfers-place__branch">{{ transfer.sourceBranch?.name || '—' }}</span>
+        <span class="transfers-place__warehouse">{{ transfer.fromWarehouse?.name || '—' }}</span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="target">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'stockTransfers.list.columns.target' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let transfer">
+        <span class="transfers-place__branch">{{ transfer.targetBranch?.name || '—' }}</span>
+        <span class="transfers-place__warehouse">{{ transfer.toWarehouse?.name || '—' }}</span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="transferStatus">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'stockTransfers.list.columns.status' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let transfer">
+        <app-transfer-status-chip
+          [status]="transfer.transferStatus"
+          [awaitingHere]="awaitsThisBranch(transfer)"
+        />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'stockTransfers.list.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let transfer" class="actions-cell">
+        <app-row-actions
+          [actions]="rowActionsFor(transfer)"
+          [ariaLabel]="'stockTransfers.list.actions.rowAria' | translate"
+          (actionClick)="onRowAction($event, transfer)"
+        />
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="displayedColumns.length"
+      >
+        @if (!paginator.loading()) {
+          {{ 'stockTransfers.list.empty' | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'stockTransfers.list.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

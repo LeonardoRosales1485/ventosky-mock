@@ -1,0 +1,19 @@
+:host {
+  display: block;
+}
+
+.confirm-dialog__message {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: 1.5;
+  /*
+    Un mensaje de varias líneas se escribe con saltos y se lee con saltos. Es lo que permite que una
+    confirmación diga las consecuencias —qué se pierde, qué no se deshace— en vez de un párrafo
+    corrido; el mensaje de una sola línea, que es la mayoría, se ve exactamente igual.
+  */
+  white-space: pre-line;
+}
+
+mat-dialog-content {
+  min-width: min(100%, 20rem);
+}

@@ -1,0 +1,169 @@
+<h2 mat-dialog-title>
+  {{
+    'checkingAccounts.allocateDialog.titleFor'
+      | translate: { credit: data.credit.publicId ?? data.credit.description }
+  }}
+</h2>
+
+<mat-dialog-content>
+  <!--
+    Lo primero que hay que saber de esta operación es lo que **no** hace: redistribuye plata que ya
+    entró, así que no toca la caja, no emite comprobante y no exige sesión. Por eso deshacerla es
+    seguro, y por eso no lleva las advertencias que sí lleva anular.
+  -->
+  <p class="allocate__lead">{{ 'checkingAccounts.allocateDialog.lead' | translate }}</p>
+  <header class="allocate__credit">
+    <div>
+      <!-- El recibo todavia no se numera, asi que el titulo cae en lo que si hay: la descripcion. -->
+      <span class="allocate__credit-id">{{ data.credit.publicId ?? data.credit.description }}</span>
+      <span class="allocate__credit-party">{{ data.partyName }}</span>
+    </div>
+    <dl class="allocate__credit-amounts">
+      <div>
+        <dt>{{ 'checkingAccounts.allocateDialog.creditAmount' | translate }}</dt>
+        <dd><app-currency-display [value]="data.credit.amount" /></dd>
+      </div>
+      <div>
+        <dt>{{ 'checkingAccounts.allocateDialog.unallocated' | translate }}</dt>
+        <dd><app-currency-display [value]="data.credit.unallocatedAmount" tone="positive" /></dd>
+      </div>
+    </dl>
+  </header>
+
+  @if (data.debts.length === 0) {
+    <p class="allocate__empty">{{ 'checkingAccounts.allocateDialog.noDebts' | translate }}</p>
+  } @else {
+    <div class="allocate__toolbar">
+      <button mat-stroked-button type="button" (click)="onProposeFifo()">
+        <mat-icon aria-hidden="true">auto_fix_high</mat-icon>
+        {{ 'checkingAccounts.allocateDialog.proposeFifo' | translate }}
+      </button>
+      <button mat-button type="button" (click)="onClear()">
+        {{ 'checkingAccounts.allocateDialog.clear' | translate }}
+      </button>
+    </div>
+
+    <div class="allocate__table-wrap">
+      <table class="allocate__table">
+        <caption class="sr-only">
+          {{
+            'checkingAccounts.allocateDialog.tableAria' | translate
+          }}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">{{ 'checkingAccounts.columns.publicId' | translate }}</th>
+            <th scope="col">{{ 'checkingAccounts.columns.dateDue' | translate }}</th>
+            <th scope="col">{{ 'checkingAccounts.columns.state' | translate }}</th>
+            <th scope="col" class="numeric">
+              {{ 'checkingAccounts.columns.pendingAmount' | translate }}
+            </th>
+            <th scope="col" class="numeric">
+              {{ 'checkingAccounts.allocateDialog.applyAmount' | translate }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.debt.uuid) {
+            <tr>
+              <td>
+                <span class="allocate__public-id">{{
+                  row.debt.publicId ?? row.debt.description
+                }}</span>
+              </td>
+              <td>
+                {{ row.debt.dateDue | localizedDate: 'shortDate' }}
+                @if (row.extended) {
+                  <mat-icon
+                    class="allocate__extended"
+                    aria-hidden="true"
+                    [matTooltip]="
+                      'checkingAccounts.debts.extendedFrom'
+                        | translate: { date: row.debt.dateDueOriginal }
+                    "
+                  >
+                    update
+                  </mat-icon>
+                }
+              </td>
+              <td>
+                <app-debt-state-chip [state]="row.state" />
+              </td>
+              <td class="numeric">
+                <app-currency-display [value]="row.debt.pendingAmount" />
+              </td>
+              <td class="numeric">
+                <mat-form-field
+                  appearance="outline"
+                  subscriptSizing="dynamic"
+                  class="allocate__input"
+                >
+                  <input
+                    matInput
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    [max]="row.debt.pendingAmount"
+                    [value]="row.amount || ''"
+                    (input)="onAmountChange(row.debt.uuid, $any($event.target).value)"
+                    [attr.aria-label]="
+                      'checkingAccounts.allocateDialog.applyAmountAria'
+                        | translate: { publicId: row.debt.publicId ?? row.debt.description }
+                    "
+                  />
+                </mat-form-field>
+              </td>
+            </tr>
+          }
+          </tbody>
+      </table>
+    </div>
+
+    <footer class="allocate__totals" [class.allocate__totals--error]="exceedsCredit()">
+      <div>
+        <span>{{ 'checkingAccounts.allocateDialog.totalAllocated' | translate }}</span>
+        <app-currency-display [value]="totalAllocated()" />
+      </div>
+      <div>
+        <span>{{ 'checkingAccounts.allocateDialog.remaining' | translate }}</span>
+        <app-currency-display
+          [value]="remaining()"
+          [tone]="exceedsCredit() ? 'negative' : 'neutral'"
+        />
+      </div>
+    </footer>
+
+    @if (exceedsCredit()) {
+      <p class="allocate__error" role="alert">
+        {{ 'checkingAccounts.allocateDialog.exceedsCredit' | translate }}
+      </p>
+    } @else if (remaining() > 0) {
+      <p class="allocate__hint">
+        {{ 'checkingAccounts.allocateDialog.leftoverHint' | translate }}
+      </p>
+    }
+
+    <!--
+      No hay aviso de límite ni de saldo, y no es un olvido: imputar no mueve el saldo de la cuenta.
+      Decirlo evita que alguien busque el número que no cambió.
+    -->
+    <p class="allocate__note">
+      {{ 'checkingAccounts.allocateDialog.noBalanceEffect' | translate }}
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="undefined">
+    {{ 'checkingAccounts.actions.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [disabled]="!canSubmit()"
+    (click)="onConfirm()"
+  >
+    {{ 'checkingAccounts.allocateDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

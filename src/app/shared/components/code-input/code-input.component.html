@@ -1,0 +1,26 @@
+<div class="code-input__cells">
+  @for (char of cells(); track $index) {
+    <input
+      #cell
+      class="code-input__cell"
+      type="text"
+      maxlength="1"
+      autocapitalize="off"
+      autocorrect="off"
+      spellcheck="false"
+      [value]="char"
+      [disabled]="disabled"
+      [attr.inputmode]="inputMode()"
+      [attr.pattern]="charset() === 'numeric' ? '[0-9]*' : null"
+      [attr.autocomplete]="$first ? 'one-time-code' : 'off'"
+      [attr.aria-invalid]="errorState"
+      [attr.aria-label]="
+        'codeInput.character' | translate: { index: $index + 1, length: cells().length }
+      "
+      (input)="onCellInput($event, $index)"
+      (keydown)="onCellKeydown($event, $index)"
+      (paste)="onCellPaste($event, $index)"
+      (focus)="onCellFocus($index)"
+    />
+  }
+</div>

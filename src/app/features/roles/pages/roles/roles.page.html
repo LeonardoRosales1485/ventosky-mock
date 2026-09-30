@@ -1,0 +1,103 @@
+<app-page-header
+  [title]="'roles.title' | translate"
+  [description]="'roles.description' | translate"
+>
+  @if (canCreate()) {
+    <button mat-flat-button type="button" color="primary" (click)="onCreate()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      {{ 'roles.actions.create' | translate }}
+    </button>
+  }
+</app-page-header>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'roles.loading' | translate"
+>
+  <app-table-toolbar
+    tableWrapperHeader
+    [search]="searchQuery()"
+    [activeFilters]="activeFilters()"
+    (searchChange)="searchQuery.set($event)"
+    (refresh)="onRefresh()"
+    (filtersClick)="onFiltersClick()"
+    (clearFilters)="onClearFilters()"
+  />
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    class="w-full"
+    [attr.aria-label]="'roles.tableAria' | translate"
+  >
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'roles.columns.name' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let role">{{ role.name }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="isDefault">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'roles.columns.isDefault' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let role">
+        {{
+          (role.isDefault === 1 ? 'roles.values.yes' : 'roles.values.no') | translate
+        }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="dateCreated">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'roles.columns.dateCreated' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let role">
+        {{ role.dateCreated | localizedDate: 'mediumDate' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'roles.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let role" class="actions-cell">
+        <app-row-actions
+          [actions]="rowActions()"
+          [ariaLabel]="'roles.actions.rowAria' | translate"
+          (actionClick)="onRowAction($event, role)"
+        />
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="displayedColumns.length"
+      >
+        @if (!paginator.loading()) {
+          {{ 'roles.empty' | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'roles.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

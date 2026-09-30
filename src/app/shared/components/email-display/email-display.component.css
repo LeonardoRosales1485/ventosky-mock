@@ -1,0 +1,40 @@
+:host {
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.email-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+}
+
+.email-display__value {
+  min-width: 0;
+}
+
+.email-display__value--truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-display__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex: none;
+}
+
+/* Compact icon buttons so the control fits inside table cells. */
+.email-display__action {
+  --mat-icon-button-state-layer-size: 2rem;
+  --mat-icon-button-icon-size: 1.125rem;
+
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.email-display__empty {
+  color: var(--mat-sys-on-surface-variant);
+}

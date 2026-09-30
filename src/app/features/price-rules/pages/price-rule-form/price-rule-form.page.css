@@ -1,0 +1,140 @@
+:host {
+  display: block;
+}
+
+.price-rule-form__body {
+  padding-block: 1.25rem;
+}
+
+.price-rule-form__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.price-rule-form__card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.price-rule-form__card-title mat-icon {
+  color: var(--mat-sys-primary);
+}
+
+/* La sucursal sobre la que se está trabajando: no se elige, viene de la sesión. */
+.price-rule-form__badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.price-rule-form__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.price-rule-form__empty {
+  margin: 0;
+  padding: 1.5rem 1rem;
+  border: 1px dashed var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Errores que no caben en un `mat-error`: el par (lista, sucursal) repetido y el linaje viven en la
+   colección, no en un control. */
+.price-rule-form__error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-error);
+}
+
+.price-rule-form__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--app-info-container);
+  color: var(--app-on-info-container);
+  font-size: 0.8125rem;
+}
+
+.price-rule-form__note mat-icon {
+  flex: none;
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.price-rule-form__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.price-rule-form__table th,
+.price-rule-form__table td {
+  padding: 0.5rem 0.5rem;
+  text-align: start;
+  vertical-align: top;
+}
+
+.price-rule-form__table thead th {
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.price-rule-form__table mat-form-field {
+  width: 100%;
+}
+
+.price-rule-form__table-percent {
+  width: 9rem;
+}
+
+.price-rule-form__table-remove {
+  width: 3rem;
+  text-align: end;
+}
+
+/* Sangría por nivel para que el select deje ver la jerarquía del árbol de categorías. */
+.price-rule-form__category-option {
+  padding-inline-start: calc(1rem + (var(--category-depth, 0) * 1rem));
+}
+
+/* Material apaga los eventos de las opciones deshabilitadas, y con ellos el tooltip que explica por
+   qué ésta no se puede tocar. Se reponen: el clic igual no selecciona, `MatOption` lo ignora. */
+.price-rule-form__category-option--covered {
+  pointer-events: auto;
+}
+
+.price-rule-form__option-name {
+  margin-inline-end: 0.5rem;
+}
+
+.price-rule-form__option-meta {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}

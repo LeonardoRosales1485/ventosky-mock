@@ -1,0 +1,189 @@
+<app-page-header
+  [title]="'cashRegisters.title' | translate"
+  [description]="'cashRegisters.description' | translate"
+>
+  @if (canCreate()) {
+    <button mat-flat-button type="button" color="primary" (click)="onCreate()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      {{ 'cashRegisters.actions.create' | translate }}
+    </button>
+  }
+</app-page-header>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'cashRegisters.loading' | translate"
+>
+  <div tableWrapperHeader class="cash-registers-header">
+    <app-table-toolbar
+      [search]="searchQuery()"
+      [activeFilters]="activeFilters()"
+      [searchPlaceholder]="'cashRegisters.searchPlaceholder' | translate"
+      (searchChange)="searchQuery.set($event)"
+      (refresh)="onRefresh()"
+      (filtersClick)="onToggleFilters()"
+      (clearFilters)="onClearFilters()"
+    />
+
+    @if (filtersOpen()) {
+      <div
+        class="cash-registers-filters"
+        [attr.aria-label]="'cashRegisters.filtersAria' | translate"
+      >
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'cashRegisters.filters.branch' | translate }}</mat-label>
+          <mat-select
+            [value]="branchFilter()"
+            (valueChange)="onBranchFilterChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{ 'cashRegisters.filters.all' | translate }}</mat-option>
+            @for (branch of branches(); track branch.uuid) {
+              <mat-option [value]="branch.uuid">{{ branch.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'cashRegisters.filters.status' | translate }}</mat-label>
+          <mat-select
+            [value]="activeFilter()"
+            (valueChange)="onActiveFilterChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{ 'cashRegisters.filters.all' | translate }}</mat-option>
+            <mat-option [value]="true">{{ 'cashRegisters.status.active' | translate }}</mat-option>
+            <mat-option [value]="false">
+              {{ 'cashRegisters.status.inactive' | translate }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+  </div>
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    [attr.aria-label]="'cashRegisters.tableAria' | translate"
+  >
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'cashRegisters.columns.name' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let cashRegister" class="cash-registers-name">
+        {{ cashRegister.name }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="branch">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'cashRegisters.columns.branch' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let cashRegister">{{ cashRegister.branch?.name ?? '—' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="active">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'cashRegisters.columns.active' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let cashRegister">
+        {{
+          (cashRegister.active ? 'cashRegisters.status.active' : 'cashRegisters.status.inactive')
+            | translate
+        }}
+      </td>
+    </ng-container>
+
+    <!-- Sólo la sesión abierta: el ABM informa si la caja está en uso, no su histórico. -->
+    <ng-container matColumnDef="session">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'cashRegisters.columns.session' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let cashRegister">
+        @if (isOpen(cashRegister)) {
+          <span
+            class="cash-registers-session cash-registers-session--open"
+            [matTooltip]="
+              'cashRegisters.session.openedTooltip'
+                | translate
+                  : {
+                      user: cashRegister.openSession.openedBy?.name ?? '—',
+                      date: cashRegister.openSession.openedAt | localizedDate: 'medium',
+                    }
+            "
+          >
+            <mat-icon aria-hidden="true">lock_open</mat-icon>
+            {{ 'cashRegisters.session.open' | translate }}
+          </span>
+        } @else {
+          <span class="cash-registers-session">
+            {{ 'cashRegisters.session.closed' | translate }}
+          </span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="assignedUsers">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'cashRegisters.columns.assignedUsers' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let cashRegister">
+        @if (cashRegister.assignedUsers?.length) {
+          <span class="cash-registers-assigned" [matTooltip]="assignedUsersTooltip(cashRegister)">
+            {{ assignedUsersLabel(cashRegister) }}
+          </span>
+        } @else {
+          —
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'cashRegisters.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let cashRegister" class="actions-cell">
+        @let actions = rowActionsFor(cashRegister);
+
+        @if (actions.length > 0) {
+          <app-row-actions
+            [actions]="actions"
+            [ariaLabel]="'cashRegisters.actions.rowAria' | translate"
+            (actionClick)="onRowAction($event, cashRegister)"
+          />
+        }
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="displayedColumns.length"
+      >
+        @if (!paginator.loading()) {
+          {{ 'cashRegisters.empty' | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'cashRegisters.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

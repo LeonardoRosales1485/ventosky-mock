@@ -1,0 +1,99 @@
+<div class="scale-format__fields">
+  <mat-form-field appearance="outline">
+    <mat-label>{{ 'configuration.scaleFormat.prefix' | translate }}</mat-label>
+    <input
+      matInput
+      type="text"
+      inputmode="numeric"
+      autocomplete="off"
+      [value]="parts().prefix"
+      [disabled]="disabled()"
+      (input)="onInput($event, 'prefix')"
+    />
+    <mat-hint>{{ 'configuration.scaleFormat.prefixHint' | translate }}</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>{{ 'configuration.scaleFormat.codeLength' | translate }}</mat-label>
+    <input
+      matInput
+      type="number"
+      min="1"
+      step="1"
+      [value]="parts().codeLength"
+      [disabled]="disabled()"
+      (input)="onInput($event, 'codeLength')"
+    />
+    <mat-hint>{{ 'configuration.scaleFormat.digits' | translate }}</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>{{ 'configuration.scaleFormat.valueLength' | translate }}</mat-label>
+    <input
+      matInput
+      type="number"
+      min="1"
+      step="1"
+      [value]="parts().valueLength"
+      [disabled]="disabled()"
+      (input)="onInput($event, 'valueLength')"
+    />
+    <mat-hint>{{ 'configuration.scaleFormat.digits' | translate }}</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>{{ 'configuration.scaleFormat.valueType' | translate }}</mat-label>
+    <mat-select
+      [value]="parts().valueType"
+      [disabled]="disabled()"
+      (selectionChange)="update({ valueType: $event.value })"
+    >
+      @for (type of valueTypes; track type) {
+        <mat-option [value]="type">
+          {{ 'configuration.scaleFormat.valueTypes.' + type | translate }}
+        </mat-option>
+      }
+    </mat-select>
+    <mat-hint>{{ 'configuration.scaleFormat.valueTypeHint' | translate }}</mat-hint>
+  </mat-form-field>
+</div>
+
+@if (isComplete()) {
+  <div class="scale-format__preview">
+    <span class="scale-format__preview-title">
+      {{ 'configuration.scaleFormat.previewTitle' | translate }}
+    </span>
+
+    <div class="scale-format__sample">
+      <div class="scale-format__chunk">
+        <span class="scale-format__digits">{{ parts().prefix }}</span>
+        <span class="scale-format__caption">
+          {{ 'configuration.scaleFormat.prefix' | translate }}
+        </span>
+      </div>
+      <div class="scale-format__chunk scale-format__chunk--highlight">
+        <span class="scale-format__digits">{{ sampleCode() }}</span>
+        <span class="scale-format__caption">
+          {{ 'configuration.scaleFormat.sampleCode' | translate }}
+        </span>
+      </div>
+      <div class="scale-format__chunk scale-format__chunk--highlight">
+        <span class="scale-format__digits">{{ sampleValue() }}</span>
+        <span class="scale-format__caption">
+          {{ 'configuration.scaleFormat.sample.' + parts().valueType | translate }}
+        </span>
+      </div>
+      <div class="scale-format__chunk">
+        <span class="scale-format__digits">{{ sampleCheckDigit }}</span>
+        <span class="scale-format__caption">
+          {{ 'configuration.scaleFormat.checkDigit' | translate }}
+        </span>
+      </div>
+    </div>
+
+    <p class="scale-format__stored">
+      {{ 'configuration.scaleFormat.storedAs' | translate }}
+      <code>{{ formatted() }}</code>
+    </p>
+  </div>
+}

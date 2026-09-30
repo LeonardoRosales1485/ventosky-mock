@@ -1,0 +1,208 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>{{ 'directory.employee.title' | translate }}</h2>
+
+  <mat-dialog-content>
+    <p class="employee__subtitle">{{ 'directory.employee.subtitle' | translate }}</p>
+
+    @if (errorMessage(); as message) {
+      <p class="employee__error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        {{ message }}
+      </p>
+    }
+
+    <div class="employee__columns">
+      <div class="employee__column">
+        <h3 class="employee__eyebrow">{{ 'directory.form.who' | translate }}</h3>
+        <app-party-identity-fields
+          [nameField]="employeeForm.name"
+          [docTypeField]="employeeForm.docType"
+          [docNumberField]="employeeForm.docNumber"
+          [docTypes]="docTypes"
+          nameLabelKey="directory.form.personName"
+          nameAutocomplete="name"
+        />
+
+        <h3 class="employee__eyebrow">{{ 'directory.employee.work' | translate }}</h3>
+        <div class="employee__row">
+          <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
+            <mat-label>{{ 'directory.form.fileNumber' | translate }}</mat-label>
+            <input
+              matInput
+              type="text"
+              autocomplete="off"
+              [formField]="employeeForm.fileNumber"
+              [attr.aria-label]="'directory.form.fileNumber' | translate"
+            />
+            <mat-hint>{{ 'directory.employee.fileNumberHint' | translate }}</mat-hint>
+            @if (employeeForm.fileNumber().touched() && employeeForm.fileNumber().invalid()) {
+              <mat-error>{{ employeeForm.fileNumber().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="flex-1">
+            <mat-label>{{ 'directory.form.branch' | translate }}</mat-label>
+            <mat-select
+              [formField]="employeeForm.branchUuid"
+              [attr.aria-label]="'directory.form.branch' | translate"
+            >
+              <mat-option [value]="''">{{ 'directory.form.unassigned' | translate }}</mat-option>
+              @for (branch of branches(); track branch.uuid) {
+                <mat-option [value]="branch.uuid">{{ branch.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="employee__row">
+          <mat-form-field appearance="outline" class="flex-1">
+            <mat-label>{{ 'directory.form.dateHired' | translate }}</mat-label>
+            <input
+              matInput
+              type="date"
+              [formField]="employeeForm.dateHired"
+              [attr.aria-label]="'directory.form.dateHired' | translate"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
+            <mat-label>{{ 'directory.employee.dateTerminated' | translate }}</mat-label>
+            <input
+              matInput
+              type="date"
+              [formField]="employeeForm.dateTerminated"
+              [attr.aria-label]="'directory.employee.dateTerminated' | translate"
+            />
+            <mat-hint>{{ 'directory.employee.dateTerminatedHint' | translate }}</mat-hint>
+            @if (
+              employeeForm.dateTerminated().touched() && employeeForm.dateTerminated().invalid()
+            ) {
+              <mat-error>{{ employeeForm.dateTerminated().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="employee__row">
+          <mat-form-field appearance="outline" class="flex-1">
+            <mat-label>{{ 'directory.employee.contractType' | translate }}</mat-label>
+            <mat-select
+              [formField]="employeeForm.contractType"
+              [attr.aria-label]="'directory.employee.contractType' | translate"
+            >
+              <mat-option [value]="''">{{ 'directory.form.unassigned' | translate }}</mat-option>
+              @for (type of contractTypes; track type) {
+                <mat-option [value]="type">{{
+                  'directory.employee.contractTypes.' + type | translate
+                }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="flex-1">
+            <mat-label>{{ 'directory.employee.dateRegisteredTax' | translate }}</mat-label>
+            <input
+              matInput
+              type="date"
+              [formField]="employeeForm.dateRegisteredTax"
+              [attr.aria-label]="'directory.employee.dateRegisteredTax' | translate"
+            />
+          </mat-form-field>
+        </div>
+
+        <div class="employee__row">
+          <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
+            <mat-label>{{ 'directory.employee.commissionType' | translate }}</mat-label>
+            <mat-select
+              [formField]="employeeForm.commissionType"
+              [attr.aria-label]="'directory.employee.commissionType' | translate"
+              (selectionChange)="onCommissionTypeChange()"
+            >
+              <mat-option [value]="''">{{ 'directory.form.unassigned' | translate }}</mat-option>
+              @for (type of commissionTypes; track type) {
+                <mat-option [value]="type">{{
+                  'directory.employee.commissionTypes.' + type | translate
+                }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>{{ 'directory.employee.commissionHint' | translate }}</mat-hint>
+          </mat-form-field>
+
+          @if (showsCommissionValue()) {
+            <mat-form-field appearance="outline" class="flex-1">
+              <mat-label>{{ 'directory.employee.commissionValue' | translate }}</mat-label>
+              <input
+                matInput
+                type="number"
+                step="0.01"
+                [formField]="employeeForm.commissionValue"
+                [attr.aria-label]="'directory.employee.commissionValue' | translate"
+              />
+              @if (model().commissionType === 'PERCENT') {
+                <span matTextSuffix>%</span>
+              }
+              @if (
+                employeeForm.commissionValue().touched() && employeeForm.commissionValue().invalid()
+              ) {
+                <mat-error>{{ employeeForm.commissionValue().errors() | fieldError }}</mat-error>
+              }
+            </mat-form-field>
+          }
+        </div>
+
+        @if (employeeForm.attributes().value().length > 0) {
+          <app-directory-attribute-fields [attributes]="employeeForm.attributes" />
+        }
+      </div>
+
+      <div class="employee__column">
+        <section class="employee__panel" aria-labelledby="employee-specialties-title">
+          <h3 class="employee__eyebrow" id="employee-specialties-title">
+            {{ 'directory.employee.specialties' | translate }}
+          </h3>
+          <span class="employee__tags">
+            @for (specialty of specialties(); track specialty) {
+              <span class="employee__tag">{{ 'directoryLinks.' + specialty | translate }}</span>
+            } @empty {
+              <span class="employee__hint">{{
+                'directory.employee.noSpecialties' | translate
+              }}</span>
+            }
+          </span>
+          <span class="employee__hint">{{ 'directory.employee.specialtiesHint' | translate }}</span>
+        </section>
+
+        <section class="employee__panel" aria-labelledby="employee-access-title">
+          <h3 class="employee__eyebrow" id="employee-access-title">
+            {{ 'directory.access.title' | translate }}
+          </h3>
+          @if (employee().username; as username) {
+            <p>{{ 'directory.form.logsInAs' | translate: { username: username } }}</p>
+          } @else {
+            <p>{{ 'directory.employee.noUser' | translate }}</p>
+          }
+          @if (canManageAccess) {
+            <button mat-stroked-button type="button" class="self-start" (click)="onManageAccess()">
+              {{
+                (employee().username ? 'directory.form.reviewAccess' : 'directory.form.grantAccess')
+                  | translate
+              }}
+            </button>
+          }
+        </section>
+
+        @if (employee().partyUuid; as partyUuid) {
+          <app-party-contacts-editor [partyUuid]="partyUuid" />
+        }
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'directory.form.cancel' | translate }}
+    </button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      {{ 'directory.form.save' | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

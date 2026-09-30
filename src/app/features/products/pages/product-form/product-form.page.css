@@ -1,0 +1,372 @@
+:host {
+  display: block;
+}
+
+/* El tab group ya trae su propio borde inferior; el contenido respira debajo de él. */
+.product-form__tab {
+  padding-block: 1.25rem;
+}
+
+.product-form__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.product-form__card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.product-form__card-title mat-icon {
+  color: var(--mat-sys-primary);
+}
+
+/* Título con una acción a la derecha (la grilla de códigos tiene su «Agregar» arriba). */
+.product-form__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Un eje del producto: rótulo chico arriba, el control debajo. */
+.product-form__axis {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.product-form__axis-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.product-form__kit-pricing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* La frase de cada modo cuelga del radio, no al lado: es la que explica la elección. */
+.product-form__kit-pricing .product-form__hint {
+  display: block;
+}
+
+/* El nombre del componente y su SKU, uno debajo del otro: en línea se leen como una sola palabra. */
+.product-form__kit-name {
+  display: block;
+  font-weight: 500;
+}
+
+/* La fila que marca el mínimo del kit: es la que hay que reponer para que haya más combos. */
+.product-form__kit-bottleneck {
+  background: var(--mat-sys-secondary-container);
+}
+
+.product-form__kit-bottleneck td {
+  font-weight: 600;
+}
+
+.product-form__radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+
+/* Error de un control que no es un matInput (los ejes, la grilla): mismo tono que mat-error. */
+.product-form__error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mat-sys-error);
+}
+
+.product-form__table-remove {
+  width: 3.5rem;
+  text-align: end;
+}
+
+.product-form__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.product-form__empty {
+  margin: 0;
+  padding: 1.5rem 1rem;
+  border: 1px dashed var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Nota de ayuda al pie de una tarjeta, con el mismo tono que los mensajes informativos. */
+.product-form__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--app-info-container);
+  color: var(--app-on-info-container);
+  font-size: 0.8125rem;
+}
+
+.product-form__note mat-icon {
+  flex: none;
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Sangría por nivel para que el select deje ver la jerarquía del árbol de categorías. */
+.product-form__category-option {
+  padding-inline-start: calc(1rem + (var(--category-depth, 0) * 1rem));
+}
+
+.product-form__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* La grilla scrollea dentro de su tarjeta en vez de estirarla. */
+.product-form__table-scroll {
+  overflow-x: auto;
+}
+
+.product-form__table th,
+.product-form__table td {
+  padding: 0.5rem 0.75rem;
+  text-align: start;
+  vertical-align: middle;
+}
+
+.product-form__table thead th {
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.product-form__table tbody tr + tr th,
+.product-form__table tbody tr + tr td {
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.product-form__table tbody th {
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+}
+
+.product-form__table-price {
+  width: 11rem;
+  text-align: end;
+}
+
+/* La alícuota, debajo del encabezado de la columna del precio final. */
+.product-form__table-tax {
+  display: block;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.product-form__table-select {
+  width: 3rem;
+}
+
+.product-form__table-percent {
+  width: 9rem;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Vender por debajo del costo: el porcentaje acompaña al importe, que ya sale en rojo. */
+.product-form__percent--loss {
+  color: var(--mat-sys-error);
+  font-weight: 600;
+}
+
+.product-form__price-name {
+  margin-inline-end: 0.5rem;
+}
+
+.product-form__badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Distingue el precio que calcula la regla del que se carga a mano, con el mismo tono informativo
+   que la nota al pie de la grilla. */
+.product-form__badge--rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--app-info-container);
+  color: var(--app-on-info-container);
+}
+
+.product-form__badge--rule mat-icon {
+  font-size: 0.875rem;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.product-form__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 2.5rem;
+  margin: 0;
+}
+
+/* Cada par rótulo/cifra es un bloque propio. Con uno solo se ve igual que antes; con dos —el kit
+   armado suma el costo estimado— es lo que evita que el rótulo del segundo se lea como la
+   continuación del valor del primero. */
+.product-form__summary > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.product-form__summary dt {
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.product-form__summary dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.product-form__toggle {
+  display: flex;
+  align-items: center;
+  min-height: 3.5rem;
+}
+
+.product-form__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.product-form__toggle-label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+}
+
+.product-form__toggle-description {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ────────────────────────  Modo del kit (Entrega G)  ──────────────────────── */
+
+/* El selector va arriba de todo y con marco propio: no es un campo más de la composición, es lo que
+   decide qué significa el resto de la pantalla. */
+.product-form__kit-mode {
+  border-color: var(--mat-sys-primary);
+}
+
+.product-form__kit-modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.75rem;
+}
+
+.product-form__kit-modes .mat-mdc-radio-button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+}
+
+.product-form__kit-mode-name {
+  display: block;
+  font-weight: 600;
+}
+
+/* El componente que un armado no puede consumir se muestra tachado y con el motivo, en vez de
+   desaparecer del buscador sin explicación (RN-27). */
+.product-form__kit-unusable {
+  opacity: 0.6;
+}
+
+.product-form__kit-unusable .product-form__kit-name {
+  text-decoration: line-through;
+}
+
+.product-form__kit-flag--warn {
+  background: var(--app-warning-container, var(--mat-sys-tertiary-container));
+  color: var(--app-on-warning-container, var(--mat-sys-on-tertiary-container));
+}
+
+.product-form__kit-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-high);
+}
+
+/*
+  Por qué la ficha no se edita. Va arriba del formulario y con el tono neutro-fuerte del tema —el
+  mismo del chip «archivado» del histórico, que es de donde se llega—: no es un error ni una
+  advertencia sobre algo que haya que arreglar, es el estado de lo que se está mirando.
+*/
+.product-form__archived-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--mat-sys-inverse-surface);
+  color: var(--mat-sys-inverse-on-surface);
+}
+
+.product-form__archived-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+/*
+  Sin `opacity`: el par `inverse-surface` / `inverse-on-surface` es lo que garantiza el contraste AA,
+  y atenuarlo lo rompe justo en el texto chico, que es el que menos margen tiene.
+*/
+.product-form__archived-text {
+  margin: 0.125rem 0 0;
+  font-size: 0.875rem;
+}

@@ -1,0 +1,20 @@
+<div
+  class="skeleton"
+  [class.skeleton--inline]="inline()"
+  role="status"
+  aria-busy="true"
+  [attr.aria-label]="label() ?? ('skeleton.loading' | translate)"
+  [style.gap]="gap()"
+>
+  @for (blockWidth of blocks(); track $index) {
+    <span
+      class="skeleton__block"
+      [class.skeleton__block--circle]="isCircle()"
+      [class.skeleton__block--animated]="animated()"
+      [style.width]="blockWidth"
+      [style.height]="height()"
+      [style.border-radius]="isCircle() ? '50%' : radius()"
+      aria-hidden="true"
+    ></span>
+  }
+</div>

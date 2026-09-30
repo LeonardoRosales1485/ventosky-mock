@@ -1,0 +1,76 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    {{ (isEdit ? 'users.dialog.editTitle' : 'users.dialog.createTitle') | translate }}
+  </h2>
+
+  <mat-dialog-content>
+    <div class="flex flex-col gap-2 pt-2">
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'users.columns.username' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="username"
+          [formField]="userForm.username"
+          [attr.aria-label]="'users.columns.username' | translate"
+        />
+        @if (userForm.username().touched() && userForm.username().invalid()) {
+          <mat-error>{{ userForm.username().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'users.columns.email' | translate }}</mat-label>
+        <input
+          matInput
+          type="email"
+          autocomplete="email"
+          [formField]="userForm.email"
+          [attr.aria-label]="'users.columns.email' | translate"
+        />
+        @if (userForm.email().touched() && userForm.email().invalid()) {
+          <mat-error>{{ userForm.email().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'users.columns.phone' | translate }}</mat-label>
+        <input
+          matInput
+          type="tel"
+          autocomplete="tel"
+          [formField]="userForm.phone"
+          [attr.aria-label]="'users.columns.phone' | translate"
+        />
+        @if (userForm.phone().touched() && userForm.phone().invalid()) {
+          <mat-error>{{ userForm.phone().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      @if (!isEdit) {
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>{{ 'users.columns.password' | translate }}</mat-label>
+          <input
+            matInput
+            type="password"
+            autocomplete="new-password"
+            [formField]="userForm.password"
+            [attr.aria-label]="'users.columns.password' | translate"
+          />
+          @if (userForm.password().touched() && userForm.password().invalid()) {
+            <mat-error>{{ userForm.password().errors() | fieldError }}</mat-error>
+          }
+        </mat-form-field>
+      }
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'users.dialog.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit">
+      {{ (isEdit ? 'users.dialog.save' : 'users.dialog.create') | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

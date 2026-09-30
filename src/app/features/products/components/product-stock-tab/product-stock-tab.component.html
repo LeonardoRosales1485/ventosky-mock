@@ -1,0 +1,544 @@
+@if (!productUuid()) {
+  <!-- En el alta todavía no hay producto contra el cual mover inventario. -->
+  <p class="product-stock__empty">
+    <mat-icon aria-hidden="true">inventory_2</mat-icon>
+    {{ 'products.stockAdjustment.notSavedYet' | translate }}
+  </p>
+} @else {
+  <app-load-state
+    [state]="loadState()"
+    [loadingMessage]="'products.stockAdjustment.loading' | translate"
+    [errorMessage]="'products.stockAdjustment.loadError' | translate"
+    [retryable]="true"
+    [retryLabel]="'products.stockAdjustment.retry' | translate"
+    minHeight="20rem"
+    (retry)="onRetry()"
+  >
+    <div class="product-stock">
+      <!-- ────────────────  Encabezado: qué producto y cuánto hay en total  ──────────────── -->
+      <section class="product-stock__product" aria-labelledby="product-stock-name">
+        <span class="product-stock__product-icon" aria-hidden="true">
+          <mat-icon>inventory_2</mat-icon>
+        </span>
+
+        <div class="product-stock__product-info">
+          <h2 class="product-stock__product-name" id="product-stock-name">{{ productName() }}</h2>
+
+          <p class="product-stock__product-meta">
+            @if (productSku()) {
+              <span>
+                {{ 'products.stockAdjustment.sku' | translate }}
+                <strong>{{ productSku() }}</strong>
+              </span>
+            }
+            @if (!isSerialTracked()) {
+              <span>
+                {{ 'products.stockAdjustment.totalStock' | translate }}
+                <strong>{{ distribution()?.totalQuantity ?? 0 }}</strong>
+              </span>
+            }
+            @if (isBatchTracked()) {
+              <!-- El eje del producto, dicho donde se lo va a usar: es lo que explica por qué el
+                   ajuste pide una partida. -->
+              <span class="product-stock__axis">
+                {{
+                  (expirationRequired()
+                    ? 'products.stockAdjustment.batch.axisRequired'
+                    : showsExpiration()
+                      ? 'products.stockAdjustment.batch.axisOptional'
+                      : 'products.stockAdjustment.batch.axis'
+                  ) | translate
+                }}
+              </span>
+            }
+            @if (isSerialTracked()) {
+              <!-- En un `SERIAL` el número que importa es «En stock · N», que llevan los chips del
+                   filtro: el total se omite para no decirlo dos veces (wireframe `1f`). -->
+              <span class="product-stock__axis">{{ 'products.chips.serial' | translate }}</span>
+              @if (productModel(); as model) {
+                <!-- Un producto puede ser `SERIAL` y variante a la vez: el chip lo dice, la ficha
+                     no cambia (§15.5). -->
+                <span class="product-stock__variant">
+                  {{ 'products.serials.variantOf' | translate: { model: model.name } }}
+                </span>
+              }
+            }
+            @if (distribution()?.allBranches) {
+              <span class="product-stock__scope">
+                {{ 'products.stockAdjustment.allBranches' | translate }}
+              </span>
+            }
+          </p>
+        </div>
+      </section>
+
+      @if (isSerialTracked()) {
+        <!-- La grilla de unidades es **otra pantalla** y vive en su propio componente: a todo el
+             ancho, sin las dos columnas del ajuste y sin ajuste, porque el saldo de un serializado
+             lo mueven las unidades (wireframe `1f`). -->
+        <app-product-serials-panel [serials]="serials()" (changed)="onSerialsChanged()" />
+      } @else {
+        <div class="product-stock__columns">
+          <!-- ────────────────────────  Detalles del ajuste  ──────────────────────── -->
+          <section class="product-stock__card" aria-labelledby="adjustment-title">
+            <h3 class="product-stock__card-title" id="adjustment-title">
+              <mat-icon aria-hidden="true">edit_note</mat-icon>
+              {{ 'products.stockAdjustment.sections.details' | translate }}
+            </h3>
+
+            <!--
+              Dos razones distintas para no ofrecer el ajuste, y cada una con su frase: al archivado
+              no le falta un permiso, le falta poder editarse.
+            -->
+            @if (readOnly()) {
+              <p class="product-stock__note">
+                <mat-icon aria-hidden="true">inventory</mat-icon>
+                {{ 'products.stockAdjustment.archived' | translate }}
+              </p>
+            } @else if (!canAdjust()) {
+              <p class="product-stock__note">
+                <mat-icon aria-hidden="true">lock</mat-icon>
+                {{ 'products.stockAdjustment.noPermission' | translate }}
+              </p>
+            } @else if (missingCatalog()) {
+              <p class="product-stock__note">
+                <mat-icon aria-hidden="true">info</mat-icon>
+                {{ emptyMessage() }}
+              </p>
+            } @else {
+              <div class="product-stock__fields">
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'products.stockAdjustment.fields.branch' | translate }}</mat-label>
+                  <mat-icon matPrefix aria-hidden="true">store</mat-icon>
+                  <mat-select
+                    [value]="adjustmentForm.branchUuid().value()"
+                    (valueChange)="onBranchChange($event)"
+                    [disabled]="branchOptions().length <= 1"
+                    [attr.aria-label]="'products.stockAdjustment.fields.branch' | translate"
+                  >
+                    @for (branch of branchOptions(); track branch.uuid) {
+                      <mat-option [value]="branch.uuid">{{ branch.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'products.stockAdjustment.fields.warehouse' | translate }}</mat-label>
+                  <mat-icon matPrefix aria-hidden="true">warehouse</mat-icon>
+                  <mat-select
+                    [value]="adjustmentForm.warehouseUuid().value()"
+                    (valueChange)="onWarehouseChange($event)"
+                    [attr.aria-label]="'products.stockAdjustment.fields.warehouse' | translate"
+                  >
+                    @for (warehouse of warehouseOptions(); track warehouse.uuid) {
+                      <mat-option [value]="warehouse.uuid">{{ warehouse.name }}</mat-option>
+                    }
+                  </mat-select>
+                  @if (
+                    adjustmentForm.warehouseUuid().touched() &&
+                    adjustmentForm.warehouseUuid().invalid()
+                  ) {
+                    <mat-error>{{ adjustmentForm.warehouseUuid().errors() | fieldError }}</mat-error>
+                  }
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ 'products.stockAdjustment.fields.reason' | translate }}</mat-label>
+                  <mat-icon matPrefix aria-hidden="true">rule</mat-icon>
+                  <mat-select
+                    [formField]="adjustmentForm.adjustmentReasonUuid"
+                    [attr.aria-label]="'products.stockAdjustment.fields.reason' | translate"
+                  >
+                    @for (reason of reasons(); track reason.uuid) {
+                      <mat-option [value]="reason.uuid" [matTooltip]="reason.description ?? ''">
+                        {{ reason.name }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                  @if (
+                    adjustmentForm.adjustmentReasonUuid().touched() &&
+                    adjustmentForm.adjustmentReasonUuid().invalid()
+                  ) {
+                    <mat-error>
+                      {{ adjustmentForm.adjustmentReasonUuid().errors() | fieldError }}
+                    </mat-error>
+                  }
+                </mat-form-field>
+
+                <!--
+                  Con partidas, el ajuste nombra sobre cuál cae (§7.2): una de las que tiene el
+                  depósito, o una nueva. Es el mismo formulario, no una pantalla aparte para «cargar
+                  el lote».
+                -->
+                @if (isBatchTracked()) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'products.stockAdjustment.batch.field' | translate }}</mat-label>
+                    <mat-icon matPrefix aria-hidden="true">layers</mat-icon>
+                    <mat-select
+                      [value]="adjustmentForm.batchChoice().value()"
+                      [disabled]="!adjustmentForm.warehouseUuid().value()"
+                      (valueChange)="onBatchChoiceChange($event)"
+                      [attr.aria-label]="'products.stockAdjustment.batch.field' | translate"
+                    >
+                      @for (batch of warehouseBatches(); track batch.uuid) {
+                        <mat-option [value]="batch.uuid">
+                          {{ batch.batchNumber || ('products.stockAdjustment.batches.unnamed' | translate) }}
+                          · {{ batch.quantity }}
+                          @if (batch.expirationDate) {
+                            · {{ 'products.stockAdjustment.batches.expires' | translate: { date: batch.expirationDate } }}
+                          }
+                        </mat-option>
+                      }
+                      <mat-option [value]="NEW_BATCH">
+                        {{ 'products.stockAdjustment.batch.new' | translate }}
+                      </mat-option>
+                    </mat-select>
+                    @if (
+                      adjustmentForm.batchChoice().touched() && adjustmentForm.batchChoice().invalid()
+                    ) {
+                      <mat-error>{{ adjustmentForm.batchChoice().errors() | fieldError }}</mat-error>
+                    } @else if (!adjustmentForm.warehouseUuid().value()) {
+                      <mat-hint>{{ 'products.stockAdjustment.batch.pickWarehouse' | translate }}</mat-hint>
+                    }
+                  </mat-form-field>
+
+                  @if (isNewBatch()) {
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'products.stockAdjustment.batch.number' | translate }}</mat-label>
+                      <mat-icon matPrefix aria-hidden="true">tag</mat-icon>
+                      <input
+                        matInput
+                        type="text"
+                        autocomplete="off"
+                        [formField]="adjustmentForm.newBatchNumber"
+                        [placeholder]="'products.stockAdjustment.batch.numberPlaceholder' | translate"
+                      />
+                      @if (
+                        adjustmentForm.newBatchNumber().touched() &&
+                        adjustmentForm.newBatchNumber().invalid()
+                      ) {
+                        <mat-error>{{ adjustmentForm.newBatchNumber().errors() | fieldError }}</mat-error>
+                      }
+                    </mat-form-field>
+                  }
+
+                  @if (showsExpiration()) {
+                    <mat-form-field appearance="outline">
+                      <mat-label>
+                        {{
+                          (expirationRequired()
+                            ? 'products.stockAdjustment.batch.expirationRequired'
+                            : 'products.stockAdjustment.batch.expiration'
+                          ) | translate
+                        }}
+                      </mat-label>
+                      <mat-icon matPrefix aria-hidden="true">event</mat-icon>
+                      <!-- Sobre una partida existente la fecha es la suya y no se toca: cambiarla sería
+                           otra partida. -->
+                      <input matInput type="date" [formField]="adjustmentForm.expirationDate" />
+                      @if (
+                        adjustmentForm.expirationDate().touched() &&
+                        adjustmentForm.expirationDate().invalid()
+                      ) {
+                        <mat-error>{{ adjustmentForm.expirationDate().errors() | fieldError }}</mat-error>
+                      } @else if (!isNewBatch() && selectedBatch()) {
+                        <mat-hint>{{ 'products.stockAdjustment.batch.expirationOfBatch' | translate }}</mat-hint>
+                      }
+                    </mat-form-field>
+                  }
+                }
+
+                <!-- Cuánto HAY, no cuánto se mueve: la resta la hace el backend. -->
+                <mat-form-field appearance="outline">
+                  <mat-label>
+                    {{ 'products.stockAdjustment.fields.countedQuantity' | translate }}
+                  </mat-label>
+                  <mat-icon matPrefix aria-hidden="true">tag</mat-icon>
+                  <input
+                    matInput
+                    type="number"
+                    [step]="step()"
+                    [formField]="adjustmentForm.countedQuantity"
+                    [attr.aria-label]="
+                      'products.stockAdjustment.fields.countedQuantity' | translate
+                    "
+                  />
+                  @if (
+                    adjustmentForm.countedQuantity().touched() &&
+                    adjustmentForm.countedQuantity().invalid()
+                  ) {
+                    <mat-error>{{ adjustmentForm.countedQuantity().errors() | fieldError }}</mat-error>
+                  } @else if (adjustmentForm.warehouseUuid().value()) {
+                    <mat-hint>
+                      {{
+                        'products.stockAdjustment.hints.currentAtLocation'
+                          | translate: { quantity: currentQuantity() }
+                      }}
+                    </mat-hint>
+                  }
+                </mat-form-field>
+
+                <!-- El costo sólo tiene efecto si la diferencia da un ingreso. -->
+                @if (showsUnitCost()) {
+                  <mat-form-field appearance="outline" class="product-stock__field--full">
+                    <mat-label>{{ 'products.stockAdjustment.fields.unitCost' | translate }}</mat-label>
+                    <mat-icon matPrefix aria-hidden="true">payments</mat-icon>
+                    <input
+                      matInput
+                      type="number"
+                      step="0.01"
+                      [formField]="adjustmentForm.unitCost"
+                    />
+                    @if (adjustmentForm.unitCost().touched() && adjustmentForm.unitCost().invalid()) {
+                      <mat-error>{{ adjustmentForm.unitCost().errors() | fieldError }}</mat-error>
+                    } @else {
+                      <mat-hint>{{ 'products.stockAdjustment.hints.unitCost' | translate }}</mat-hint>
+                    }
+                  </mat-form-field>
+                }
+
+                <mat-form-field appearance="outline" class="product-stock__field--full">
+                  <mat-label>
+                    {{ 'products.stockAdjustment.fields.description' | translate }}
+                  </mat-label>
+                  <textarea
+                    matInput
+                    rows="3"
+                    [formField]="adjustmentForm.reasonDescription"
+                    [placeholder]="'products.stockAdjustment.placeholders.description' | translate"
+                  ></textarea>
+                </mat-form-field>
+              </div>
+
+              <!-- Lo que va a pasar al guardar, dicho antes de guardar. -->
+              @if (delta(); as difference) {
+                <p
+                  class="product-stock__delta"
+                  [class.product-stock__delta--in]="difference > 0"
+                  [class.product-stock__delta--out]="difference < 0"
+                  role="status"
+                >
+                  <mat-icon aria-hidden="true">
+                    {{ difference > 0 ? 'trending_up' : 'trending_down' }}
+                  </mat-icon>
+                  {{
+                    (difference > 0
+                      ? 'products.stockAdjustment.preview.in'
+                      : 'products.stockAdjustment.preview.out'
+                    )
+                      | translate
+                        : {
+                            quantity: difference > 0 ? difference : -difference,
+                            current: currentQuantity(),
+                            counted: adjustmentForm.countedQuantity().value(),
+                          }
+                  }}
+                </p>
+              }
+
+              @if (batchNoticeKey(); as noticeKey) {
+                <p class="product-stock__note" role="status">
+                  <mat-icon aria-hidden="true">layers</mat-icon>
+                  {{
+                    noticeKey
+                      | translate
+                        : {
+                            quantity: delta()! > 0 ? delta() : -delta()!,
+                            batch: selectedBatch()?.batchNumber ?? adjustmentForm.newBatchNumber().value(),
+                          }
+                  }}
+                </p>
+              }
+
+              @if (willRequireBatchSelection()) {
+                <p class="product-stock__note" role="status">
+                  <mat-icon aria-hidden="true">layers</mat-icon>
+                  {{ 'products.stockAdjustment.batchNotice' | translate }}
+                </p>
+              }
+
+              <div class="product-stock__actions">
+                <button mat-stroked-button type="button" [disabled]="saving()" (click)="onReset()">
+                  {{ 'products.stockAdjustment.cancel' | translate }}
+                </button>
+                <!-- `type="button"`: el `<form>` del producto envuelve esta solapa y guardar el
+                     producto no es lo mismo que ajustar su stock. -->
+                <button
+                  mat-flat-button
+                  color="primary"
+                  type="button"
+                  [disabled]="saving()"
+                  (click)="onSubmit()"
+                >
+                  <mat-icon aria-hidden="true">save</mat-icon>
+                  {{ 'products.stockAdjustment.confirm' | translate }}
+                </button>
+              </div>
+            }
+          </section>
+
+          @if (isBatchTracked()) {
+            <!-- ────────────────────────  Partidas con saldo  ──────────────────────── -->
+            <section class="product-stock__card" aria-labelledby="batches-title">
+              <div class="product-stock__card-head">
+                <h3 class="product-stock__card-title" id="batches-title">
+                  <mat-icon aria-hidden="true">layers</mat-icon>
+                  {{ 'products.stockAdjustment.batch.sectionTitle' | translate }}
+                </h3>
+                <ul class="product-stock__legend" aria-hidden="true">
+                  <li class="product-stock__legend-item" data-tone="error">
+                    {{ 'stock.expiration.status.EXPIRED' | translate }}
+                  </li>
+                  <li class="product-stock__legend-item" data-tone="warning">
+                    {{ 'stock.expiration.legendWarning' | translate: { days: batches()?.alertDays ?? 30 } }}
+                  </li>
+                  <li class="product-stock__legend-item" data-tone="success">
+                    {{ 'stock.expiration.status.OK' | translate }}
+                  </li>
+                </ul>
+              </div>
+
+              @if (!batches()?.rows?.length) {
+                <p class="product-stock__empty">
+                  {{ 'products.stockAdjustment.batch.empty' | translate }}
+                </p>
+              } @else {
+                <div class="product-stock__scroll">
+                  <table class="product-stock__table">
+                    <caption class="sr-only">
+                      {{ 'products.stockAdjustment.batch.tableAria' | translate }}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">{{ 'products.stockAdjustment.batch.columns.batch' | translate }}</th>
+                        <th scope="col">{{ 'products.stockAdjustment.batch.columns.expiration' | translate }}</th>
+                        <th scope="col">{{ 'products.stockAdjustment.batch.columns.warehouse' | translate }}</th>
+                        <th scope="col" class="product-stock__numeric">
+                          {{ 'products.stockAdjustment.batch.columns.quantity' | translate }}
+                        </th>
+                        <th scope="col" class="product-stock__numeric">
+                          {{ 'products.stockAdjustment.batch.columns.cost' | translate }}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (batch of batches()!.rows; track batch.uuid) {
+                        <tr
+                          [class.product-stock__row--selected]="batch.uuid === adjustmentForm.batchChoice().value()"
+                          [class.product-stock__row--expired]="batch.expirationStatus === 'EXPIRED'"
+                        >
+                          <th scope="row">
+                            <a class="product-stock__batch-link" [routerLink]="batchPath(batch.uuid)">
+                              {{ batch.batchNumber || ('products.stockAdjustment.batches.unnamed' | translate) }}
+                            </a>
+                          </th>
+                          <td>
+                            <app-expiration-chip
+                              [expirationDate]="batch.expirationDate"
+                              [status]="batch.expirationStatus"
+                              [days]="batch.daysToExpiration"
+                            />
+                          </td>
+                          <td>
+                            <span class="product-stock__warehouse">{{ batch.warehouse.name }}</span>
+                            @if (distribution()?.allBranches && batch.branch) {
+                              <span class="product-stock__branch-hint">{{ batch.branch.name }}</span>
+                            }
+                          </td>
+                          <td class="product-stock__numeric">{{ batch.quantity }}</td>
+                          <td class="product-stock__numeric">
+                            <app-currency-display [value]="batch.weightedCost" />
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th scope="row" colspan="3">
+                          {{ 'products.stockAdjustment.distribution.total' | translate }}
+                        </th>
+                        <td class="product-stock__numeric">{{ batches()!.totalQuantity }}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                <p class="product-stock__hint">
+                  {{ 'products.stockAdjustment.batch.fefoHint' | translate }}
+                </p>
+              }
+            </section>
+          } @else {
+            <!-- ────────────────────────  Distribución actual  ──────────────────────── -->
+            <section class="product-stock__card" aria-labelledby="distribution-title">
+              <h3 class="product-stock__card-title" id="distribution-title">
+                <mat-icon aria-hidden="true">location_on</mat-icon>
+                {{ 'products.stockAdjustment.sections.distribution' | translate }}
+              </h3>
+
+              @if (!distribution()?.rows?.length) {
+                <p class="product-stock__empty">
+                  {{ 'products.stockAdjustment.distribution.empty' | translate }}
+                </p>
+              } @else {
+                <table class="product-stock__table">
+                  <caption class="sr-only">
+                    {{
+                      'products.stockAdjustment.distribution.tableAria' | translate
+                    }}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">
+                        {{ 'products.stockAdjustment.distribution.location' | translate }}
+                      </th>
+                      <th scope="col" class="product-stock__numeric">
+                        {{ 'products.stockAdjustment.distribution.quantity' | translate }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of distribution()!.rows; track row.warehouse.uuid) {
+                      <tr
+                        [class.product-stock__row--selected]="
+                          row.warehouse.uuid === adjustmentForm.warehouseUuid().value()
+                        "
+                      >
+                        <th scope="row">
+                          <span class="product-stock__branch">{{ row.branch?.name ?? '—' }}</span>
+                          <span class="product-stock__warehouse">
+                            {{ row.warehouse.name }}
+                            @if (row.batchCount > 1) {
+                              <span
+                                class="product-stock__batches"
+                                [matTooltip]="
+                                  'products.stockAdjustment.distribution.batchCount'
+                                    | translate: { count: row.batchCount }
+                                "
+                              >
+                                <mat-icon aria-hidden="true">layers</mat-icon>
+                                {{ row.batchCount }}
+                              </span>
+                            }
+                          </span>
+                        </th>
+                        <td class="product-stock__numeric">{{ row.quantity }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <th scope="row">{{ 'products.stockAdjustment.distribution.total' | translate }}</th>
+                      <td class="product-stock__numeric">{{ distribution()!.totalQuantity }}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              }
+            </section>
+          }
+        </div>
+      }
+    </div>
+  </app-load-state>
+}

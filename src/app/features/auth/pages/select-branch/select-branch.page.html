@@ -1,0 +1,61 @@
+<app-auth-layout
+  titleKey="auth.hero.selectBranchTitle"
+  descriptionKey="auth.hero.selectBranchDescription"
+>
+  <div class="mx-auto flex w-full max-w-sm flex-col gap-4">
+    <h2 class="mb-2 text-center text-xl font-medium text-[var(--mat-sys-primary)]">
+      {{ 'auth.selectBranch.title' | translate }}
+    </h2>
+
+    <p class="text-center text-sm text-[var(--mat-sys-on-surface-variant)]">
+      @if (branches().length === 0) {
+        {{ 'auth.selectBranch.emptyDescription' | translate }}
+      } @else {
+        {{ 'auth.selectBranch.description' | translate }}
+      }
+    </p>
+
+    @if (branches().length > 0) {
+      <mat-nav-list class="branch-list !p-0">
+        @for (branch of branches(); track branch.uuid) {
+          <button mat-list-item type="button" class="branch-list__item" (click)="selectBranch(branch)">
+            <mat-icon matListItemIcon aria-hidden="true">store</mat-icon>
+            <span matListItemTitle>
+              {{ branch.name || ('auth.selectBranch.unnamed' | translate) }}
+            </span>
+            @if (!branch.active) {
+              <span matListItemLine>{{ 'auth.selectBranch.inactive' | translate }}</span>
+            }
+            <!--
+              El icono va envuelto y no con `matListItemMeta` encima: el slot meta es para texto de
+              apoyo, así que Material le aplica `font: var(--mat-list-list-item-trailing-supporting-text-font)`.
+              Esa shorthand pisa familia y tamaño, y sobre el `mat-icon` le gana por especificidad a
+              `.material-icons`, con lo que la ligadura no resuelve y se ve el literal «chevron_right».
+            -->
+            <span matListItemMeta>
+              <mat-icon aria-hidden="true">chevron_right</mat-icon>
+            </span>
+          </button>
+        }
+      </mat-nav-list>
+    }
+
+    @if (canCreate()) {
+      <button
+        mat-stroked-button
+        color="primary"
+        type="button"
+        class="w-full"
+        [disabled]="creating()"
+        (click)="openCreateDialog()"
+      >
+        @if (creating()) {
+          <mat-spinner diameter="20" class="inline-block" />
+        } @else {
+          <mat-icon aria-hidden="true">add</mat-icon>
+        }
+        {{ 'auth.selectBranch.create' | translate }}
+      </button>
+    }
+  </div>
+</app-auth-layout>

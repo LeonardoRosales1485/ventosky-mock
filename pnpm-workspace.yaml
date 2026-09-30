@@ -1,0 +1,17 @@
+# pnpm no ejecuta los scripts de instalación de las dependencias salvo que se las apruebe acá.
+# Es lo contrario de npm, que los corre todos: un `postinstall` es código arbitrario de un
+# tercero corriendo en la máquina de quien instala, y esta lista es la que decide a quién se le
+# permite. No es una lista de deseos: si un paquete lo necesita y queda en `false`, pnpm no
+# falla —sigue de largo y el paquete queda a medio instalar—, así que sacar uno de acá rompe en
+# el build y no en el install.
+#
+# Los cuatro son toolchain de build, ninguno es código de la app:
+#   esbuild            compila el bundle; el script deja usable el binario de la plataforma
+#   lmdb               caché en disco del Angular CLI (los rebuilds incrementales de `ng serve`)
+#   msgpackr-extract   acelerador nativo de esa misma caché
+#   @parcel/watcher    watcher de archivos; sin él se cae a polling, que en macOS se nota
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true

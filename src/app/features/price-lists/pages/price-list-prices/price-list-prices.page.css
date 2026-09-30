@@ -1,0 +1,64 @@
+:host {
+  display: block;
+}
+
+table {
+  width: 100%;
+}
+
+.price-list-prices__header {
+  display: flex;
+  flex-direction: column;
+}
+
+.price-list-prices__filters {
+  display: flex;
+  flex-wrap: wrap;
+  /* Sin `stretch` el campo con hint (Categoría) no estira la caja del otro campo. */
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0 1rem 0.75rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.price-list-prices__filters mat-form-field {
+  flex: 1 1 14rem;
+  min-width: min(100%, 14rem);
+}
+
+/* Sangría por nivel para que el select deje ver la jerarquía del árbol. */
+.price-list-prices__category {
+  padding-inline-start: calc(1rem + (var(--category-depth, 0) * 1rem));
+}
+
+.price-list-prices__name {
+  display: block;
+  font-weight: 500;
+}
+
+.price-list-prices__barcode {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-list-prices__price-header,
+.price-list-prices__price-cell {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.mat-column-actions {
+  width: 1%;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+  text-align: end;
+}
+
+/* La columna queda fija al hacer scroll horizontal, así que necesita fondo propio. */
+.actions-header,
+.actions-cell {
+  background: var(--mat-sys-surface);
+  border-left: 1px solid var(--mat-sys-outline-variant);
+}

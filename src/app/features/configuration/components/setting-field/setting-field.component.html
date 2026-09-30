@@ -1,0 +1,175 @@
+<div class="setting" [class.setting--out-of-level]="outOfLevel()">
+  <div class="setting__about">
+    <span class="setting__label">
+      {{ 'configuration.keys.' + definition().key + '.label' | translate }}
+    </span>
+    <span class="setting__hint">
+      @if (outOfLevel()) {
+        {{
+          'configuration.outOfLevel.hint'
+            | translate: { level: 'configuration.scope.' + configurableAt() | translate }
+        }}
+      } @else {
+        {{ 'configuration.keys.' + definition().key + '.hint' | translate }}
+      }
+    </span>
+    <code class="setting__key">{{ definition().key }}</code>
+  </div>
+
+  <div class="setting__control">
+    @if (override(); as editor) {
+      <ng-container *ngComponentOutlet="editor; inputs: inputs()" />
+    } @else {
+      @switch (type()) {
+        @case ('boolean') {
+          <mat-slide-toggle
+            [checked]="asBoolean()"
+            [disabled]="disabled()"
+            (change)="onToggle($event.checked)"
+          >
+            {{ 'configuration.values.boolean.' + asBoolean() | translate }}
+          </mat-slide-toggle>
+        }
+
+        @case ('enum') {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-select
+              [value]="field()().value()"
+              [disabled]="disabled()"
+              (selectionChange)="write($event.value)"
+              [attr.aria-label]="'configuration.keys.' + definition().key + '.label' | translate"
+            >
+              @for (value of possibleValues(); track value) {
+                <mat-option [value]="value">{{ valueLabel(value) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+
+        @case ('color') {
+          <div class="setting__color">
+            <input
+              type="color"
+              class="setting__swatch"
+              [value]="field()().value() ?? '#000000'"
+              [disabled]="disabled()"
+              (input)="onInput($event)"
+              [attr.aria-label]="'configuration.keys.' + definition().key + '.label' | translate"
+            />
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <input
+                matInput
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                [value]="field()().value() ?? ''"
+                [disabled]="disabled()"
+                (input)="onInput($event)"
+              />
+            </mat-form-field>
+          </div>
+        }
+
+        @case ('integer') {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input
+              matInput
+              type="number"
+              step="1"
+              [min]="definition().constraints?.min ?? null"
+              [max]="definition().constraints?.max ?? null"
+              [value]="field()().value() ?? ''"
+              [disabled]="disabled()"
+              (input)="onInput($event)"
+              [attr.aria-label]="'configuration.keys.' + definition().key + '.label' | translate"
+            />
+          </mat-form-field>
+        }
+
+        @case ('decimal') {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input
+              matInput
+              type="number"
+              [min]="definition().constraints?.min ?? null"
+              [max]="definition().constraints?.max ?? null"
+              [value]="field()().value() ?? ''"
+              [disabled]="disabled()"
+              (input)="onInput($event)"
+              [attr.aria-label]="'configuration.keys.' + definition().key + '.label' | translate"
+            />
+          </mat-form-field>
+        }
+
+        @default {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input
+              matInput
+              type="text"
+              autocomplete="off"
+              [attr.maxlength]="definition().constraints?.maxLength ?? null"
+              [value]="field()().value() ?? ''"
+              [disabled]="disabled()"
+              (input)="onInput($event)"
+              [attr.aria-label]="'configuration.keys.' + definition().key + '.label' | translate"
+            />
+          </mat-form-field>
+        }
+      }
+    }
+
+    @if (field()().touched() && field()().invalid()) {
+      <p class="setting__error" role="alert">{{ field()().errors() | fieldError }}</p>
+    }
+
+    <div class="setting__meta">
+      @if (outOfLevel()) {
+        <span class="setting__out-of-level-chip">
+          {{
+            'configuration.outOfLevel.chip'
+              | translate: { level: 'configuration.scope.' + configurableAt() | translate }
+          }}
+        </span>
+      } @else {
+        <app-setting-source
+          [source]="source()"
+          [ownLevel]="level()"
+          translationPrefix="configuration.source"
+        />
+      }
+
+      @if (canReset()) {
+        <button
+          mat-button
+          type="button"
+          [matTooltip]="resetHint()"
+          (click)="cleared.emit()"
+        >
+          {{ 'configuration.actions.reset' | translate }}
+        </button>
+      }
+
+      @if (levels(); as ladder) {
+        <button
+          mat-icon-button
+          type="button"
+          class="setting__inspector-toggle"
+          [attr.aria-expanded]="showLevels()"
+          [attr.aria-label]="'configuration.levels.toggle' | translate"
+          [matTooltip]="'configuration.levels.toggle' | translate"
+          (click)="showLevels.set(!showLevels())"
+        >
+          <mat-icon aria-hidden="true">{{ showLevels() ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </button>
+      }
+    </div>
+
+    @if (canReset()) {
+      <p class="setting__reset-hint">{{ resetHint() }}</p>
+    }
+  </div>
+
+  @if (showLevels() && levels(); as ladder) {
+    <app-setting-levels class="setting__levels" [definition]="definition()" [levels]="ladder" />
+  }
+</div>

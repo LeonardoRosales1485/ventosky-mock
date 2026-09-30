@@ -1,0 +1,317 @@
+<app-load-state
+  [state]="loadState()"
+  [loadingMessage]="'stockTransfers.detail.loading' | translate"
+  [errorMessage]="'stockTransfers.detail.loadError' | translate"
+  [retryable]="true"
+  [retryLabel]="'stockTransfers.actions.retry' | translate"
+  (retry)="onRetry()"
+  minHeight="20rem"
+>
+  @if (transfer(); as transfer) {
+    <!--
+      El encabezado responde la única pregunta que trae a esta pantalla: ¿dónde está esta
+      mercadería y qué falta para que llegue?
+    -->
+    <section class="hero">
+      <div class="hero__identity">
+        <button
+          mat-icon-button
+          type="button"
+          class="hero__back"
+          [matTooltip]="'stockTransfers.detail.back' | translate"
+          [attr.aria-label]="'stockTransfers.detail.back' | translate"
+          (click)="onBack()"
+        >
+          <mat-icon aria-hidden="true">arrow_back</mat-icon>
+        </button>
+
+        <div>
+          <div class="hero__title-row">
+            <h1 class="hero__name">
+              {{ transfer.publicId || ('stockTransfers.detail.title' | translate) }}
+            </h1>
+            <app-transfer-status-chip
+              [status]="transfer.transferStatus"
+              [awaitingHere]="receivableHere()"
+            />
+            <span class="hero__badge">
+              {{ 'stockTransfers.modes.' + transfer.transferMode | translate }}
+            </span>
+          </div>
+          <p class="hero__meta">
+            {{
+              'stockTransfers.detail.dispatchedBy'
+                | translate
+                  : {
+                      user: transfer.dispatchedByUser?.name ?? '—',
+                      date: (transfer.dateCreated | localizedDate: 'short'),
+                    }
+            }}
+          </p>
+          @if (transfer.transferStatus === 'IN_TRANSIT') {
+            <p class="hero__meta hero__meta--strong">
+              {{
+                'stockTransfers.detail.inTransitNote'
+                  | translate
+                    : {
+                        quantity: transfer.quantity ?? 0,
+                        warehouse: transfer.fromWarehouse?.name ?? '',
+                      }
+              }}
+            </p>
+          }
+          <!--
+            Un traslado cancelado tiene que decir quién lo canceló y a dónde volvió la mercadería:
+            son 240 unidades que salieron de un depósito y entraron en otro sin que nadie vendiera
+            nada, y sin eso la fila queda sin explicación.
+          -->
+          @if (transfer.transferStatus === 'CANCELLED') {
+            <p class="hero__meta hero__meta--strong">
+              {{
+                'stockTransfers.detail.cancelledNote'
+                  | translate
+                    : {
+                        user: transfer.cancelledByUser?.name ?? '—',
+                        date: (transfer.dateCancelled | localizedDate: 'short'),
+                        warehouse: transfer.fromWarehouse?.name ?? '',
+                      }
+              }}
+            </p>
+          }
+        </div>
+      </div>
+
+      <div class="hero__actions">
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="!hasRemito()"
+          [matTooltip]="
+            hasRemito() ? '' : ('stockTransfers.list.actions.remitoCancelled' | translate)
+          "
+          (click)="onRemito()"
+        >
+          <mat-icon aria-hidden="true">print</mat-icon>
+          {{ 'stockTransfers.detail.remito' | translate }}
+        </button>
+        <!--
+          Cancelar va apagado con el motivo por tooltip en vez de desaparecer, igual que recibir:
+          una fila sin el botón se lee como «este traslado no se cancela nunca» y no como «se
+          cancela desde la sucursal que lo despachó».
+        -->
+        <button
+          mat-stroked-button
+          type="button"
+          class="hero__danger"
+          [disabled]="!cancellableHere() || cancelling()"
+          [matTooltip]="cancelBlockedReason()"
+          (click)="onCancel()"
+        >
+          <mat-icon aria-hidden="true">cancel</mat-icon>
+          {{ 'stockTransfers.cancel.confirm' | translate }}
+        </button>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          [disabled]="!receivableHere() || receiving()"
+          [matTooltip]="receiveBlockedReason()"
+          (click)="onReceive()"
+        >
+          <mat-icon aria-hidden="true">check_circle</mat-icon>
+          {{ 'stockTransfers.receive.confirm' | translate }}
+        </button>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────  Recorrido  ───────────────────────────── -->
+
+    <section class="card" aria-labelledby="transfer-route-title">
+      <h2 id="transfer-route-title" class="card__title">
+        <mat-icon class="card__title-icon" aria-hidden="true">route</mat-icon>
+        {{ 'stockTransfers.detail.route' | translate }}
+      </h2>
+
+      <div class="route">
+        <div class="route__side">
+          <span class="route__label">{{ 'stockTransfers.detail.leftFrom' | translate }}</span>
+          <span class="route__place">{{ transfer.fromWarehouse?.name || '—' }}</span>
+          <span class="route__meta">{{ transfer.sourceBranch?.name || '—' }}</span>
+        </div>
+
+        <mat-icon class="route__arrow" aria-hidden="true">arrow_forward</mat-icon>
+
+        <div class="route__side">
+          <span class="route__label">{{ 'stockTransfers.detail.entersIn' | translate }}</span>
+          <span class="route__place">{{ transfer.toWarehouse?.name || '—' }}</span>
+          <span class="route__meta">
+            {{ transfer.targetBranch?.name || '—' }}
+            @if (transfer.transferStatus === 'IN_TRANSIT') {
+              · {{ 'stockTransfers.detail.receptionPending' | translate }}
+            } @else if (transfer.dateReceived) {
+              · {{ transfer.dateReceived | localizedDate: 'short' }}
+            }
+          </span>
+        </div>
+      </div>
+
+      <!--
+        Los pasos que faltan se dibujan igual que los cumplidos: lo que falta es lo que la pantalla
+        tiene que decir. El cancelado corta el recorrido — ver `timeline` en el .ts.
+      -->
+      <ol class="timeline">
+        @for (step of timeline(); track step.labelKey) {
+          <li class="timeline__step" [attr.data-state]="step.state">
+            <mat-icon class="timeline__icon" aria-hidden="true">
+              @switch (step.state) {
+                @case ('done') {
+                  check_circle
+                }
+                @case ('current') {
+                  schedule
+                }
+                @default {
+                  radio_button_unchecked
+                }
+              }
+            </mat-icon>
+            <span class="timeline__label">{{ step.labelKey | translate: step.params }}</span>
+            @if (step.at) {
+              <span class="timeline__at">{{ step.at | localizedDate: 'short' }}</span>
+            }
+          </li>
+        }
+      </ol>
+    </section>
+
+    <!-- ─────────────────────────────  Líneas y lotes  ───────────────────────────── -->
+
+    <section class="card" aria-labelledby="transfer-lines-title">
+      <h2 id="transfer-lines-title" class="card__title">
+        <mat-icon class="card__title-icon" aria-hidden="true">layers</mat-icon>
+        {{ 'stockTransfers.detail.lines' | translate }}
+      </h2>
+      <p class="card__lead">{{ 'stockTransfers.detail.linesLead' | translate }}</p>
+
+      @if (lineCount() === 0) {
+        <p class="lines__empty">{{ 'stockTransfers.detail.linesEmpty' | translate }}</p>
+      } @else {
+        <div class="lines__scroll">
+          <table
+            class="lines__table"
+            [attr.aria-label]="'stockTransfers.detail.linesTableAria' | translate"
+          >
+            <thead>
+              <tr>
+                <th scope="col">{{ 'stockTransfers.detail.columns.product' | translate }}</th>
+                <!--
+                  Lote y Vencimiento sólo si alguna línea los usa: en un traslado de notebooks o de
+                  mercadería suelta son dos columnas de guiones que empujan la cantidad y el costo
+                  fuera de la vista para no decir nada.
+                -->
+                @if (showBatch()) {
+                  <th scope="col">{{ 'stockTransfers.detail.columns.batch' | translate }}</th>
+                }
+                @if (showExpiration()) {
+                  <th scope="col">{{ 'stockTransfers.detail.columns.expiration' | translate }}</th>
+                }
+                <th scope="col" class="lines__num">
+                  {{ 'stockTransfers.detail.columns.quantity' | translate }}
+                </th>
+                <th scope="col" class="lines__num">
+                  {{ 'stockTransfers.detail.columns.unitCost' | translate }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (line of transfer.lines ?? []; track line.uuid) {
+                <tr>
+                  <td>
+                    <span class="lines__product">{{ line.product?.name || '—' }}</span>
+                    @if (line.productSku) {
+                      <span class="lines__sku">{{ line.productSku }}</span>
+                    }
+                    <!--
+                      Las unidades van con su línea y no en una fila aparte: la línea ES un lote de
+                      origen, así que estas son exactamente las que salieron de ese lote. Y siguen
+                      acá con el traslado recibido, que es cuando la serie ya no apunta a ninguna
+                      salida y preguntárselo a ella daría vacío.
+
+                      Pocas se leen sueltas; muchas se resumen en un botón — ver `showsSerialsInline`.
+                    -->
+                    @if (showsSerialsInline(line)) {
+                      <ul
+                        class="lines__serials"
+                        [attr.aria-label]="'stockTransfers.detail.serialsAria' | translate"
+                      >
+                        @for (serial of line.serials; track serial) {
+                          <li class="lines__serial">{{ serial }}</li>
+                        }
+                      </ul>
+                    } @else if (showsSerialsButton(line)) {
+                      <button
+                        mat-stroked-button
+                        type="button"
+                        class="lines__serials-more"
+                        (click)="onShowSerials(line)"
+                      >
+                        <mat-icon aria-hidden="true">qr_code_2</mat-icon>
+                        {{
+                          'stockTransfers.detail.serialsShow'
+                            | translate: { count: line.serials?.length ?? 0 }
+                        }}
+                      </button>
+                    }
+                  </td>
+                  @if (showBatch()) {
+                    <td class="lines__batch">
+                      {{ line.batchNumber || ('stockTransfers.detail.noBatch' | translate) }}
+                    </td>
+                  }
+                  @if (showExpiration()) {
+                    <td class="lines__batch">
+                      {{ (line.expirationDate | localizedDate: 'shortDate') || '—' }}
+                    </td>
+                  }
+                  <!-- La cantidad con su unidad: «2,5» de un fiambre son kilos. -->
+                  <td class="lines__num">
+                    {{ line.quantity ?? 0 }}
+                    @if (unitOf(line); as unit) {
+                      <span class="lines__unit">{{ unit }}</span>
+                    }
+                  </td>
+                  <td class="lines__num">
+                    <app-currency-display [value]="line.unitCost" />
+                  </td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <td [attr.colspan]="footerColspan()">
+                  {{
+                    'stockTransfers.detail.linesTotal'
+                      | translate
+                        : { products: transfer.productCount ?? 0, lines: lineCount() }
+                  }}
+                </td>
+                <td class="lines__num">{{ totalQuantity() }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <p class="card__hint">
+          <mat-icon class="card__hint-icon" aria-hidden="true">info</mat-icon>
+          <span>
+            {{
+              'stockTransfers.detail.costNote'
+                | translate: { branch: transfer.targetBranch?.name ?? '' }
+            }}
+          </span>
+        </p>
+      }
+    </section>
+  }
+</app-load-state>

@@ -1,0 +1,59 @@
+<h2 mat-dialog-title class="shortage__title">
+  <mat-icon aria-hidden="true" class="shortage__title-icon">inventory_2</mat-icon>
+  {{ 'sales.stockShortage.title' | translate }}
+</h2>
+
+<mat-dialog-content>
+  <p class="shortage__intro">{{ 'sales.stockShortage.description' | translate }}</p>
+
+  <ul class="shortage__list">
+    @for (shortage of data.shortages; track shortage.productUuid) {
+      <li class="shortage__item" [class.shortage__item--blocking]="isBlocking()">
+        <div class="shortage__item-header">
+          <span class="shortage__item-name">{{ shortage.productName }}</span>
+          <span class="shortage__item-deficit">
+            {{ 'sales.stockShortage.missing' | translate: { deficit: shortage.deficit } }}
+          </span>
+        </div>
+
+        <p class="shortage__item-quantities">
+          {{
+            'sales.stockShortage.quantities'
+              | translate
+                : {
+                    requested: shortage.requestedQuantity,
+                    available: shortage.availableQuantity,
+                  }
+          }}
+        </p>
+
+        <p class="shortage__item-policy">
+          {{
+            (isBlocking() ? 'sales.stockShortage.blocked' : 'sales.stockShortage.warning')
+              | translate
+          }}
+        </p>
+      </li>
+    }
+  </ul>
+
+  <p class="shortage__hint">
+    {{
+      (isBlocking() ? 'sales.stockShortage.hintBlocked' : 'sales.stockShortage.hintWarning')
+        | translate
+    }}
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <!--
+    Con STRICT_BLOCK no hay confirmación posible: el commit respondería 400 igual. El botón queda
+    a la vista, deshabilitado, para que se entienda que la salida es ajustar y no reintentar.
+  -->
+  <button mat-button type="button" [disabled]="isBlocking()" [mat-dialog-close]="'confirm'">
+    {{ 'sales.stockShortage.confirm' | translate }}
+  </button>
+  <button mat-flat-button color="primary" type="button" [mat-dialog-close]="'adjust'">
+    {{ 'sales.stockShortage.adjust' | translate }}
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,102 @@
+:host {
+  display: block;
+}
+
+.accounts__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.accounts__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.accounts__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.75rem 0.75rem;
+}
+
+.accounts__toggle {
+  margin-inline-start: 0.25rem;
+}
+
+table {
+  width: 100%;
+}
+
+.accounts__party {
+  display: block;
+  font-weight: 600;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+}
+
+.accounts__party:hover,
+.accounts__party:focus-visible {
+  text-decoration: underline;
+}
+
+/* Columna propia: es por lo que se busca a un titular, así que se lee al tamaño de la tabla. */
+.accounts__doc {
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.accounts__disabled {
+  display: inline-block;
+  margin-inline-start: 0.375rem;
+  padding: 0 0.3125rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.accounts__dash {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.numeric-header,
+.numeric-cell {
+  text-align: end;
+}
+
+.numeric-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+.accounts__credit-note,
+.accounts__overdue-days,
+.accounts__unlimited {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.accounts__overdue-days {
+  color: var(--app-error);
+}
+
+.mat-column-actions {
+  width: 1%;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+  text-align: end;
+}
+
+.actions-header,
+.actions-cell {
+  background: var(--mat-sys-surface);
+  border-left: 1px solid var(--mat-sys-outline-variant);
+}

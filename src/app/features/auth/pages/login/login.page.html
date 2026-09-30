@@ -1,0 +1,67 @@
+<app-auth-layout
+  titleKey="auth.hero.loginTitle"
+  descriptionKey="auth.hero.loginDescription"
+>
+  <form class="mx-auto flex w-full max-w-sm flex-col gap-4" (submit)="onSubmit($event)">
+    <h2 class="mb-2 text-center text-xl font-medium text-[var(--mat-sys-primary)]">
+      {{ 'auth.login.title' | translate }}
+    </h2>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-icon matPrefix aria-hidden="true">person_outline</mat-icon>
+      <mat-label>{{ 'auth.login.username' | translate }}</mat-label>
+      <input
+        matInput
+        type="text"
+        autocomplete="username"
+        [formField]="loginForm.username"
+        [attr.aria-label]="'auth.login.username' | translate"
+      />
+      @if (loginForm.username().touched() && loginForm.username().invalid()) {
+        <mat-error>{{ loginForm.username().errors() | fieldError }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-icon matPrefix aria-hidden="true">lock_outline</mat-icon>
+      <mat-label>{{ 'auth.login.password' | translate }}</mat-label>
+      <input
+        matInput
+        type="password"
+        autocomplete="current-password"
+        [formField]="loginForm.password"
+        [attr.aria-label]="'auth.login.password' | translate"
+      />
+      @if (loginForm.password().touched() && loginForm.password().invalid()) {
+        <mat-error>{{ loginForm.password().errors() | fieldError }}</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="flex items-center justify-between gap-3">
+      <mat-checkbox
+        [checked]="loginForm.remember().value()"
+        (change)="loginForm.remember().value.set($event.checked)"
+      >
+        {{ 'auth.login.remember' | translate }}
+      </mat-checkbox>
+
+      <a
+        mat-button
+        routerLink="/auth/forgot-password"
+        class="!text-sm"
+      >
+        {{ 'auth.login.forgotPassword' | translate }}
+      </a>
+    </div>
+
+    <button
+      mat-flat-button
+      color="primary"
+      type="submit"
+      class="w-full"
+      [disabled]="loginForm().submitting()"
+    >
+      {{ 'auth.login.submit' | translate }}
+    </button>
+  </form>
+</app-auth-layout>

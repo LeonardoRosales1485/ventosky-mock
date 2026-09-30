@@ -1,0 +1,81 @@
+<section class="flex flex-col gap-2">
+  <h3 class="text-sm font-medium">{{ 'parties.contacts.title' | translate }}</h3>
+
+  @if (!partyUuid()) {
+    <p class="text-xs text-[var(--mat-sys-on-surface-variant)]">
+      {{ 'parties.contacts.availableAfterSave' | translate }}
+    </p>
+  } @else {
+    <ul class="contacts-list" [attr.aria-label]="'parties.contacts.title' | translate">
+      @for (contact of contacts(); track contact.uuid) {
+        <li class="contact-row">
+          <span class="contact-type">{{ 'parties.contacts.types.' + contact.type | translate }}</span>
+          <span class="contact-value">{{ contact.value }}</span>
+          @if (contact.label) {
+            <span class="contact-label">{{ contact.label }}</span>
+          }
+          @if (contact.isPrincipal) {
+            <span class="contact-principal">
+              <mat-icon aria-hidden="true" class="text-base">star</mat-icon>
+              {{ 'parties.contacts.principal' | translate }}
+            </span>
+          } @else {
+            <button
+              mat-button
+              type="button"
+              [disabled]="saving()"
+              (click)="onMakePrincipal(contact)"
+            >
+              {{ 'parties.contacts.makePrincipal' | translate }}
+            </button>
+          }
+          <button
+            mat-icon-button
+            type="button"
+            [disabled]="saving()"
+            [attr.aria-label]="'parties.contacts.delete' | translate"
+            (click)="onDelete(contact)"
+          >
+            <mat-icon aria-hidden="true">delete_outline</mat-icon>
+          </button>
+        </li>
+      } @empty {
+        @if (!loading()) {
+          <li class="text-xs text-[var(--mat-sys-on-surface-variant)]">
+            {{ 'parties.contacts.empty' | translate }}
+          </li>
+        }
+      }
+    </ul>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <mat-form-field appearance="outline" class="w-36">
+        <mat-label>{{ 'parties.contacts.type' | translate }}</mat-label>
+        <mat-select [ngModel]="draftType()" (ngModelChange)="draftType.set($event)">
+          @for (type of contactTypes; track type) {
+            <mat-option [value]="type">{{ 'parties.contacts.types.' + type | translate }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="flex-1 min-w-40">
+        <mat-label>{{ 'parties.contacts.value' | translate }}</mat-label>
+        <input matInput type="text" [ngModel]="draftValue()" (ngModelChange)="draftValue.set($event)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-40">
+        <mat-label>{{ 'parties.contacts.label' | translate }}</mat-label>
+        <input matInput type="text" [ngModel]="draftLabel()" (ngModelChange)="draftLabel.set($event)" />
+      </mat-form-field>
+
+      <mat-checkbox [ngModel]="draftPrincipal()" (ngModelChange)="draftPrincipal.set($event)">
+        {{ 'parties.contacts.principal' | translate }}
+      </mat-checkbox>
+
+      <button mat-stroked-button type="button" [disabled]="!canAdd()" (click)="onAdd()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        {{ 'parties.contacts.add' | translate }}
+      </button>
+    </div>
+  }
+</section>

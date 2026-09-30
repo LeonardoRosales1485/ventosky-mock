@@ -1,0 +1,187 @@
+<app-page-header
+  [title]="'productOptions.title' | translate"
+  [description]="'productOptions.description' | translate"
+>
+  @if (canCreate()) {
+    <button mat-flat-button type="button" color="primary" (click)="onCreateOption()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      {{ 'productOptions.actions.create' | translate }}
+    </button>
+  }
+</app-page-header>
+
+<div class="options-layout">
+  <!-- Panel izquierdo: los ejes. -->
+  <section class="options-panel" [attr.aria-label]="'productOptions.axesAria' | translate">
+    <header class="panel-header">
+      <h2 class="panel-title">{{ 'productOptions.axes' | translate }}</h2>
+    </header>
+
+    @if (loadingOptions()) {
+      <div class="panel-loading">
+        <mat-spinner diameter="32" [attr.aria-label]="'productOptions.loading' | translate" />
+      </div>
+    } @else if (options().length === 0) {
+      <p class="panel-empty">{{ 'productOptions.empty' | translate }}</p>
+    } @else {
+      <ul class="axis-list">
+        @for (option of options(); track option.uuid) {
+          <li>
+            <button
+              type="button"
+              class="axis-row"
+              [class.axis-row--selected]="option.uuid === selectedUuid()"
+              [attr.aria-current]="option.uuid === selectedUuid() ? 'true' : null"
+              (click)="selectOption(option.uuid)"
+            >
+              <span class="axis-name">{{ option.name }}</span>
+              <span class="axis-count">{{ option.valuesCount ?? 0 }}</span>
+            </button>
+            @if (canDelete()) {
+              <button
+                mat-icon-button
+                type="button"
+                class="axis-delete"
+                [attr.aria-label]="'productOptions.actions.deleteAria' | translate: { name: option.name }"
+                [matTooltip]="'productOptions.actions.delete' | translate"
+                (click)="onDeleteOption(option)"
+              >
+                <mat-icon aria-hidden="true">delete_outline</mat-icon>
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <!-- Panel derecho: los valores del eje elegido. -->
+  <section class="values-panel" [attr.aria-label]="'productOptions.valuesAria' | translate">
+    <header class="panel-header panel-header--values">
+      <mat-form-field appearance="outline" class="axis-name-field" subscriptSizing="dynamic">
+        <mat-label>{{ 'productOptions.fields.name' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          [ngModel]="draftName()"
+          (ngModelChange)="draftName.set($event)"
+          [disabled]="!canEdit()"
+          [attr.aria-label]="'productOptions.fields.name' | translate"
+        />
+      </mat-form-field>
+
+      @if (canEdit()) {
+        <button mat-stroked-button type="button" (click)="onAddValue()">
+          <mat-icon aria-hidden="true">add</mat-icon>
+          {{ 'productOptions.actions.addValue' | translate }}
+        </button>
+      }
+    </header>
+
+    @if (loadingValues()) {
+      <div class="panel-loading">
+        <mat-spinner diameter="32" [attr.aria-label]="'productOptions.loading' | translate" />
+      </div>
+    } @else {
+      <div class="values-table" role="table">
+        <div class="values-head" role="row">
+          <span role="columnheader" class="col-handle"></span>
+          <span role="columnheader">{{ 'productOptions.columns.value' | translate }}</span>
+          <span role="columnheader">{{ 'productOptions.columns.code' | translate }}</span>
+          <span role="columnheader" class="col-usage">
+            {{ 'productOptions.columns.variantsInUse' | translate }}
+          </span>
+          <span role="columnheader" class="col-actions"></span>
+        </div>
+
+        <div cdkDropList (cdkDropListDropped)="onDropValue($event)">
+          @for (row of draftValues(); track $index) {
+            <div class="values-row" role="row" cdkDrag [cdkDragDisabled]="!canEdit()">
+              <span class="col-handle" cdkDragHandle role="cell">
+                <mat-icon
+                  aria-hidden="true"
+                  [matTooltip]="'productOptions.dragHint' | translate"
+                  >drag_indicator</mat-icon
+                >
+              </span>
+
+              <span role="cell">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+                  <input
+                    matInput
+                    type="text"
+                    [ngModel]="row.value"
+                    (ngModelChange)="onValueChange($index, $event)"
+                    [disabled]="!canEdit()"
+                    [attr.aria-label]="'productOptions.columns.value' | translate"
+                  />
+                </mat-form-field>
+              </span>
+
+              <span role="cell">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+                  <input
+                    matInput
+                    type="text"
+                    [ngModel]="row.code"
+                    (ngModelChange)="onCodeChange($index, $event)"
+                    [disabled]="!canEdit()"
+                    [attr.aria-label]="'productOptions.columns.code' | translate"
+                  />
+                </mat-form-field>
+              </span>
+
+              <!-- El número que explica, antes del clic, por qué un valor no se puede borrar. -->
+              <span
+                role="cell"
+                class="col-usage"
+                [class.usage-idle]="(row.variantsInUse ?? 0) === 0"
+                >{{ row.variantsInUse ?? 0 }}</span
+              >
+
+              <span role="cell" class="col-actions">
+                @if (canEdit()) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [disabled]="(row.variantsInUse ?? 0) > 0"
+                    [matTooltip]="
+                      (row.variantsInUse ?? 0) > 0
+                        ? ('productOptions.actions.cannotDeleteValue' | translate)
+                        : ('productOptions.actions.deleteValue' | translate)
+                    "
+                    [attr.aria-label]="'productOptions.actions.deleteValue' | translate"
+                    (click)="onRemoveValue($index)"
+                  >
+                    <mat-icon aria-hidden="true">close</mat-icon>
+                  </button>
+                }
+              </span>
+            </div>
+          } @empty {
+            <p class="panel-empty">{{ 'productOptions.noValues' | translate }}</p>
+          }
+        </div>
+      </div>
+
+      <p class="values-hint">
+        <mat-icon aria-hidden="true" class="hint-icon">info</mat-icon>
+        <span>{{ 'productOptions.hint' | translate }}</span>
+      </p>
+
+      @if (canEdit()) {
+        <div class="values-actions">
+          <button
+            mat-flat-button
+            type="button"
+            color="primary"
+            [disabled]="saving()"
+            (click)="onSave()"
+          >
+            {{ 'productOptions.actions.save' | translate }}
+          </button>
+        </div>
+      }
+    }
+  </section>
+</div>

@@ -1,0 +1,173 @@
+<section
+  class="access"
+  [class.access--required]="variant() !== 'optional'"
+  [attr.aria-labelledby]="ids.heading"
+>
+  <header class="access__header">
+    <h3 class="access__title" [id]="ids.heading">
+      {{
+        (variant() === 'grant' ? 'directory.access.grantTitle' : 'directory.access.title')
+          | translate
+      }}
+    </h3>
+    @if (variant() !== 'grant') {
+      <span class="access__badge" [class.access__badge--required]="variant() === 'required'">
+        {{
+          (variant() === 'required' ? 'directory.access.required' : 'directory.access.optional')
+            | translate
+        }}
+      </span>
+    }
+  </header>
+
+  @if (link(); as currentLink) {
+    <p class="access__note">{{ 'directory.access.reason.' + currentLink | translate }}</p>
+  }
+
+  @if (!canGrant()) {
+    <p class="access__warning" role="note">
+      <mat-icon aria-hidden="true">lock</mat-icon>
+      {{ 'directory.access.cannotGrant' | translate }}
+    </p>
+  } @else {
+    @if (variant() === 'optional') {
+      <mat-slide-toggle [checked]="enabled()" (change)="onToggle($event.checked)">
+        {{ 'directory.access.canLogIn' | translate }}
+      </mat-slide-toggle>
+      @if (!enabled()) {
+        <p class="access__hint">{{ 'directory.access.offAsksNothing' | translate }}</p>
+      }
+    }
+
+    @if (enabled()) {
+      @if (existingUserUuid()) {
+        <p class="access__existing">
+          <mat-icon aria-hidden="true">account_circle</mat-icon>
+          {{ 'directory.access.existingUser' | translate: { username: existingUsername() } }}
+        </p>
+        @if (!personHasUser()) {
+          <button mat-button type="button" class="self-start" (click)="onCreateNewUser()">
+            {{ 'directory.access.createNewUser' | translate }}
+          </button>
+        }
+      } @else {
+        <div class="access__credentials">
+          <mat-form-field appearance="outline" class="flex-1">
+            <mat-label>{{ 'directory.access.username' | translate }}</mat-label>
+            <input
+              matInput
+              type="text"
+              autocomplete="off"
+              [formField]="access().username"
+              [attr.aria-label]="'directory.access.username' | translate"
+            />
+            @if (access().username().touched() && access().username().invalid()) {
+              <mat-error>{{ access().username().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="flex-1">
+            <mat-label>{{ 'directory.access.password' | translate }}</mat-label>
+            <input
+              matInput
+              type="password"
+              autocomplete="new-password"
+              [formField]="access().password"
+              [attr.aria-label]="'directory.access.password' | translate"
+            />
+            @if (access().password().touched() && access().password().invalid()) {
+              <mat-error>{{ access().password().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        @if (takenUser(); as taken) {
+          <div class="access__taken" role="status">
+            <p>{{ 'directory.access.takenUser' | translate: { username: taken.name } }}</p>
+            <button mat-stroked-button type="button" (click)="onUseTakenUser(taken)">
+              {{ 'directory.access.useTakenUser' | translate }}
+            </button>
+          </div>
+        }
+      }
+
+      <div class="access__roles">
+        <span class="access__label" [id]="ids.roles">{{
+          'directory.access.roles' | translate
+        }}</span>
+
+        @if (suggestedState() === 'loading') {
+          <p class="access__hint">{{ 'directory.access.rolesLoading' | translate }}</p>
+        } @else if (suggestedState() === 'forbidden') {
+          <p class="access__hint">{{ 'directory.access.rolesForbidden' | translate }}</p>
+        } @else if (suggestedState() === 'error') {
+          <p class="access__hint">{{ 'directory.access.rolesError' | translate }}</p>
+        }
+
+        <div class="access__chips">
+          <mat-chip-set [attr.aria-labelledby]="ids.roles">
+            @for (role of selectedRoles(); track role.uuid) {
+              <mat-chip
+                [class.access__chip--blocked]="role.grantable === false"
+                (removed)="onRemoveRole(role.uuid)"
+              >
+                {{ role.name }}
+                @if (role.grantable === false) {
+                  <span class="access__chip-flag">{{
+                    'directory.access.notGrantable' | translate
+                  }}</span>
+                }
+                <button
+                  matChipRemove
+                  [attr.aria-label]="'directory.access.removeRole' | translate: { role: role.name }"
+                >
+                  <mat-icon aria-hidden="true">cancel</mat-icon>
+                </button>
+              </mat-chip>
+            } @empty {
+              <!-- Quien ya entra conserva sus roles: «sin roles» no quiere decir que no pueda hacer nada. -->
+              <span class="access__hint">{{
+                (existingUserUuid() ? 'directory.access.noRolesToAdd' : 'directory.access.noRoles')
+                  | translate
+              }}</span>
+            }
+          </mat-chip-set>
+
+          <button
+            mat-stroked-button
+            type="button"
+            [matMenuTriggerFor]="rolesMenu"
+            [disabled]="candidates().length === 0"
+          >
+            <mat-icon aria-hidden="true">add</mat-icon>
+            {{ 'directory.access.addRole' | translate }}
+          </button>
+          <mat-menu #rolesMenu="matMenu">
+            @for (role of candidates(); track role.uuid) {
+              <button mat-menu-item type="button" (click)="onAddRole(role.uuid)">
+                <span class="access__menu-role">
+                  <span>{{ role.name }}</span>
+                  @if (role.suggested) {
+                    <span class="access__menu-tag">{{
+                      (role.system
+                        ? 'directory.access.systemRole'
+                        : 'directory.access.correlatedRole'
+                      ) | translate
+                    }}</span>
+                  }
+                  @if (role.grantable === false) {
+                    <span class="access__menu-tag access__menu-tag--blocked">{{
+                      'directory.access.notGrantable' | translate
+                    }}</span>
+                  }
+                </span>
+              </button>
+            }
+          </mat-menu>
+        </div>
+
+        <p class="access__hint">{{ 'directory.access.rolesHint' | translate }}</p>
+      </div>
+    }
+  }
+</section>

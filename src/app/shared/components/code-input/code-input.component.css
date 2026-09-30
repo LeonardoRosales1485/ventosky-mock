@@ -1,0 +1,62 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.code-input__cells {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/*
+  Filled boxes rather than outlined ones: inside a `mat-form-field` with
+  `appearance="outline"` a per-box border would read as a second frame.
+*/
+.code-input__cell {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-headline-small);
+  text-align: center;
+  text-transform: none;
+  caret-color: var(--mat-sys-primary);
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.code-input__cell:hover:not(:disabled) {
+  background: var(--mat-sys-surface-container-high);
+}
+
+.code-input__cell:focus {
+  border-color: var(--mat-sys-primary);
+}
+
+/* The border alone is too thin to meet the focus-visibility contrast minimum. */
+.code-input__cell:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+.code-input__cell:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+:host(.code-input--invalid) .code-input__cell {
+  border-color: var(--mat-sys-error);
+  color: var(--mat-sys-error);
+  caret-color: var(--mat-sys-error);
+}
+
+:host(.code-input--invalid) .code-input__cell:focus-visible {
+  outline-color: var(--mat-sys-error);
+}

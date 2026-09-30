@@ -1,0 +1,210 @@
+@let columns = displayedColumns();
+
+<h2 mat-dialog-title>{{ data.title ?? ('productPicker.title' | translate) }}</h2>
+
+<mat-dialog-content class="picker__content">
+  <p class="picker__description">{{ 'productPicker.description' | translate }}</p>
+
+  <app-table-wrapper
+    [loading]="paginator.loading()"
+    [loadingAriaLabel]="'productPicker.loading' | translate"
+    maxHeight="26rem"
+  >
+    <div tableWrapperHeader class="picker__header">
+      <app-table-toolbar
+        [search]="searchQuery()"
+        [activeFilters]="activeFilters()"
+        [searchPlaceholder]="'productPicker.searchPlaceholder' | translate"
+        (searchChange)="searchQuery.set($event)"
+        (refresh)="onRefresh()"
+        (filtersClick)="onToggleFilters()"
+        (clearFilters)="onClearFilters()"
+      />
+
+      @if (filtersOpen()) {
+        <div class="picker__filters" [attr.aria-label]="'productPicker.filtersAria' | translate">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ 'productPicker.filters.brand' | translate }}</mat-label>
+            <mat-select
+              [value]="brandFilter()"
+              (valueChange)="onBrandChange($event)"
+              [disabled]="paginator.loading()"
+            >
+              <mat-option [value]="null">{{ 'productPicker.filters.all' | translate }}</mat-option>
+              @for (brand of brands(); track brand.uuid) {
+                <mat-option [value]="brand.uuid">{{ brand.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ 'productPicker.filters.category' | translate }}</mat-label>
+            <mat-select
+              [value]="categoryFilter()"
+              (valueChange)="onCategoryChange($event)"
+              [disabled]="paginator.loading()"
+            >
+              <mat-option [value]="null">{{ 'productPicker.filters.all' | translate }}</mat-option>
+              @for (category of categories(); track category.uuid) {
+                <mat-option
+                  [value]="category.uuid"
+                  [matTooltip]="category.path"
+                  [style.--category-depth]="category.depth"
+                  class="picker__filters-category"
+                >
+                  {{ category.name }}
+                </mat-option>
+              }
+            </mat-select>
+            <mat-hint>{{ 'productPicker.filters.categoryHint' | translate }}</mat-hint>
+          </mat-form-field>
+
+          <!--
+            Sólo cuando quien abrió el selector pasó un proveedor: es la contraparte de la compra
+            que se está cargando, y sin ella no hay nada por lo que acotar.
+          -->
+          @if (data.supplier; as supplier) {
+            <mat-checkbox
+              class="picker__filters-supplier"
+              [checked]="supplierFilter()"
+              (change)="onSupplierFilterChange($event.checked)"
+              [disabled]="paginator.loading()"
+            >
+              {{ 'productPicker.filters.supplier' | translate: { name: supplier.name } }}
+            </mat-checkbox>
+          }
+        </div>
+      }
+    </div>
+
+    <table
+      mat-table
+      matSort
+      [dataSource]="paginator.items()"
+      [matSortActive]="paginator.sortActive() ?? ''"
+      [matSortDirection]="paginator.sortDirection()"
+      (matSortChange)="onSort($event)"
+      [attr.aria-label]="'productPicker.tableAria' | translate"
+    >
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          {{ 'productPicker.columns.name' | translate }}
+        </th>
+        <td mat-cell *matCellDef="let product">
+          <span class="picker__name">{{ product.name }}</span>
+          @if (product.barcode) {
+            <span class="picker__barcode">{{ product.barcode }}</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="sku">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          {{ 'productPicker.columns.sku' | translate }}
+        </th>
+        <td mat-cell *matCellDef="let product">{{ product.sku || '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="brand">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          {{ 'productPicker.columns.brand' | translate }}
+        </th>
+        <td mat-cell *matCellDef="let product">{{ product.brand?.name || '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="category">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          {{ 'productPicker.columns.category' | translate }}
+        </th>
+        <td mat-cell *matCellDef="let product">{{ product.category?.name || '—' }}</td>
+      </ng-container>
+
+      <!-- Una columna por lista que haya pasado quien abrió el selector. -->
+      @for (list of data.priceLists; track list.uuid) {
+        <ng-container [matColumnDef]="priceColumnId(list.uuid)">
+          <th mat-header-cell *matHeaderCellDef class="picker__numeric">{{ list.name }}</th>
+          <td mat-cell *matCellDef="let product" class="picker__numeric">
+            <app-currency-display
+              [value]="priceOf(product, list.uuid)"
+              [emptyLabel]="'productPicker.noPrice' | translate"
+            />
+          </td>
+        </ng-container>
+      }
+
+      <ng-container matColumnDef="stock">
+        <th mat-header-cell *matHeaderCellDef class="picker__numeric">
+          {{ 'productPicker.columns.stock' | translate }}
+        </th>
+        <td mat-cell *matCellDef="let product" class="picker__numeric picker__stock">
+          @let stock = product.totalStock ?? 0;
+
+          <span [class.picker__stock--out]="stock <= 0">
+            {{ stock }}
+            <!-- El color no puede ser el único canal: sin stock también se dice. -->
+            @if (stock <= 0) {
+              <span class="sr-only">{{ 'productPicker.outOfStock' | translate }}</span>
+            }
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions" [stickyEnd]="true">
+        <th mat-header-cell *matHeaderCellDef class="picker__actions-cell">
+          <span class="sr-only">{{ 'productPicker.columns.actions' | translate }}</span>
+        </th>
+        <td mat-cell *matCellDef="let product" class="picker__actions-cell">
+          <button
+            mat-icon-button
+            type="button"
+            [matTooltip]="'productPicker.select' | translate"
+            [attr.aria-label]="'productPicker.selectAria' | translate: { name: product.name }"
+            (click)="$event.stopPropagation(); onSelect(product)"
+          >
+            <mat-icon aria-hidden="true">add_shopping_cart</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
+      <!--
+        La fila entera es el blanco natural con el mouse. Para el teclado y el lector de pantalla
+        está el botón de la última columna, que es quien lleva el nombre accesible de la acción.
+      -->
+      <tr
+        mat-row
+        *matRowDef="let row; columns: columns"
+        class="picker__row"
+        (click)="onSelect(row)"
+      ></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="picker__empty" [attr.colspan]="columns.length">
+          @if (paginator.loadState() === LoadState.Error) {
+            {{ 'productPicker.loadError' | translate }}
+          } @else if (!paginator.loading()) {
+            {{ 'productPicker.empty' | translate }}
+          }
+        </td>
+      </tr>
+    </table>
+
+    <mat-paginator
+      tableWrapperFooter
+      [length]="paginator.totalCount()"
+      [pageIndex]="paginator.pageIndex()"
+      [pageSize]="paginator.pageSize()"
+      [pageSizeOptions]="pageSizeOptions"
+      [disabled]="paginator.loading()"
+      [attr.aria-label]="'productPicker.paginationAria' | translate"
+      (page)="onPage($event)"
+      showFirstLastButtons
+    />
+  </app-table-wrapper>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="undefined">
+    {{ 'productPicker.cancel' | translate }}
+  </button>
+</mat-dialog-actions>

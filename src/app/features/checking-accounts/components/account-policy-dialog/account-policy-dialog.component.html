@@ -1,0 +1,173 @@
+<h2 mat-dialog-title>
+  {{ 'checkingAccounts.override.dialogTitle' | translate: { party: data.partyName } }}
+</h2>
+
+<mat-dialog-content>
+  <p class="policy__lead">{{ 'checkingAccounts.override.dialogLead' | translate }}</p>
+
+  <!-- ─────────────────────────  Plazo de vencimiento  ───────────────────────── -->
+  <fieldset class="policy__row">
+    <legend class="policy__legend">{{ 'checkingAccounts.policy.dueDays' | translate }}</legend>
+
+    <p class="policy__origin" [class.policy__origin--own]="dueDaysIsOwn()">
+      @if (dueDaysIsOwn()) {
+        {{ 'checkingAccounts.override.decidedHere' | translate }} ·
+        {{
+          'checkingAccounts.override.companySays'
+            | translate: { value: ('checkingAccounts.policy.days' | translate: { days: resolved.dueDays }) }
+        }}
+      } @else {
+        {{ 'checkingAccounts.override.inheritedFromCompany' | translate }} ·
+        {{ 'checkingAccounts.policy.days' | translate: { days: resolved.dueDays } }}
+      }
+    </p>
+
+    <div class="policy__controls">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="policy__mode">
+        <mat-label>{{ 'checkingAccounts.override.mode' | translate }}</mat-label>
+        <mat-select [ngModel]="dueDaysMode()" (ngModelChange)="dueDaysMode.set($event)" name="dueDaysMode">
+          <mat-option value="INHERIT">
+            {{ 'checkingAccounts.override.inherit' | translate }}
+          </mat-option>
+          <mat-option value="VALUE">
+            {{ 'checkingAccounts.override.ownValue' | translate }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Heredado se muestra con el valor que rige y en gris, no vacío: la fila dice qué le pasaría
+           a este titular si nadie decide nada. -->
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="policy__value">
+        <mat-label>{{ 'checkingAccounts.policy.dueDays' | translate }}</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          [disabled]="dueDaysMode() !== 'VALUE'"
+          [ngModel]="dueDaysMode() === 'VALUE' ? dueDays() : resolved.dueDays"
+          (ngModelChange)="dueDays.set($event)"
+          name="dueDays"
+        />
+        <span matTextSuffix>{{ 'checkingAccounts.override.daysSuffix' | translate }}</span>
+      </mat-form-field>
+    </div>
+  </fieldset>
+
+  <!-- ────────────────────────────  Límite de deuda  ──────────────────────────── -->
+  @if (data.showsLimit) {
+    <fieldset class="policy__row">
+      <legend class="policy__legend">{{ 'checkingAccounts.policy.debtLimit' | translate }}</legend>
+
+      <p class="policy__origin" [class.policy__origin--own]="limitIsOwn()">
+        @if (limitIsOwn()) {
+          {{ 'checkingAccounts.override.decidedHere' | translate }}
+        } @else {
+          {{ 'checkingAccounts.override.inheritedFromCompany' | translate }}
+        }
+        ·
+        @if (resolved.debtLimit === null) {
+          {{ 'checkingAccounts.override.limit.unlimited' | translate }}
+        } @else {
+          <app-currency-display [value]="resolved.debtLimit" />
+        }
+      </p>
+
+      <div class="policy__controls">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="policy__mode">
+          <mat-label>{{ 'checkingAccounts.override.mode' | translate }}</mat-label>
+          <mat-select [ngModel]="limitMode()" (ngModelChange)="limitMode.set($event)" name="limitMode">
+            <mat-option value="INHERIT">
+              {{ 'checkingAccounts.override.inherit' | translate }}
+            </mat-option>
+            <mat-option value="UNLIMITED">
+              {{ 'checkingAccounts.override.limit.unlimited' | translate }}
+            </mat-option>
+            <mat-option value="AMOUNT">
+              {{ 'checkingAccounts.override.limit.amount' | translate }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="policy__value">
+          <mat-label>{{ 'checkingAccounts.policy.debtLimit' | translate }}</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            [disabled]="limitMode() !== 'AMOUNT'"
+            [ngModel]="limitMode() === 'AMOUNT' ? debtLimit() : resolved.debtLimit"
+            (ngModelChange)="debtLimit.set($event)"
+            name="debtLimit"
+          />
+        </mat-form-field>
+      </div>
+    </fieldset>
+  }
+
+  <!-- ───────────────────────────  Modo de imputación  ─────────────────────────── -->
+  <fieldset class="policy__row">
+    <legend class="policy__legend">
+      {{ 'checkingAccounts.policy.allocationMode' | translate }}
+    </legend>
+
+    <p class="policy__origin" [class.policy__origin--own]="allocationIsOwn()">
+      @if (allocationIsOwn()) {
+        {{ 'checkingAccounts.override.decidedHere' | translate }} ·
+        {{
+          'checkingAccounts.override.companySays'
+            | translate
+              : {
+                  value:
+                    ('checkingAccounts.allocationModes.' + resolved.allocationMode | translate),
+                }
+        }}
+      } @else {
+        {{ 'checkingAccounts.override.inheritedFromCompany' | translate }} ·
+        {{ 'checkingAccounts.allocationModes.' + resolved.allocationMode | translate }}
+      }
+    </p>
+
+    <div class="policy__controls">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="policy__mode">
+        <mat-label>{{ 'checkingAccounts.override.mode' | translate }}</mat-label>
+        <mat-select
+          [ngModel]="allocationMode()"
+          (ngModelChange)="allocationMode.set($event)"
+          name="allocationMode"
+        >
+          <mat-option value="INHERIT">
+            {{ 'checkingAccounts.override.inherit' | translate }}
+          </mat-option>
+          <mat-option value="AUTOMATIC">
+            {{ 'checkingAccounts.allocationModes.AUTOMATIC' | translate }}
+          </mat-option>
+          <mat-option value="MANUAL">
+            {{ 'checkingAccounts.allocationModes.MANUAL' | translate }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </fieldset>
+
+  <!--
+    Sacar un override es pasarlo a heredar, y por eso se dice acá: no hay «borrar política», y sin
+    esta línea el operador busca un botón que no existe.
+  -->
+  <p class="policy__note">
+    <mat-icon class="policy__note-icon" aria-hidden="true">info</mat-icon>
+    {{ 'checkingAccounts.override.inheritIsHowYouRemove' | translate }}
+  </p>
+
+  <p class="policy__note policy__note--muted">
+    {{ 'checkingAccounts.override.noReason' | translate }}
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">
+    {{ 'checkingAccounts.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary" type="button" [disabled]="!hasChanges()" (click)="onSave()">
+    {{ 'checkingAccounts.override.save' | translate }}
+  </button>
+</mat-dialog-actions>

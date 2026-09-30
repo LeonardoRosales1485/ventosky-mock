@@ -1,0 +1,111 @@
+:host {
+  display: block;
+}
+
+.account__loading {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.account {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--mat-sys-corner-medium);
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+/* La cuenta apagada se lee antes de leer el texto: el medio no se va a poder usar. */
+.account--disabled {
+  border-color: var(--app-error);
+  background: var(--app-error-container);
+}
+
+.account__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.account__blocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-on-error-container);
+}
+
+.account__blocked mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.account__figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.account__figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  min-width: 5rem;
+}
+
+.account__figure dt {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.account__figure dd {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.account__figure--overdue dd {
+  color: var(--app-error);
+}
+
+.account__figure--available dd {
+  color: var(--app-success);
+}
+
+.account__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Sin cuenta: se dice, y no con el tono de un error. Nadie le fió todavía, nada más. */
+.account--empty {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.account__none {
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.account__none-text {
+  margin: 0.375rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}

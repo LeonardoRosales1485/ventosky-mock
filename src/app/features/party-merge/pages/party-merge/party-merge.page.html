@@ -1,0 +1,174 @@
+<app-page-header
+  [title]="'partyMerge.title' | translate"
+  [description]="'partyMerge.description' | translate"
+/>
+
+<app-load-state
+  [state]="loadState()"
+  [loadingMessage]="'partyMerge.loading' | translate"
+  [errorMessage]="'partyMerge.errors.load' | translate"
+  [retryable]="true"
+  [retryLabel]="'partyMerge.retry' | translate"
+  (retry)="onRetry()"
+  minHeight="18rem"
+>
+  <!--
+    Que la lista salga vacía es lo esperado y no un error: el backend ya impide dos activos con el
+    mismo par (tipo, número), así que acá caen los que se cuelan por el tipo.
+  -->
+  @if (groups().length === 0) {
+    <p class="merge__empty">{{ 'partyMerge.empty' | translate }}</p>
+  }
+
+  @for (group of groups(); track group.docNumber) {
+    <section class="merge__group" [attr.aria-label]="group.docNumber">
+      <h2 class="merge__doc">{{ group.docNumber }}</h2>
+
+      <table class="merge__table">
+        <thead>
+          <tr>
+            <th>{{ 'partyMerge.columns.survivor' | translate }}</th>
+            <th>{{ 'partyMerge.columns.absorbed' | translate }}</th>
+            <th>{{ 'partyMerge.columns.party' | translate }}</th>
+            <th>{{ 'partyMerge.columns.since' | translate }}</th>
+            <th class="numeric-header">{{ 'partyMerge.columns.orders' | translate }}</th>
+            <th class="numeric-header">{{ 'partyMerge.columns.entries' | translate }}</th>
+            <th class="numeric-header">{{ 'partyMerge.columns.balance' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (party of group.parties; track party.uuid) {
+            <tr>
+              <!--
+                Cuál sobrevive se elige mirando la historia: el que queda se queda con el uuid que el
+                resto del sistema ya conoce.
+              -->
+              <td>
+                <mat-radio-button
+                  [checked]="survivorUuid() === party.uuid"
+                  [attr.aria-label]="'partyMerge.columns.survivor' | translate"
+                  (change)="onPickSurvivor(party.uuid)"
+                />
+              </td>
+              <td>
+                <mat-radio-button
+                  [checked]="absorbedUuid() === party.uuid"
+                  [attr.aria-label]="'partyMerge.columns.absorbed' | translate"
+                  (change)="onPickAbsorbed(party.uuid)"
+                />
+              </td>
+              <td>
+                <span class="merge__name">{{ party.name }}</span>
+                <span class="merge__roles">
+                  @for (role of party.roles; track role) {
+                    <span class="merge__role">{{ 'checkingAccounts.roles.' + role | translate }}</span>
+                  }
+                </span>
+              </td>
+              <td>{{ party.dateCreated | localizedDate: 'mediumDate' }}</td>
+              <td class="numeric-cell">{{ party.orders }}</td>
+              <td class="numeric-cell">{{ party.entries }}</td>
+              <td class="numeric-cell"><app-currency-display [value]="party.balance" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+
+  @if (groups().length > 0) {
+    <section class="merge__confirm">
+      <button
+        mat-stroked-button
+        type="button"
+        [disabled]="!canPreview()"
+        (click)="onPreview()"
+      >
+        <mat-icon aria-hidden="true">visibility</mat-icon>
+        {{ 'partyMerge.previewAction' | translate }}
+      </button>
+
+      <!--
+        Todo lo que se va a mover, antes de moverlo. Esto es irreversible en la práctica: no hay
+        operación que deshaga una fusión.
+      -->
+      @if (preview(); as preview) {
+        <div class="merge__preview" [attr.aria-label]="'partyMerge.previewAria' | translate">
+          <p class="merge__preview-lead">
+            {{
+              'partyMerge.previewLead'
+                | translate: { absorbed: preview.absorbed.name, survivor: preview.survivor.name }
+            }}
+          </p>
+
+          <dl class="merge__figures">
+            <div>
+              <dt>{{ 'partyMerge.columns.orders' | translate }}</dt>
+              <dd>{{ preview.ordersToMove }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'partyMerge.columns.entries' | translate }}</dt>
+              <dd>{{ preview.entriesToMove }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'partyMerge.contacts' | translate }}</dt>
+              <dd>{{ preview.contactsToMove }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'partyMerge.resultingBalance' | translate }}</dt>
+              <dd><app-currency-display [value]="preview.resultingBalance" /></dd>
+            </div>
+          </dl>
+
+          @if (preview.rolesToMove.length > 0) {
+            <p class="merge__note">
+              {{
+                'partyMerge.rolesToMove'
+                  | translate: { roles: preview.rolesToMove.join(', ') }
+              }}
+            </p>
+          }
+          <!--
+            El caso difícil: el superviviente ya tiene ese rol, así que no se repunta el rol sino su
+            contenido —cuenta corriente incluida— y el del absorbido se apaga.
+          -->
+          @if (preview.rolesToMerge.length > 0) {
+            <p class="merge__note merge__note--strong">
+              {{
+                'partyMerge.rolesToMerge'
+                  | translate: { roles: preview.rolesToMerge.join(', ') }
+              }}
+            </p>
+          }
+
+          <p class="merge__warning" role="alert">
+            <mat-icon aria-hidden="true">warning_amber</mat-icon>
+            {{ 'partyMerge.irreversible' | translate }}
+          </p>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>{{ 'partyMerge.reason' | translate }}</mat-label>
+            <textarea
+              matInput
+              rows="2"
+              name="reason"
+              [ngModel]="reason()"
+              (ngModelChange)="reason.set($event)"
+            ></textarea>
+            <mat-hint>{{ 'partyMerge.reasonHint' | translate }}</mat-hint>
+          </mat-form-field>
+
+          <button
+            mat-flat-button
+            color="warn"
+            type="button"
+            [disabled]="!canMerge()"
+            (click)="onMerge()"
+          >
+            {{ 'partyMerge.confirm' | translate }}
+          </button>
+        </div>
+      }
+    </section>
+  }
+</app-load-state>

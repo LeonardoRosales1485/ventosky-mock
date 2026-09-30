@@ -1,0 +1,54 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    {{ (isEdit ? 'branches.dialog.editTitle' : 'branches.dialog.createTitle') | translate }}
+  </h2>
+
+  <mat-dialog-content>
+    <div class="flex flex-col gap-2 pt-2">
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'branches.columns.name' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="branchForm.name"
+          [attr.aria-label]="'branches.columns.name' | translate"
+        />
+        @if (branchForm.name().touched() && branchForm.name().invalid()) {
+          <mat-error>{{ branchForm.name().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'branches.columns.address' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="branchForm.address"
+          [attr.aria-label]="'branches.columns.address' | translate"
+        />
+        <mat-hint>{{ 'branches.dialog.addressHint' | translate }}</mat-hint>
+        @if (branchForm.address().touched() && branchForm.address().invalid()) {
+          <mat-error>{{ branchForm.address().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-checkbox
+        [checked]="branchForm.active().value()"
+        (change)="onActiveChange($event.checked)"
+      >
+        {{ 'branches.columns.active' | translate }}
+      </mat-checkbox>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'branches.dialog.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit">
+      {{ (isEdit ? 'branches.dialog.save' : 'branches.dialog.create') | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

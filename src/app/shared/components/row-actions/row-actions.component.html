@@ -1,0 +1,22 @@
+<div class="row-actions" role="group" [attr.aria-label]="ariaLabel()">
+  @for (action of actions(); track action.id) {
+    <!--
+      El tooltip va en el envoltorio y no en el botón: uno deshabilitado no recibe eventos del mouse,
+      así que el suyo nunca se abriría — y es justo ahí donde el texto hace más falta, porque es lo
+      único que explica por qué la acción no está disponible en esta fila.
+    -->
+    <span class="row-actions__slot" [matTooltip]="action.label">
+      <button
+        mat-icon-button
+        type="button"
+        class="vk-row-action"
+        [class.row-actions__button--warn]="action.color === 'warn'"
+        [disabled]="action.disabled"
+        [attr.aria-label]="action.label"
+        (click)="actionClick.emit(action.id); $event.stopPropagation()"
+      >
+        <mat-icon aria-hidden="true">{{ action.icon }}</mat-icon>
+      </button>
+    </span>
+  }
+</div>

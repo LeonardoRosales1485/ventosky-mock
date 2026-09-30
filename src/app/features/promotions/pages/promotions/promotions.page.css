@@ -1,0 +1,127 @@
+:host {
+  display: block;
+}
+
+table {
+  width: 100%;
+}
+
+.mat-column-actions {
+  width: 1%;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+  text-align: end;
+}
+
+.actions-header,
+.actions-cell {
+  background: var(--mat-sys-surface);
+  border-left: 1px solid var(--mat-sys-outline-variant);
+}
+
+.promotions__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container-low);
+}
+
+.promotions__filters mat-form-field {
+  min-width: 14rem;
+}
+
+.promotions__name {
+  font-weight: 500;
+}
+
+/*
+ * Lo que ya no descuenta se atenúa, pero se sigue leyendo: una vencida que funcionó bien es
+ * justamente la que alguien viene a reactivar, así que esconderla sería esconder el trabajo.
+ *
+ * Con el token de texto secundario y no con `opacity`: el tema garantiza su contraste contra la
+ * superficie, y un `opacity` sobre un color que ya es apagado se cae por debajo del 4,5:1 de AA.
+ */
+.promotions__row--dimmed td {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* El nombre sigue a contraste pleno: es el dato con el que se reconoce la fila que se viene a buscar. */
+.promotions__row--dimmed .promotions__name {
+  color: var(--mat-sys-on-surface);
+  font-weight: 400;
+}
+
+.promotions__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* «No acumulable»: excluye a las demás promociones de su ámbito, así que es parte de leer la fila. */
+.promotions__flag {
+  display: inline-block;
+  margin-inline-start: 0.375rem;
+  padding: 0 0.375rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+}
+
+.promotions__state {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Los cuatro estados con el mismo código de color que el documento funcional. */
+.promotions__state--active {
+  background: var(--app-success-container);
+  color: var(--app-on-success-container);
+}
+
+.promotions__state--scheduled {
+  background: var(--app-info-container);
+  color: var(--app-on-info-container);
+}
+
+.promotions__state--discontinued {
+  background: var(--app-warning-container);
+  color: var(--app-on-warning-container);
+}
+
+/* Vencida es la única de las cuatro que no lleva color propio: la trajo el calendario y ya no hace
+   nada, así que se queda con el neutro de la base. Declarada igual, para que las cuatro se lean acá. */
+.promotions__state--expired {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.promotions__muted {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.promotions__meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}

@@ -1,0 +1,67 @@
+<div class="global-search" role="search">
+  <div class="global-search__field">
+    <mat-icon class="global-search__icon" aria-hidden="true">search</mat-icon>
+    <input
+      #searchInput
+      type="search"
+      class="global-search__input"
+      [ngModel]="query()"
+      (ngModelChange)="onQueryChange($event)"
+      [placeholder]="'topbar.search.placeholder' | translate"
+      [attr.aria-label]="'topbar.search.aria' | translate"
+      [attr.aria-controls]="'global-search-results'"
+      [attr.aria-activedescendant]="
+        results().length ? 'global-search-option-' + activeIndex() : null
+      "
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      role="combobox"
+      aria-autocomplete="list"
+      [attr.aria-expanded]="true"
+    />
+    <kbd class="global-search__kbd">esc</kbd>
+  </div>
+
+  <div
+    id="global-search-results"
+    class="global-search__results"
+    role="listbox"
+    [attr.aria-label]="'topbar.search.resultsAria' | translate"
+  >
+    @if (results().length === 0) {
+      <p class="global-search__empty">
+        {{ 'topbar.search.empty' | translate }}
+      </p>
+    } @else {
+      @for (result of results(); track result.item.route; let i = $index) {
+        <button
+          type="button"
+          class="global-search__option"
+          role="option"
+          [id]="'global-search-option-' + i"
+          [attr.aria-selected]="activeIndex() === i"
+          [class.global-search__option--active]="activeIndex() === i"
+          (mouseenter)="setActiveIndex(i)"
+          (click)="navigateTo(result)"
+        >
+          <mat-icon class="global-search__option-icon" aria-hidden="true">
+            {{ result.item.icon }}
+          </mat-icon>
+          <span class="global-search__option-text">
+            <span class="global-search__option-label">
+              {{ result.item.labelKey | translate }}
+            </span>
+            <span class="global-search__option-section">
+              {{ result.sectionLabelKey | translate }}
+            </span>
+          </span>
+          <mat-icon class="global-search__option-go" aria-hidden="true">
+            arrow_forward
+          </mat-icon>
+        </button>
+      }
+    }
+  </div>
+</div>

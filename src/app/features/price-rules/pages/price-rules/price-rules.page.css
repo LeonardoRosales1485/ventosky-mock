@@ -1,0 +1,43 @@
+:host {
+  display: block;
+}
+
+table {
+  width: 100%;
+}
+
+.mat-column-actions {
+  width: 1%;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+  text-align: end;
+}
+
+.actions-header,
+.actions-cell {
+  background: var(--mat-sys-surface);
+  border-left: 1px solid var(--mat-sys-outline-variant);
+}
+
+/* Una regla puede recalcular varias listas: las filas de la grilla se apilan sin ensanchar la tabla. */
+.price-rules__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding-block: 0.375rem;
+}
+
+.price-rules__chip {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.price-rules__muted {
+  color: var(--mat-sys-on-surface-variant);
+}

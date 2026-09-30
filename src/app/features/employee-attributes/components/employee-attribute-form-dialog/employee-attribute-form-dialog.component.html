@@ -1,0 +1,54 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    {{
+      (isEdit ? 'employeeAttributes.dialog.editTitle' : 'employeeAttributes.dialog.createTitle')
+        | translate
+    }}
+  </h2>
+
+  <mat-dialog-content>
+    <div class="flex flex-col gap-2 pt-2">
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'employeeAttributes.columns.name' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="attributeForm.name"
+          [attr.aria-label]="'employeeAttributes.columns.name' | translate"
+        />
+        <mat-hint>{{ 'employeeAttributes.dialog.nameHint' | translate }}</mat-hint>
+        @if (attributeForm.name().touched() && attributeForm.name().invalid()) {
+          <mat-error>{{ attributeForm.name().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'employeeAttributes.columns.type' | translate }}</mat-label>
+        <mat-select
+          [value]="attributeForm.type().value()"
+          (valueChange)="onTypeChange($event)"
+          [attr.aria-label]="'employeeAttributes.columns.type' | translate"
+        >
+          @for (type of types; track type) {
+            <mat-option [value]="type">{{ 'attributeValueTypes.' + type | translate }}</mat-option>
+          }
+        </mat-select>
+        @if (isEdit) {
+          <mat-hint>{{ 'employeeAttributes.dialog.typeHint' | translate }}</mat-hint>
+        }
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'employeeAttributes.dialog.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit">
+      {{
+        (isEdit ? 'employeeAttributes.dialog.save' : 'employeeAttributes.dialog.create') | translate
+      }}
+    </button>
+  </mat-dialog-actions>
+</form>

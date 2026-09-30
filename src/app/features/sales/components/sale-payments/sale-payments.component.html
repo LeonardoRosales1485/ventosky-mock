@@ -1,0 +1,102 @@
+<h3 class="payments__title">
+  <mat-icon aria-hidden="true">credit_card</mat-icon>
+  {{ 'sales.payments.title' | translate }}
+</h3>
+
+@if (payments().length > 0) {
+  <ul class="payments__list">
+    @for (payment of payments(); track $index) {
+      <li class="payments__item">
+        <mat-icon aria-hidden="true" class="payments__item-icon">payments</mat-icon>
+
+        <span class="payments__item-name">{{ payment.paymentMethod.name }}</span>
+
+        <app-currency-display class="payments__item-amount" [value]="payment.amount" />
+
+        <button
+          mat-icon-button
+          type="button"
+          [disabled]="disabled()"
+          [matTooltip]="'sales.payments.remove' | translate"
+          [attr.aria-label]="
+            'sales.payments.removeAria' | translate: { name: payment.paymentMethod.name }
+          "
+          (click)="paymentRemove.emit($index)"
+        >
+          <mat-icon aria-hidden="true">close</mat-icon>
+        </button>
+      </li>
+    }
+  </ul>
+}
+
+<div class="payments__draft">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="payments__draft-method">
+    <mat-label>{{ 'sales.payments.method' | translate }}</mat-label>
+    <mat-select
+      [value]="selectedMethodUuid()"
+      [disabled]="disabled() || paymentMethods().length === 0"
+      (valueChange)="selectedMethodUuid.set($event)"
+    >
+      @for (method of paymentMethods(); track method.uuid) {
+        <mat-option [value]="method.uuid">{{ method.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="payments__draft-amount">
+    <mat-label>{{ 'sales.payments.amount' | translate }}</mat-label>
+    <span matTextPrefix>$&nbsp;</span>
+    <input
+      matInput
+      type="number"
+      min="0"
+      step="0.01"
+      autocomplete="off"
+      [value]="draftAmount()"
+      [disabled]="disabled()"
+      [attr.aria-label]="'sales.payments.amount' | translate"
+      (input)="onAmountInput($any($event.target).value)"
+      (keydown.enter)="onAdd()"
+    />
+
+    <!--
+      Con la cuenta corriente elegida, de dónde salió el importe propuesto. El techo se dice, no se
+      insinúa: un campo que aparece con un número más chico que el total y sin explicación se lee
+      como un error de la pantalla.
+    -->
+    @if (isAccountMethod() && accountCap() !== null && !accountDisabled()) {
+      <mat-hint>
+        {{ 'sales.payments.accountAvailable' | translate }}
+        <app-currency-display [value]="accountCap()!" />
+      </mat-hint>
+    }
+  </mat-form-field>
+
+  <button
+    mat-flat-button
+    type="button"
+    color="primary"
+    class="payments__draft-add"
+    [disabled]="!canAdd()"
+    (click)="onAdd()"
+  >
+    <mat-icon aria-hidden="true">add</mat-icon>
+    {{ 'sales.payments.add' | translate }}
+  </button>
+</div>
+
+<!--
+  La cuenta deshabilitada, con el motivo a la vista. Es lo ÚNICO que deshabilita el medio: ninguno
+  de los cuatro niveles de morosidad lo hace, y el chip del panel informa sin interrumpir.
+-->
+@if (isAccountMethod() && accountDisabled()) {
+  <p class="payments__blocked" role="status">
+    <mat-icon aria-hidden="true">block</mat-icon>
+    {{ 'sales.payments.accountDisabled' | translate }}
+  </p>
+}
+
+@if (paymentMethods().length === 0) {
+  <p class="payments__empty">{{ 'sales.payments.noMethods' | translate }}</p>
+}

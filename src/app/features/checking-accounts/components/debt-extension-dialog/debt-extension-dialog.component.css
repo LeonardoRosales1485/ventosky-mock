@@ -1,0 +1,44 @@
+mat-dialog-content {
+  min-width: min(30rem, 88vw);
+}
+
+.extend__summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem 1rem;
+  margin: 0 0 0.875rem;
+  padding: 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.extend__summary dt {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.extend__summary dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.extend__badge {
+  display: inline-block;
+  margin-inline-start: 0.375rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--app-warning-container);
+  color: var(--app-on-warning-container);
+}
+
+.extend__note {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}

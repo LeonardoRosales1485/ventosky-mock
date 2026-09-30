@@ -1,0 +1,197 @@
+<section class="serial-lookup">
+  <header class="serial-lookup__head">
+    <h1 class="serial-lookup__title">{{ 'stock.serial.title' | translate }}</h1>
+    <p class="serial-lookup__description">{{ 'stock.serial.description' | translate }}</p>
+  </header>
+
+  <form class="serial-lookup__search" (submit)="onSubmit($event)">
+    <mat-form-field appearance="outline" class="serial-lookup__field">
+      <mat-label>{{ 'stock.serial.searchLabel' | translate }}</mat-label>
+      <input
+        matInput
+        type="search"
+        name="serialNumber"
+        autocomplete="off"
+        [value]="query()"
+        (input)="onQueryInput($event)"
+        [attr.placeholder]="'stock.serial.searchPlaceholder' | translate"
+      />
+      <mat-icon matSuffix aria-hidden="true">qr_code_scanner</mat-icon>
+    </mat-form-field>
+    <button mat-flat-button type="submit" [disabled]="!query().trim()">
+      {{ 'stock.serial.search' | translate }}
+    </button>
+  </form>
+
+  <app-load-state
+    [state]="loadState()"
+    [loadingMessage]="'stock.serial.loading' | translate"
+    [errorMessage]="'stock.serial.loadError' | translate"
+    [retryable]="true"
+    [retryLabel]="'stock.serial.retry' | translate"
+    (retry)="search()"
+  >
+    @if (notFound()) {
+      <div class="serial-lookup__empty" role="status">
+        <mat-icon aria-hidden="true">search_off</mat-icon>
+        <p class="serial-lookup__empty-title">
+          {{ 'stock.serial.notFound' | translate: { serial: searched() } }}
+        </p>
+        <p class="serial-lookup__empty-hint">{{ 'stock.serial.notFoundHint' | translate }}</p>
+      </div>
+    } @else if (serial(); as unit) {
+      <article class="serial-lookup__card">
+        <header class="serial-lookup__card-head">
+          <div>
+            <h2 class="serial-lookup__product">{{ unit.product.name }}</h2>
+            <p class="serial-lookup__meta">
+              @if (unit.productSku) {
+                <span>SKU {{ unit.productSku }}</span>
+              }
+              @if (unit.productModel) {
+                <span>{{ 'stock.serial.variantOf' | translate: { model: unit.productModel.name } }}</span>
+              }
+              @if (unit.batchNumber) {
+                <span>{{ 'stock.serial.batch' | translate: { batch: unit.batchNumber } }}</span>
+              }
+            </p>
+          </div>
+          <span class="serial-lookup__state" [attr.data-state]="unit.state">
+            {{ 'stock.serial.states.' + unit.state | translate }}
+          </span>
+        </header>
+
+        <!--
+          Una línea de tiempo y no una tabla: la unidad tiene a lo sumo una entrada y una salida, y
+          la consulta se lee de arriba abajo.
+        -->
+        <ol class="serial-lookup__timeline">
+          @if (unit.entry; as entry) {
+            <li class="serial-lookup__step">
+              <h3 class="serial-lookup__step-title">{{ 'stock.serial.timeline.entry' | translate }}</h3>
+              <p class="serial-lookup__step-line">
+                @if (entry.dateOperation) {
+                  <span>{{ entry.dateOperation | localizedDate }}</span>
+                }
+                @if (entry.publicId) {
+                  <button
+                    type="button"
+                    class="serial-lookup__link"
+                    (click)="onOpenOrder(entry.publicId)"
+                  >
+                    {{ entry.publicId }}
+                  </button>
+                }
+                @if (entry.voucher) {
+                  <span>{{ entry.voucher.name }}</span>
+                }
+                @if (entry.party) {
+                  <span>{{ entry.party.name }}</span>
+                }
+                @if (entry.warehouse) {
+                  <span>{{ entry.warehouse.name }}</span>
+                }
+              </p>
+            </li>
+          }
+
+          @if (unit.exit; as exit) {
+            <li class="serial-lookup__step">
+              <h3 class="serial-lookup__step-title">{{ 'stock.serial.timeline.exit' | translate }}</h3>
+              <p class="serial-lookup__step-line">
+                @if (exit.dateOperation) {
+                  <span>{{ exit.dateOperation | localizedDate }}</span>
+                }
+                @if (exit.publicId) {
+                  <button
+                    type="button"
+                    class="serial-lookup__link"
+                    (click)="onOpenOrder(exit.publicId)"
+                  >
+                    {{ exit.publicId }}
+                  </button>
+                }
+                @if (exit.voucher) {
+                  <span>{{ exit.voucher.name }}</span>
+                }
+                @if (exit.branch) {
+                  <span>{{ exit.branch.name }}</span>
+                }
+              </p>
+              <!-- El contacto del cliente a la vista: es lo que se necesita para atender la garantía. -->
+              @if (exit.party; as party) {
+                <p class="serial-lookup__party">
+                  <span class="serial-lookup__party-name">
+                    {{ 'stock.serial.timeline.customer' | translate }} <strong>{{ party.name }}</strong>
+                  </span>
+                  @if (party.docNumber) {
+                    <span>{{ party.docType }} {{ party.docNumber }}</span>
+                  }
+                  @if (party.email) {
+                    <a class="serial-lookup__contact" [href]="'mailto:' + party.email">{{ party.email }}</a>
+                  }
+                  @if (party.phone) {
+                    <a class="serial-lookup__contact" [href]="'tel:' + party.phone">{{ party.phone }}</a>
+                  }
+                </p>
+              }
+            </li>
+          }
+
+          <li class="serial-lookup__step serial-lookup__step--pending">
+            <h3 class="serial-lookup__step-title">
+              {{ 'stock.serial.timeline.pendingTitle' | translate }}
+            </h3>
+            @if (pendingKey(); as key) {
+              <p class="serial-lookup__step-line">{{ key | translate }}</p>
+            }
+          </li>
+        </ol>
+
+        <!--
+          El pie existe mientras haya algo que ofrecer. «Abrir la venta» no depende de las acciones:
+          una unidad ya reingresada sigue teniendo la venta de la que volvió, y era justo cuando el
+          pie desaparecía entero.
+        -->
+        @if (unit.exit?.publicId || canRegisterReturn() || canReinstate()) {
+          <footer class="serial-lookup__actions">
+            @if (unit.exit?.publicId) {
+              <button mat-stroked-button type="button" (click)="onOpenOrder(unit.exit!.publicId)">
+                {{ 'stock.serial.actions.openOrder' | translate }}
+              </button>
+            }
+            @if (canRegisterReturn()) {
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="returning()"
+                (click)="onRegisterReturn()"
+              >
+                {{ 'stock.serial.actions.registerReturn' | translate }}
+              </button>
+            }
+            <!--
+              El reingreso es la acción que devuelve la unidad al stock vendible, así que es la
+              principal de esta pantalla cuando la unidad está apartada: va en primario.
+            -->
+            @if (canReinstate()) {
+              <button
+                mat-flat-button
+                type="button"
+                [disabled]="returning()"
+                (click)="onReinstate()"
+              >
+                {{ 'stock.serial.actions.reinstate' | translate }}
+              </button>
+            }
+          </footer>
+        }
+      </article>
+    } @else {
+      <div class="serial-lookup__empty" role="status">
+        <mat-icon aria-hidden="true">qr_code_scanner</mat-icon>
+        <p class="serial-lookup__empty-title">{{ 'stock.serial.emptyState' | translate }}</p>
+      </div>
+    }
+  </app-load-state>
+</section>

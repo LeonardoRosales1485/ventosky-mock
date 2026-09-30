@@ -1,0 +1,32 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    {{ (isEdit ? 'brands.dialog.editTitle' : 'brands.dialog.createTitle') | translate }}
+  </h2>
+
+  <mat-dialog-content>
+    <div class="flex flex-col gap-2 pt-2">
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'brands.columns.name' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="brandForm.name"
+          [attr.aria-label]="'brands.columns.name' | translate"
+        />
+        @if (brandForm.name().touched() && brandForm.name().invalid()) {
+          <mat-error>{{ brandForm.name().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'brands.dialog.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit">
+      {{ (isEdit ? 'brands.dialog.save' : 'brands.dialog.create') | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

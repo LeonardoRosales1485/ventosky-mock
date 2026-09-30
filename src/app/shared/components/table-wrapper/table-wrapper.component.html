@@ -1,0 +1,26 @@
+<div class="table-wrapper">
+  <div class="table-wrapper__header">
+    <ng-content select="[tableWrapperHeader]" />
+  </div>
+
+  <div
+    class="table-wrapper__body"
+    [style.max-height]="maxHeight()"
+  >
+    @if (loading()) {
+      <div
+        class="table-wrapper__loading"
+        role="status"
+        [attr.aria-label]="loadingAriaLabel() ?? ('tableWrapper.loading' | translate)"
+      >
+        <mat-spinner diameter="40" />
+      </div>
+    }
+
+    <ng-content />
+  </div>
+
+  <div class="table-wrapper__footer">
+    <ng-content select="[tableWrapperFooter]" />
+  </div>
+</div>

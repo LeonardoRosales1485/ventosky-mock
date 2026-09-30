@@ -1,0 +1,72 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.crumb {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.crumb::-webkit-scrollbar {
+  display: none;
+}
+
+.crumb__list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.crumb__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.25rem;
+  color: var(--vk-fg-3);
+}
+
+.crumb__sep {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  color: var(--vk-fg-3);
+}
+
+.crumb__link {
+  color: var(--vk-fg-3);
+  text-decoration: none;
+  border-radius: 4px;
+  transition: color 150ms ease-out;
+}
+
+.crumb__link:hover {
+  color: var(--vk-accent);
+}
+
+.crumb__link:focus-visible {
+  outline: 2px solid var(--vk-accent);
+  outline-offset: 2px;
+}
+
+.crumb__current {
+  color: var(--vk-fg);
+  font-weight: 500;
+}
+
+/* En el teléfono no entra todo: queda solo la pantalla actual, sin la sucursal ni los intermedios. */
+@media (max-width: 600px) {
+  .crumb__item:not(:last-child) {
+    display: none;
+  }
+
+  .crumb__item:last-child .crumb__sep {
+    display: none;
+  }
+}

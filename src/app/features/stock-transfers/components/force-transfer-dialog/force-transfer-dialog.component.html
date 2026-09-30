@@ -1,0 +1,55 @@
+<h2 mat-dialog-title class="force__title">
+  <mat-icon class="force__title-icon" aria-hidden="true">report</mat-icon>
+  {{ 'stockTransfers.force.title' | translate }}
+</h2>
+
+<mat-dialog-content>
+  @if (data.shortages.length > 0) {
+    @for (shortage of data.shortages; track shortage.productName) {
+      <p class="force__line">
+        {{
+          'stockTransfers.force.line'
+            | translate
+              : {
+                  warehouse: data.sourceWarehouseName,
+                  available: shortage.available,
+                  product: shortage.productName,
+                  requested: shortage.requested,
+                }
+        }}
+      </p>
+
+      <div class="force__summary">
+        <span class="force__stat">
+          <span class="force__stat-label">{{ 'stockTransfers.force.current' | translate }}</span>
+          <strong class="force__stat-value">{{ shortage.available }}</strong>
+        </span>
+        <span class="force__stat" data-state="negative">
+          <span class="force__stat-label">{{ 'stockTransfers.force.resulting' | translate }}</span>
+          <strong class="force__stat-value">{{ resultingBalance(shortage) }}</strong>
+        </span>
+      </div>
+    }
+  } @else if (data.apiMessage) {
+    <!--
+      El faltante lo detectó el backend contra el saldo real, y el front no lo había anticipado —el
+      stock cambió entre que se armó el traslado y se despachó—. Se muestra su mensaje tal cual: es
+      la razón que dio él, no una que se inventa acá.
+    -->
+    <p class="force__line">{{ data.apiMessage }}</p>
+  }
+
+  <p class="force__policy">
+    {{ 'stockTransfers.force.policy' | translate: { branch: data.branchName } }}
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="false">
+    {{ 'stockTransfers.force.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="warn" type="button" (click)="onConfirm()">
+    <mat-icon aria-hidden="true">swap_horiz</mat-icon>
+    {{ 'stockTransfers.force.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,259 @@
+:host {
+  display: block;
+}
+
+/* Dos columnas que son las dos mitades de la operación. En pantalla angosta se apilan: se produce
+   primero y se consume después, que es el orden en el que se lee lo que se está por hacer. */
+.assembly-form {
+  display: grid;
+  grid-template-columns: minmax(18rem, 22rem) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 62rem) {
+  .assembly-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+.assembly-form__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+/* El lote del terminado se resalta: es lo que hace que la bandeja sea un producto y no un ticket.
+   Va en la columna izquierda, debajo de «qué se produce», porque es parte de lo mismo: qué sale del
+   armado. La derecha es entera de lo que entra. */
+.assembly-form__card--accent {
+  grid-column: 1;
+  border-color: var(--mat-sys-primary);
+  background: var(--mat-sys-surface-container);
+}
+
+@media (max-width: 62rem) {
+  .assembly-form__card--accent {
+    grid-column: 1;
+  }
+}
+
+.assembly-form__card--wide {
+  grid-column: 2;
+}
+
+@media (max-width: 62rem) {
+  .assembly-form__card--wide {
+    grid-column: 1;
+  }
+}
+
+.assembly-form__card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.assembly-form__card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.assembly-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.assembly-form__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.assembly-form__picker {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.assembly-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.assembly-form__hint {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.assembly-form__error {
+  font-size: 0.75rem;
+  color: var(--mat-sys-error);
+}
+
+.assembly-form__note {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-high);
+  font-size: 0.8125rem;
+}
+
+.assembly-form__max {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-high);
+}
+
+.assembly-form__max strong {
+  font-size: 1.25rem;
+}
+
+/* Faltante: ámbar y no rojo. No es un error de carga — es stock que no alcanza, y el armado puede
+   seguir si la sucursal lo habilitó. */
+.assembly-form__max--short {
+  background: var(--app-warning-container, var(--mat-sys-tertiary-container));
+  color: var(--app-on-warning-container, var(--mat-sys-on-tertiary-container));
+}
+
+.assembly-form__table-scroll {
+  overflow-x: auto;
+}
+
+.assembly-form__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.assembly-form__table th,
+.assembly-form__table td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  vertical-align: top;
+}
+
+.assembly-form__table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.assembly-form__num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.assembly-form__component {
+  font-weight: 500;
+}
+
+/* «manda»: la fila que impone el techo. Es lo que hace que el número de arriba se pueda rehacer de
+   un vistazo. */
+.assembly-form__flag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--app-warning-container, var(--mat-sys-tertiary-container));
+  color: var(--app-on-warning-container, var(--mat-sys-on-tertiary-container));
+}
+
+.assembly-form__row--short {
+  background: color-mix(in srgb, var(--mat-sys-error-container) 35%, transparent);
+}
+
+.assembly-form__batches {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.assembly-form__batch {
+  font-family: var(--app-font-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+}
+
+.assembly-form__batch-date {
+  margin-left: 0.375rem;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: var(--app-on-warning-container, var(--mat-sys-tertiary));
+}
+
+.assembly-form__extra td {
+  border-bottom: none;
+}
+
+.assembly-form__totals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* La cuenta a la vista: costo ÷ cantidad = unitario. */
+.assembly-form__cost {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin: 0;
+}
+
+.assembly-form__cost dt {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.assembly-form__cost dd {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.assembly-form__cost--unit dd {
+  font-size: 1.5rem;
+}
+
+.assembly-form__divide {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.assembly-form__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.assembly-form__empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.assembly-form__badge {
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  background: var(--mat-sys-surface-container-high);
+  font-family: var(--app-font-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+}

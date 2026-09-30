@@ -1,0 +1,118 @@
+.batch-allocation__lead {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.batch-allocation__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: var(--mat-sys-corner-medium);
+  background: var(--mat-sys-surface-container-high);
+}
+
+/* El restante en cero es la condición de guardado: se marca en verde para que se lea de un vistazo. */
+.batch-allocation__summary--done {
+  background: var(--app-success-container, var(--mat-sys-secondary-container));
+  color: var(--app-on-success-container, var(--mat-sys-on-secondary-container));
+}
+
+.batch-allocation__summary--over {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.batch-allocation__summary-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.batch-allocation__summary-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+.batch-allocation__summary-value {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.batch-allocation__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.batch-allocation__table th,
+.batch-allocation__table td {
+  padding: 0.375rem 0.5rem;
+  text-align: start;
+  vertical-align: top;
+}
+
+.batch-allocation__table thead th {
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.batch-allocation__table tbody th {
+  font-weight: 500;
+}
+
+.batch-allocation__batch-number {
+  display: block;
+}
+
+.batch-allocation__batch-meta {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.batch-allocation__numeric {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.batch-allocation__quantity {
+  width: 11rem;
+}
+
+.batch-allocation__quantity mat-form-field {
+  width: 100%;
+}
+
+.batch-allocation__error {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--mat-sys-error);
+}
+
+.batch-allocation__new {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.batch-allocation__new-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.batch-allocation__new-fields mat-form-field {
+  flex: 1 1 9rem;
+  min-width: min(100%, 9rem);
+}

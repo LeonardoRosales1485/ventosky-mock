@@ -1,0 +1,38 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>{{ 'cashSession.open.title' | translate }}</h2>
+
+  <mat-dialog-content>
+    <div class="open-cash-session__fields">
+      <p class="open-cash-session__register">
+        <mat-icon aria-hidden="true">point_of_sale</mat-icon>
+        <span>{{ data.cashRegisterName }}</span>
+      </p>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'cashSession.open.openingAmount' | translate }}</mat-label>
+        <span matTextPrefix>$&nbsp;</span>
+        <input
+          matInput
+          type="number"
+          step="0.01"
+          autocomplete="off"
+          [formField]="openForm.openingAmount"
+          [attr.aria-label]="'cashSession.open.openingAmount' | translate"
+        />
+        <mat-hint>{{ 'cashSession.open.openingAmountHint' | translate }}</mat-hint>
+        @if (openForm.openingAmount().touched() && openForm.openingAmount().invalid()) {
+          <mat-error>{{ openForm.openingAmount().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'cashSession.open.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit">
+      {{ 'cashSession.open.confirm' | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

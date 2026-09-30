@@ -1,0 +1,360 @@
+<app-page-header
+  [title]="
+    (isEdit() ? 'productModels.form.editTitle' : 'productModels.form.createTitle') | translate
+  "
+  [description]="
+    (isEdit() ? 'productModels.form.editDescription' : 'productModels.form.description') | translate
+  "
+  [showBack]="true"
+  (back)="onCancel()"
+>
+  <button mat-stroked-button type="button" (click)="onCancel()">
+    {{ 'productModels.form.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    type="button"
+    color="primary"
+    [disabled]="saving() || loading()"
+    (click)="onSave()"
+  >
+    <!-- En el alta el número son las variantes a crear; reabriendo, sólo las filas nuevas. -->
+    {{ saveLabelKey() | translate: { count: isEdit() ? newVariantCount() : selectedCount() } }}
+  </button>
+</app-page-header>
+
+@if (loading()) {
+  <div class="form-loading">
+    <mat-spinner diameter="40" [attr.aria-label]="'productModels.loading' | translate" />
+  </div>
+} @else {
+  <!-- Paso 1 — los datos que todas las variantes comparten. Se cargan una sola vez. -->
+  <section class="step-card">
+    <header class="step-header">
+      <span class="step-badge" aria-hidden="true">1</span>
+      <h2 class="step-title">{{ 'productModels.form.step1' | translate }}</h2>
+    </header>
+
+    <div class="step-body">
+      <div class="common-grid">
+        <mat-form-field appearance="outline" class="col-span-2">
+          <mat-label>{{ 'productModels.fields.name' | translate }}</mat-label>
+          <input matInput type="text" [ngModel]="name()" (ngModelChange)="name.set($event)" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'productModels.fields.skuPrefix' | translate }}</mat-label>
+          <input
+            matInput
+            type="text"
+            [ngModel]="skuPrefix()"
+            (ngModelChange)="skuPrefix.set($event)"
+          />
+          <mat-hint>{{ 'productModels.fields.skuPrefixHint' | translate }}</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'productModels.fields.brand' | translate }}</mat-label>
+          <mat-select [ngModel]="brandUuid()" (ngModelChange)="brandUuid.set($event)">
+            <mat-option [value]="null">{{ 'productModels.fields.none' | translate }}</mat-option>
+            @for (brand of brands(); track brand.uuid) {
+              <mat-option [value]="brand.uuid">{{ brand.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'productModels.fields.category' | translate }}</mat-label>
+          <mat-select [ngModel]="categoryUuid()" (ngModelChange)="categoryUuid.set($event)">
+            <mat-option [value]="null">{{ 'productModels.fields.none' | translate }}</mat-option>
+            @for (category of categories(); track category.uuid) {
+              <mat-option [value]="category.uuid">
+                <span [style.padding-inline-start.rem]="category.depth">{{ category.name }}</span>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'productModels.fields.unitMeasure' | translate }}</mat-label>
+          <mat-select [ngModel]="unitMeasure()" (ngModelChange)="unitMeasure.set($event)">
+            @for (unit of unitMeasures; track unit) {
+              <mat-option [value]="unit">{{
+                'products.unitMeasures.' + unit | translate
+              }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'productModels.fields.taxRate' | translate }}</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            [ngModel]="taxRate()"
+            (ngModelChange)="taxRate.set($event)"
+          />
+        </mat-form-field>
+      </div>
+
+      <!--
+        Dónde se ofrece. Es un dato común y no una columna de la matriz: lo normal es que las doce
+        variantes se vendan en las mismas sucursales, y tildarlo por fila sería doce veces el mismo
+        trabajo. Lo que quede acá es con lo que nacen las variantes que se creen al guardar.
+      -->
+      <section class="branches-block" aria-labelledby="model-branches-title">
+        <h3 class="branches-title" id="model-branches-title">
+          <mat-icon aria-hidden="true">store</mat-icon>
+          {{ 'productModels.branches.title' | translate }}
+        </h3>
+
+        @if (!canAssignBranches) {
+          <p class="step-empty">{{ 'productModels.branches.noPermission' | translate }}</p>
+        } @else if (branches().length === 0) {
+          <p class="step-empty">{{ 'productModels.branches.empty' | translate }}</p>
+        } @else {
+          <table class="branches-table">
+            <caption class="sr-only">
+              {{
+                'productModels.branches.tableAria' | translate
+              }}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" class="col-check">
+                  <mat-checkbox
+                    [checked]="allBranchesSelected()"
+                    [indeterminate]="someBranchesSelected()"
+                    (change)="onToggleAllBranches($event.checked)"
+                    [attr.aria-label]="'productModels.branches.selectAll' | translate"
+                  />
+                </th>
+                <th scope="col">{{ 'productModels.branches.name' | translate }}</th>
+                <th scope="col">{{ 'productModels.branches.status' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (branch of branches(); track branch.uuid) {
+                <tr>
+                  <td class="col-check">
+                    <mat-checkbox
+                      [checked]="isBranchSelected(branch.uuid)"
+                      (change)="onBranchToggle(branch.uuid, $event.checked)"
+                      [attr.aria-label]="branch.name"
+                    />
+                  </td>
+                  <th scope="row">{{ branch.name }}</th>
+                  <td>
+                    <span class="branch-badge">
+                      {{ 'productModels.branches.active' | translate }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <p class="step-hint">{{ 'productModels.branches.hint' | translate }}</p>
+        }
+      </section>
+    </div>
+  </section>
+
+  <!-- Paso 2 — los ejes. Tocar un valor recalcula la grilla de abajo al instante. -->
+  <section class="step-card">
+    <header class="step-header">
+      <span class="step-badge" aria-hidden="true">2</span>
+      <h2 class="step-title">{{ 'productModels.form.step2' | translate }}</h2>
+
+      @if (addableAxes().length > 0) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="add-axis-field">
+          <mat-label>{{ 'productModels.form.addAxis' | translate }}</mat-label>
+          <mat-select [ngModel]="null" (ngModelChange)="onAddAxis($event)">
+            @for (axis of addableAxes(); track axis.uuid) {
+              <mat-option [value]="axis.uuid">{{ axis.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    </header>
+
+    <div class="step-body">
+      @for (selected of selectedAxes(); track selected.axis.uuid) {
+        <div class="axis-row">
+          <span class="axis-label">{{ selected.axis.name }}</span>
+
+          <div class="chip-set" role="group" [attr.aria-label]="selected.axis.name">
+            @for (value of selected.axis.values ?? []; track value.uuid) {
+              <button
+                type="button"
+                class="value-chip"
+                [class.value-chip--on]="isValueSelected(selected.axis.uuid, value.uuid)"
+                [attr.aria-pressed]="isValueSelected(selected.axis.uuid, value.uuid)"
+                (click)="onToggleValue(selected.axis.uuid, value.uuid)"
+              >
+                @if (isValueSelected(selected.axis.uuid, value.uuid)) {
+                  <mat-icon aria-hidden="true" class="chip-check">check</mat-icon>
+                }
+                {{ value.value }}
+              </button>
+            }
+          </div>
+
+          <button
+            mat-icon-button
+            type="button"
+            [matTooltip]="'productModels.form.removeAxis' | translate"
+            [attr.aria-label]="'productModels.form.removeAxis' | translate"
+            (click)="onRemoveAxis(selected.axis.uuid)"
+          >
+            <mat-icon aria-hidden="true">close</mat-icon>
+          </button>
+        </div>
+      } @empty {
+        <p class="step-empty">{{ 'productModels.form.noAxes' | translate }}</p>
+      }
+
+      <p class="step-hint">{{ 'productModels.form.axesHint' | translate }}</p>
+    </div>
+  </section>
+
+  <!-- Paso 3 — la matriz. La carga masiva vive en el encabezado: es la operación real. -->
+  <section class="step-card step-card--matrix">
+    <header class="step-header step-header--matrix">
+      <span class="step-badge" aria-hidden="true">3</span>
+      <h2 class="step-title">
+        {{ 'productModels.form.step3' | translate }}
+        <span class="step-counter">
+          {{
+            'productModels.form.selectedCount'
+              | translate: { selected: selectedCount(), total: rows().length }
+          }}
+        </span>
+      </h2>
+
+      @if (rows().length > 0) {
+        <div class="bulk-actions">
+          <button mat-stroked-button type="button" (click)="onSelectAll(true)">
+            {{ 'productModels.form.selectAll' | translate }}
+          </button>
+          <button mat-stroked-button type="button" (click)="onAutoSku()">
+            {{ 'productModels.form.autoSku' | translate }}
+          </button>
+          <button mat-stroked-button type="button" (click)="onSamePriceForAll()">
+            {{ 'productModels.form.samePrice' | translate }}
+          </button>
+        </div>
+      }
+    </header>
+
+    <div class="step-body">
+      @if (rows().length === 0) {
+        <p class="step-empty">{{ 'productModels.form.noMatrix' | translate }}</p>
+      } @else {
+        <div class="matrix-scroll">
+          <table class="matrix" [attr.aria-label]="'productModels.form.matrixAria' | translate">
+            <thead>
+              <tr>
+                <th scope="col" class="col-check">
+                  <span class="sr-only">{{ 'productModels.form.included' | translate }}</span>
+                </th>
+                @for (axis of selectedAxes(); track axis.axis.uuid) {
+                  <th scope="col">{{ axis.axis.name }}</th>
+                }
+                <th scope="col">{{ 'productModels.columns.sku' | translate }}</th>
+                <th scope="col">{{ 'productModels.columns.barcode' | translate }}</th>
+                <th scope="col" class="col-num">{{ 'productModels.columns.price' | translate }}</th>
+                <th scope="col" class="col-num">{{ 'productModels.columns.stock' | translate }}</th>
+                <th scope="col" class="col-open">
+                  <span class="sr-only">{{ 'productModels.form.openVariant' | translate }}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row.key) {
+                <tr [class.row-off]="!row.selected" [class.row-locked]="row.hasMovements">
+                  <td class="col-check">
+                    <mat-checkbox
+                      [checked]="row.selected"
+                      [disabled]="row.hasMovements"
+                      [matTooltip]="
+                        row.hasMovements ? ('productModels.form.lockedRow' | translate) : ''
+                      "
+                      [attr.aria-label]="'productModels.form.included' | translate"
+                      (change)="onToggleRow($index)"
+                    />
+                  </td>
+
+                  @for (value of row.values; track value.uuid) {
+                    <td>{{ value.value }}</td>
+                  }
+
+                  <td>
+                    @if (row.selected) {
+                      <input
+                        class="cell-input"
+                        type="text"
+                        [ngModel]="row.sku"
+                        (ngModelChange)="onRowFieldChange($index, 'sku', $event)"
+                        [attr.aria-label]="'productModels.columns.sku' | translate"
+                      />
+                    } @else {
+                      <span class="cell-off">{{ 'productModels.form.notCreated' | translate }}</span>
+                    }
+                  </td>
+
+                  <td>
+                    @if (row.selected) {
+                      <input
+                        class="cell-input"
+                        type="text"
+                        [ngModel]="row.barcode"
+                        (ngModelChange)="onRowFieldChange($index, 'barcode', $event)"
+                        [placeholder]="'productModels.form.optional' | translate"
+                        [attr.aria-label]="'productModels.columns.barcode' | translate"
+                      />
+                    }
+                  </td>
+
+                  <td class="col-num">
+                    @if (row.selected) {
+                      <input
+                        class="cell-input cell-input--num"
+                        type="number"
+                        min="0"
+                        [ngModel]="row.price"
+                        (ngModelChange)="onRowPriceChange($index, $event)"
+                        [attr.aria-label]="'productModels.columns.price' | translate"
+                      />
+                    }
+                  </td>
+
+                  <!-- El stock es de la variante y entra por compra o ajuste: acá sólo se lee. -->
+                  <td class="col-num cell-readonly">{{ row.totalStock ?? 0 }}</td>
+
+                  <td class="col-open">
+                    <!-- La ficha profunda sigue siendo la del producto: la matriz es el alta rápida. -->
+                    @if (row.uuid) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [matTooltip]="'productModels.form.openVariant' | translate"
+                        [attr.aria-label]="'productModels.form.openVariant' | translate"
+                        (click)="onOpenVariant(row.uuid)"
+                      >
+                        <mat-icon aria-hidden="true">open_in_new</mat-icon>
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <p class="step-hint">{{ 'productModels.form.matrixHint' | translate }}</p>
+      }
+    </div>
+  </section>
+}

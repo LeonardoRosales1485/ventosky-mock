@@ -1,0 +1,208 @@
+<app-page-header
+  [title]="titleKey | translate"
+  [description]="descriptionKey | translate"
+  [showBack]="isEdit"
+  [backLabel]="'purchases.editPurchase.back' | translate"
+  (back)="onBack()"
+>
+  <app-purchase-cash-session-chip
+    [cashRegister]="cashRegister()"
+    [cashRegisters]="cashRegisters()"
+    [loading]="catalogsState() === LoadState.Loading"
+    [canOpen]="canOpenCashSession"
+    [opening]="openingCashSession()"
+    (cashRegisterChange)="onCashRegisterChange($event)"
+    (openSession)="onOpenCashSession()"
+  />
+</app-page-header>
+
+<!--
+  Sin botón de reintento cuando el motivo es del negocio —la orden no existe, ya se aplicó, es de
+  otra sucursal—: volver a pedirla daría exactamente lo mismo.
+-->
+<app-load-state
+  [state]="catalogsState()"
+  [loadingMessage]="'purchases.newPurchase.loading' | translate"
+  [errorMessage]="loadErrorMessageKey() | translate"
+  [retryable]="retryable()"
+  [retryLabel]="'purchases.newPurchase.retry' | translate"
+  minHeight="24rem"
+  (retry)="loadCatalogs()"
+>
+  <div class="purchase">
+    <div class="purchase__stack">
+      @if (failedCatalogs().length > 0) {
+        <p class="purchase__catalogs-alert" role="alert">
+          <mat-icon aria-hidden="true">warning</mat-icon>
+          <span>
+            {{ 'purchases.catalogs.failed' | translate }}
+            @for (name of failedCatalogs(); track name; let last = $last) {
+              {{ 'purchases.catalogs.names.' + name | translate }}@if (!last) {,}
+            }
+          </span>
+          <button mat-stroked-button type="button" (click)="loadCatalogs()">
+            {{ 'purchases.catalogs.retry' | translate }}
+          </button>
+        </p>
+      }
+
+      <!-- A quién se le compra, con qué comprobante, cuándo y qué hay para anotar. -->
+      <section class="vk-card" aria-labelledby="purchase-details-title">
+        <header class="vk-card__header">
+          <span class="vk-card__icon"><mat-icon aria-hidden="true">local_shipping</mat-icon></span>
+          <h2 class="vk-card__title" id="purchase-details-title">
+            {{ 'purchases.sections.details' | translate }}
+          </h2>
+        </header>
+
+        <div class="vk-card__body">
+          <app-purchase-details
+            [suppliers]="suppliers()"
+            [vouchers]="vouchers()"
+            [supplier]="cart.supplier()"
+            [voucher]="cart.voucher()"
+            [dateOperation]="cart.dateOperation()"
+            [observations]="cart.observations()"
+            [isToday]="isToday()"
+            [disabled]="submitting()"
+            [supplierLocked]="isEdit"
+            (supplierChange)="onSupplierChange($event)"
+            (voucherChange)="onVoucherChange($event)"
+            (dateOperationChange)="onDateOperationChange($event)"
+            (observationsChange)="onObservationsChange($event)"
+          />
+
+          <!--
+            El estado de la cuenta del proveedor, apenas se lo elige. Sin límite ni disponible: en
+            una compra no hay nada que consumir. Los manda nulos el backend.
+          -->
+          <app-account-panel
+            class="purchase__account"
+            [availability]="availability()"
+            [loading]="availabilityLoading()"
+            [noAccount]="noAccount()"
+          />
+        </div>
+      </section>
+
+      <!-- Qué se compra y a qué costo. -->
+      <section class="vk-card" aria-labelledby="purchase-lines-title">
+        <header class="vk-card__header">
+          <span class="vk-card__icon"><mat-icon aria-hidden="true">list_alt</mat-icon></span>
+          <h2 class="vk-card__title" id="purchase-lines-title">
+            {{ 'purchases.sections.lines' | translate }}
+          </h2>
+          <span class="vk-spacer"></span>
+          <span class="vk-pill">{{ 'purchases.cart.itemCount' | translate: { count: cart.lineViews().length } }}</span>
+        </header>
+
+        <!-- El buscador para el producto suelto y, pegada, la carga por modelo (repone un modelo entero). -->
+        <div class="purchase__add">
+          <app-purchase-product-search
+            class="purchase__search"
+            [supplier]="cart.supplier()"
+            (productSelected)="onProductSelected($event)"
+          />
+
+          <button
+            mat-stroked-button
+            type="button"
+            class="purchase__model-load"
+            (click)="onModelLoad()"
+          >
+            <mat-icon aria-hidden="true">grid_on</mat-icon>
+            {{ 'purchases.modelLoad.action' | translate }}
+          </button>
+        </div>
+
+        <app-purchase-cart
+          [lines]="cart.lineViews()"
+          (quantityChange)="onQuantityChange($event)"
+          (unitCostChange)="onUnitCostChange($event)"
+          (batchesChange)="onBatchesChange($event)"
+          (serialsChange)="onSerialsChange($event)"
+          (packagingChange)="onLinePackagingChange($event)"
+          (lineRemove)="onRemoveLine($event)"
+        />
+      </section>
+
+      <!--
+        Con un comprobante que no registra pago —una orden de compra, un presupuesto— la tarjeta de
+        pagos no existe: no hay nada que pagar todavía.
+      -->
+      @if (cart.requiresPayment()) {
+        <section class="vk-card" aria-labelledby="purchase-payments-title">
+          <header class="vk-card__header">
+            <span class="vk-card__icon"><mat-icon aria-hidden="true">credit_card</mat-icon></span>
+            <h2 class="vk-card__title" id="purchase-payments-title">
+              {{ 'purchases.sections.payments' | translate }}
+            </h2>
+          </header>
+
+          <div class="vk-card__body">
+            <app-purchase-payments
+              [paymentMethods]="paymentMethods()"
+              [payments]="cart.payments()"
+              [remainingAmount]="cart.remainingAmount()"
+              [availability]="availability()"
+              [disabled]="submitting()"
+              (paymentAdd)="onPaymentAdd($event)"
+              (paymentRemove)="onPaymentRemove($event)"
+            />
+          </div>
+        </section>
+      }
+    </div>
+
+    <!-- El resumen acompaña el scroll: el total y el botón de registrar siempre a la vista. -->
+    <aside class="vk-card purchase__summary" aria-labelledby="purchase-summary-title">
+      <header class="vk-card__header">
+        <span class="vk-card__icon"><mat-icon aria-hidden="true">receipt</mat-icon></span>
+        <h2 class="vk-card__title" id="purchase-summary-title">
+          {{ 'purchases.sections.summary' | translate }}
+        </h2>
+      </header>
+
+      <div class="vk-card__body purchase__summary-body">
+        <app-purchase-totals
+          [totals]="cart.totals()"
+          [remainingAmount]="cart.remainingAmount()"
+          [changeAmount]="cart.changeAmount()"
+          [requiresPayment]="cart.requiresPayment()"
+        />
+
+        @if (blockedReasonKey(); as reasonKey) {
+          <p class="purchase__reason" role="status">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <span>{{ reasonKey | translate }}</span>
+          </p>
+        }
+
+        <button
+          mat-flat-button
+          type="button"
+          class="purchase__confirm"
+          [disabled]="!canConfirm() || submitting()"
+          (click)="onConfirm()"
+        >
+          @if (submitting()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            <mat-icon aria-hidden="true">check</mat-icon>
+          }
+          {{ confirmLabelKey() | translate }}
+        </button>
+
+        <button
+          mat-stroked-button
+          type="button"
+          class="purchase__cancel"
+          [disabled]="!canDiscard() || submitting()"
+          (click)="onDiscard()"
+        >
+          {{ 'purchases.actions.cancel' | translate }}
+        </button>
+      </div>
+    </aside>
+  </div>
+</app-load-state>

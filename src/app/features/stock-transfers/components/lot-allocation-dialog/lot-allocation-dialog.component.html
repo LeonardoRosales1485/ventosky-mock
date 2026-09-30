@@ -1,0 +1,153 @@
+<h2 mat-dialog-title>{{ 'stockTransfers.lots.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="lots__intro">
+    {{
+      'stockTransfers.lots.intro'
+        | translate: { warehouse: data.sourceWarehouseName, product: data.product.name }
+    }}
+  </p>
+
+  <app-load-state
+    [state]="loadState()"
+    [loadingMessage]="'stockTransfers.lots.loading' | translate"
+    [errorMessage]="'stockTransfers.lots.loadError' | translate"
+    [retryable]="true"
+    [retryLabel]="'stockTransfers.actions.retry' | translate"
+    (retry)="onRetry()"
+    minHeight="10rem"
+  >
+    @if (batches().length === 0) {
+      <p class="lots__empty">{{ 'stockTransfers.lots.empty' | translate }}</p>
+    } @else {
+      <!-- Los dos números que gobiernan el diálogo: cuánto hay que repartir y cuánto falta. -->
+      <div class="lots__summary">
+        <span class="lots__stat">
+          <span class="lots__stat-label">{{ 'stockTransfers.lots.toAllocate' | translate }}</span>
+          <strong class="lots__stat-value">{{ data.quantity }}</strong>
+        </span>
+        <span class="lots__stat" [attr.data-state]="isBalanced() ? 'ok' : 'pending'">
+          <span class="lots__stat-label">
+            {{
+              (remaining() < 0 ? 'stockTransfers.lots.over' : 'stockTransfers.lots.unallocated')
+                | translate
+            }}
+          </span>
+          <strong class="lots__stat-value">{{ remaining() < 0 ? -remaining() : remaining() }}</strong>
+        </span>
+      </div>
+
+      <div class="lots__table-scroll">
+        <table class="lots__table" [attr.aria-label]="'stockTransfers.lots.tableAria' | translate">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'stockTransfers.lots.columns.batch' | translate }}</th>
+              <th scope="col" class="lots__num">
+                {{ 'stockTransfers.lots.columns.available' | translate }}
+              </th>
+              <th scope="col" class="lots__num">
+                {{ 'stockTransfers.lots.columns.quantity' | translate }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (batch of batches(); track batch.uuid) {
+              <!--
+                La partida vencida se muestra siempre: el operador tiene que ver que ese saldo
+                existe y por qué no lo puede mandar. Lo que cambia es si se puede imputar, y eso lo
+                decide la política de la sucursal — `blocked`, no `expired`.
+              -->
+              <tr [attr.data-expired]="isExpired(batch) ? '' : null">
+                <td>
+                  <span class="lots__batch">{{ batch.batchNumber || '—' }}</span>
+                  <span class="lots__meta">
+                    @if (batch.expirationDate) {
+                      {{
+                        'stockTransfers.lots.expires'
+                          | translate: { date: batch.expirationDate | localizedDate: 'shortDate' }
+                      }}
+                      ·
+                    }
+                    {{ 'stockTransfers.lots.cost' | translate }}
+                    <app-currency-display [value]="batch.unitCost" />
+                  </span>
+                  @if (isExpired(batch)) {
+                    <span class="lots__expired-tag">
+                      <mat-icon class="lots__expired-icon" aria-hidden="true">warning</mat-icon>
+                      {{
+                        (isBlocked(batch)
+                          ? 'stockTransfers.lots.expiredBlocked'
+                          : 'stockTransfers.lots.expiredAllowed'
+                        ) | translate
+                      }}
+                    </span>
+                  }
+                </td>
+                <td class="lots__num lots__available">{{ batch.availableQuantity ?? 0 }}</td>
+                <td class="lots__num">
+                  <div class="lots__input-row">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <input
+                        matInput
+                        type="number"
+                        min="0"
+                        inputmode="decimal"
+                        autocomplete="off"
+                        [disabled]="isBlocked(batch)"
+                        [ngModel]="quantityFor(batch)"
+                        (ngModelChange)="onQuantityChange(batch, $event)"
+                        [attr.aria-label]="
+                          'stockTransfers.lots.quantityAria'
+                            | translate: { batch: batch.batchNumber || '' }
+                        "
+                      />
+                    </mat-form-field>
+                    <!--
+                      El atajo del reparto de a dos: se carga el lote que uno quiere vaciar y el
+                      resto cae acá sin tener que restar de cabeza.
+                    -->
+                    <button
+                      mat-icon-button
+                      type="button"
+                      [disabled]="remaining() <= 0 || isBlocked(batch)"
+                      [matTooltip]="'stockTransfers.lots.fill' | translate"
+                      [attr.aria-label]="'stockTransfers.lots.fill' | translate"
+                      (click)="onFill(batch)"
+                    >
+                      <mat-icon aria-hidden="true">south</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <p class="lots__note">
+        <mat-icon class="lots__note-icon" aria-hidden="true">info</mat-icon>
+        <span>{{ 'stockTransfers.lots.note' | translate }}</span>
+      </p>
+    }
+  </app-load-state>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="onResetToPolicy()">
+    {{ 'stockTransfers.lots.reset' | translate }}
+  </button>
+  <span class="lots__spacer"></span>
+  <button mat-button type="button" [mat-dialog-close]="undefined">
+    {{ 'stockTransfers.lots.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [disabled]="!isBalanced() || loadState() !== LoadState.Success"
+    (click)="onApply()"
+  >
+    <mat-icon aria-hidden="true">check</mat-icon>
+    {{ 'stockTransfers.lots.apply' | translate }}
+  </button>
+</mat-dialog-actions>

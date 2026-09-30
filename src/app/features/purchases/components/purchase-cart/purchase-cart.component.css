@@ -1,0 +1,508 @@
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+  La grilla crece con las líneas y quien scrollea es la página: cargar un comprobante largo se lee
+  de corrido, sin un panel interno con su propio scroll. Lo único que scrollea acá es el ancho,
+  cuando las columnas no entran.
+*/
+.cart__scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 720px;
+}
+
+/* Líneas de la Propuesta B: filas de 64px y celdas más juntas que en los listados. */
+.cart__scroll .mat-mdc-header-cell,
+.cart__scroll .mat-mdc-cell {
+  padding-inline: 10px;
+}
+
+.cart__scroll .mat-mdc-header-cell:first-child,
+.cart__scroll .mat-mdc-cell:first-child {
+  padding-inline-start: 22px;
+}
+
+.cart__scroll .mat-mdc-header-cell:last-child,
+.cart__scroll .mat-mdc-cell:last-child {
+  padding-inline-end: 16px;
+}
+
+.cart__scroll .mat-mdc-row {
+  height: 64px;
+}
+
+.cart__scroll .mat-mdc-cell.cart__numeric {
+  white-space: nowrap;
+}
+
+.cart__scroll .mat-column-subtotal {
+  min-width: 8.5rem;
+}
+
+.cart__product {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding-block: 0.375rem;
+}
+
+/* Ancla visual de la fila, del tamaño de una miniatura de producto. */
+.cart__thumb {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--vk-sunken);
+  color: var(--vk-fg-2);
+}
+
+.cart__thumb mat-icon {
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.cart__product-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.cart__product-name {
+  font-weight: 500;
+}
+
+.cart__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cart__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: var(--mat-sys-corner-extra-small);
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* El stock actual es referencia, no advertencia: una compra suma y nunca traba. */
+.cart__tag--stock {
+  background: var(--app-success-container);
+  color: var(--app-on-success-container);
+}
+
+.cart__tag--error {
+  background: var(--app-error-container);
+  color: var(--app-on-error-container);
+}
+
+.cart__tag mat-icon {
+  flex: none;
+  font-size: 0.875rem;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/*
+  El costo se edita en la misma celda donde se lee, sin `mat-form-field`: uno por fila levantaría el
+  alto de la grilla casi al doble, y cargar un remito largo vive de ver muchas líneas juntas.
+*/
+.cart__cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  height: 36px;
+  padding: 0 10px;
+  background: var(--vk-surface);
+  border: 1px solid var(--vk-line);
+  border-radius: var(--vk-radius-sm);
+}
+
+.cart__cost:focus-within {
+  border-color: var(--vk-accent);
+  box-shadow: 0 0 0 3px var(--vk-accent-soft);
+}
+
+/* La línea sin costo es la única que traba el commit: se marca también en el campo que la arregla. */
+.cart__cost--missing {
+  border-color: var(--app-error);
+}
+
+.cart__cost-prefix {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.cart__cost-input {
+  width: 5.5rem;
+  padding: 0.25rem 0;
+  text-align: end;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  background: transparent;
+  border: none;
+}
+
+.cart__cost-input:focus-visible {
+  outline: none;
+}
+
+/* Las flechas nativas roban ancho a un campo que ya es angosto. */
+.cart__cost-input::-webkit-outer-spin-button,
+.cart__cost-input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.cart__cost-input {
+  appearance: textfield;
+}
+
+/*
+  La línea sin costo se marca entera y no sólo con su leyenda: en una grilla de seis columnas, un
+  renglón teñido es lo que se ve sin leer.
+*/
+.cart__row--blocked td {
+  background: var(--app-error-container);
+}
+
+.cart__row--blocked td:first-child {
+  box-shadow: inset 0.1875rem 0 0 var(--app-error);
+}
+
+.cart__center {
+  text-align: center;
+}
+
+.cart__numeric {
+  text-align: end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart__subtotal {
+  font-weight: 500;
+}
+
+.cart__quantity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+}
+
+.cart__quantity-input {
+  width: 3rem;
+  padding: 0.25rem;
+  text-align: center;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  height: 36px;
+  background: var(--vk-surface);
+  border: 1px solid var(--vk-line-strong);
+  border-radius: var(--vk-radius-sm);
+}
+
+.cart__quantity-input:focus-visible {
+  outline: 0;
+  border-color: var(--vk-accent);
+  box-shadow: 0 0 0 3px var(--vk-accent-soft);
+}
+
+/* Las flechas nativas compiten con los botones −/+ por el mismo gesto. */
+.cart__quantity-input::-webkit-outer-spin-button,
+.cart__quantity-input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.cart__quantity-input {
+  appearance: textfield;
+}
+
+.mat-column-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Columna fija en el scroll horizontal: necesita fondo propio para no dejar ver las de atrás. */
+.cart__actions-cell {
+  background: var(--mat-sys-surface);
+  text-align: end;
+  padding-inline: 0.25rem;
+}
+
+.cart__empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.cart__empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cart__empty mat-icon {
+  font-size: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  opacity: 0.5;
+}
+
+.cart__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 14px 22px;
+  border-top: 1px solid var(--vk-line);
+}
+
+.cart__count {
+  font-size: 13px;
+  color: var(--vk-fg-3);
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ───────────────────────────  Partidas  ─────────────────────────── */
+
+.cart__tag--batch,
+.cart__tag--serial {
+  background: var(--app-info-container);
+  color: var(--app-on-info-container);
+}
+
+.cart__tag--ok {
+  background: var(--app-success-container);
+  color: var(--app-on-success-container);
+}
+
+/* La línea con partidas y su fila de reparto se leen como una sola: sin borde entre las dos. */
+.cart__row--has-batches td {
+  border-bottom-width: 0;
+}
+
+.cart__batches-cell {
+  padding: 0 0.5rem 0.75rem;
+}
+
+.cart__batches {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-small);
+  background: var(--mat-sys-surface-container-low);
+}
+
+.cart__batches-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.cart__batches-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.cart__batches-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.cart__batches-table th,
+.cart__batches-table td {
+  padding: 0.25rem 0.375rem;
+  text-align: start;
+  vertical-align: middle;
+}
+
+.cart__batches-table thead th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Mismo tratamiento que el costo: se edita donde se lee, sin `mat-form-field` por fila. */
+.cart__batch-input {
+  width: 100%;
+  min-width: 7rem;
+  padding: 0.3125rem 0.5rem;
+  font: inherit;
+  color: inherit;
+  background: var(--mat-sys-surface-container-high);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-extra-small);
+}
+
+.cart__batch-input:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 1px;
+}
+
+.cart__batch-input[aria-invalid='true'] {
+  border-color: var(--app-error);
+}
+
+.cart__batch-input--qty {
+  width: 6rem;
+  min-width: 6rem;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart__batches-add {
+  align-self: flex-start;
+}
+
+/*
+  Empaque de la línea, en columna propia (wireframe 1o): la compra se carga en un escritorio y con
+  el remito al lado, y ahí el bulto —«Caja x 21»— es un dato de la fila tan legible como la
+  cantidad. La equivalencia en unidad base va como tag del producto, junto al SKU y al stock.
+*/
+.mat-column-packaging {
+  width: 8rem;
+}
+
+.cart__packaging-select {
+  width: 100%;
+  max-width: 10rem;
+  font-size: 0.8125rem;
+}
+
+/* Sin empaques declarados no hay nada que elegir: la celda dice en qué unidad se carga, apagada. */
+.cart__packaging-none {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+/*
+  La equivalencia en unidad base: es lo que evita que el número de la fila se lea como unidades
+  cuando en realidad son cajas (RN-16).
+*/
+.cart__tag--equivalence {
+  background: var(--app-info-container);
+  color: var(--app-on-info-container);
+}
+
+/* La partida cargada en bultos muestra al lado cuántas unidades base son: es lo que tiene que cuadrar. */
+.cart__batch-units {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ── Series de la línea (wireframe 1o) ──────────────────────────────────── */
+
+.cart__serials {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .cart__serials {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cart__serials-textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font-family: var(--mat-sys-body-medium-font, monospace);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.cart__serials-textarea:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 1px;
+}
+
+.cart__serials-hint,
+.cart__serials-empty,
+.cart__serials-note {
+  margin: 0.4rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.cart__serials-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cart__serial-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cart__serial-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.6rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 999px;
+  background: var(--mat-sys-surface-container-high);
+  font-size: 0.8125rem;
+}
+
+.cart__serial-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cart__serial-chip-remove:hover {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+}

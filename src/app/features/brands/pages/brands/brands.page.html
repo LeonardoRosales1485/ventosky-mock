@@ -1,0 +1,81 @@
+<app-page-header
+  [title]="'brands.title' | translate"
+  [description]="'brands.description' | translate"
+>
+  <button mat-flat-button type="button" color="primary" (click)="onCreate()">
+    <mat-icon aria-hidden="true">add</mat-icon>
+    {{ 'brands.actions.create' | translate }}
+  </button>
+</app-page-header>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'brands.loading' | translate"
+>
+  <app-table-toolbar
+    tableWrapperHeader
+    [search]="searchQuery()"
+    [activeFilters]="activeFilters()"
+    (searchChange)="searchQuery.set($event)"
+    (refresh)="onRefresh()"
+    (filtersClick)="onFiltersClick()"
+    (clearFilters)="onClearFilters()"
+  />
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    class="w-full"
+    [attr.aria-label]="'brands.tableAria' | translate"
+  >
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'brands.columns.name' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let brand">{{ brand.name }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'brands.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let brand" class="actions-cell">
+        <app-row-actions
+          [actions]="rowActions()"
+          [ariaLabel]="'brands.actions.rowAria' | translate"
+          (actionClick)="onRowAction($event, brand)"
+        />
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="displayedColumns.length"
+      >
+        @if (!paginator.loading()) {
+          {{ 'brands.empty' | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'brands.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

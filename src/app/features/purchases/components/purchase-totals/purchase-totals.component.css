@@ -1,0 +1,102 @@
+/* Va dentro de la tarjeta del resumen, que ya pone su propio marco y su título. */
+:host {
+  display: block;
+}
+
+.totals__breakdown {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.totals__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 14px;
+  color: var(--vk-fg-2);
+}
+
+.totals__row dt,
+.totals__row dd {
+  margin: 0;
+}
+
+.totals__row dd {
+  font-family: var(--vk-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.totals__total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: var(--vk-radius-sm);
+  background: var(--vk-accent-soft);
+}
+
+.totals__total-label {
+  color: var(--vk-on-accent-soft);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.totals__total-value {
+  font: 600 32px/1.2 var(--vk-font-mono);
+  letter-spacing: -0.03em;
+  color: var(--vk-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.totals__total-value ::ng-deep .currency-display {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.totals__remaining,
+.totals__change {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--vk-radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.totals__remaining {
+  background: var(--vk-warn-soft);
+  color: var(--vk-warn);
+}
+
+.totals__change {
+  background: var(--vk-ok-soft);
+  color: var(--vk-ok);
+}
+
+.totals__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--vk-radius-sm);
+  background: var(--vk-info-soft);
+  color: var(--vk-info);
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.totals__note mat-icon {
+  flex: none;
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}

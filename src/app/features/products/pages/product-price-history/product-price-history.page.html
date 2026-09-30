@@ -1,0 +1,273 @@
+<app-page-header
+  [title]="'products.priceHistory.title' | translate"
+  [description]="'products.priceHistory.description' | translate"
+  [showBack]="true"
+  [backLabel]="'products.priceHistory.back' | translate"
+  (back)="onBack()"
+>
+  <button mat-stroked-button type="button" (click)="onBack()">
+    <mat-icon aria-hidden="true">edit</mat-icon>
+    {{ 'products.priceHistory.editProduct' | translate }}
+  </button>
+</app-page-header>
+
+@if (!canViewPriceHistory) {
+  <section class="price-history__card">
+    <p class="price-history__empty">{{ 'products.priceHistory.noPermission' | translate }}</p>
+  </section>
+} @else {
+  <app-load-state
+    [state]="loadState()"
+    [loadingMessage]="'products.priceHistory.loading' | translate"
+    [errorMessage]="'products.priceHistory.loadError' | translate"
+    [retryable]="true"
+    (retry)="onRetry()"
+    minHeight="24rem"
+  >
+    <!--
+      Una sola fila de filtros, arriba de todo lo que acotan: el gráfico y la tabla siempre miran
+      el mismo recorte, así que los dos números no se pueden contradecir.
+    -->
+    <div
+      class="price-history__filters"
+      role="group"
+      [attr.aria-label]="'products.priceHistory.filtersAria' | translate"
+    >
+      <mat-button-toggle-group
+        [value]="period()"
+        (change)="onPeriodChange($event.value)"
+        [attr.aria-label]="'products.priceHistory.periodAria' | translate"
+        hideSingleSelectionIndicator
+      >
+        @for (option of periods; track option) {
+          <mat-button-toggle [value]="option">
+            {{ 'products.priceHistory.periods.' + option | translate }}
+          </mat-button-toggle>
+        }
+      </mat-button-toggle-group>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'products.priceHistory.from' | translate }}</mat-label>
+        <input
+          matInput
+          [matDatepicker]="fromPicker"
+          [value]="from()"
+          [max]="to()"
+          (dateChange)="onFromChange($event.value)"
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="fromPicker" />
+        <mat-datepicker #fromPicker />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'products.priceHistory.to' | translate }}</mat-label>
+        <input
+          matInput
+          [matDatepicker]="toPicker"
+          [value]="to()"
+          [min]="from()"
+          [max]="maxDate"
+          (dateChange)="onToChange($event.value)"
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="toPicker" />
+        <mat-datepicker #toPicker />
+      </mat-form-field>
+
+      <!--
+        La sucursal no admite un "todas": los precios son por sucursal, así que sin elegir una la
+        curva mezclaría los recálculos de todas y no diría nada.
+      -->
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'products.priceHistory.branch' | translate }}</mat-label>
+        <mat-select [value]="branchUuid()" (valueChange)="onBranchChange($event)">
+          @for (branch of branches() ?? []; track branch.uuid) {
+            <mat-option [value]="branch.uuid">{{ branch.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    @if (invalidRange()) {
+      <p class="price-history__note price-history__note--warning">
+        <mat-icon aria-hidden="true">event_busy</mat-icon>
+        <span>{{ 'products.priceHistory.invalidRange' | translate }}</span>
+      </p>
+    }
+
+    <section class="price-history__card" aria-labelledby="price-history-chart-title">
+      <h2 class="price-history__card-title" id="price-history-chart-title">
+        <mat-icon aria-hidden="true">show_chart</mat-icon>
+        {{ 'products.priceHistory.chartTitle' | translate }}
+      </h2>
+
+      <p class="price-history__hint">
+        {{
+          'products.priceHistory.chartSubtitle'
+            | translate
+              : {
+                  product: productName(),
+                  from: from() | localizedDate: 'mediumDate',
+                  to: to() | localizedDate: 'mediumDate',
+                }
+        }}
+      </p>
+
+      @if (!hasSeries()) {
+        <p class="price-history__empty">{{ 'products.priceHistory.empty' | translate }}</p>
+      } @else {
+        <!-- Mientras se recarga, el gráfico anterior se atenúa en el lugar: sin esqueleto y sin
+             salto de layout. -->
+        <div class="price-history__chart" [class.price-history__chart--refreshing]="refreshing()">
+          <app-line-chart
+            [xValues]="xValues()"
+            [series]="chartSeries()"
+            [valueFormat]="formatValue()"
+            [valueTickFormat]="formatAxisValue()"
+            [tickFormat]="formatAxisDate()"
+            [tooltipDateFormat]="formatTooltipDate()"
+            [ariaLabel]="
+              'products.priceHistory.chartAria' | translate: { product: productName() }
+            "
+            height="22rem"
+          />
+        </div>
+
+        <!--
+          La leyenda es el canal de identidad —el color nunca queda solo— y a la vez el control que
+          prende y apaga cada lista, con el precio de cierre y la variación del período al lado.
+        -->
+        <ul class="price-history__legend">
+          @for (row of legendRows(); track row.priceListUuid) {
+            <li>
+              <button
+                type="button"
+                class="price-history__legend-item"
+                [class.price-history__legend-item--off]="row.hidden"
+                [attr.aria-pressed]="!row.hidden"
+                (click)="onToggleSeries(row.priceListUuid)"
+              >
+                <span
+                  class="price-history__legend-key"
+                  [class.price-history__legend-key--uncharted]="row.color === null"
+                  [style.background]="row.color"
+                  aria-hidden="true"
+                ></span>
+
+                <span class="price-history__legend-name">{{ row.name }}</span>
+
+                <span class="price-history__legend-value">
+                  <app-currency-display [value]="row.last" />
+                </span>
+
+                @if (row.delta !== null && row.delta !== 0) {
+                  <span class="price-history__legend-delta">
+                    <app-currency-display [value]="row.delta" tone="auto" [showSign]="true" />
+                    @if (row.deltaPercent !== null) {
+                      <span class="price-history__legend-percent">
+                        ({{ row.deltaPercent > 0 ? '+' : '' }}{{ row.deltaPercent }} %)
+                      </span>
+                    }
+                  </span>
+                } @else {
+                  <span class="price-history__legend-delta">
+                    {{ 'products.priceHistory.noChange' | translate }}
+                  </span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      @if (unchartedNames().length > 0) {
+        <p class="price-history__note">
+          <mat-icon aria-hidden="true">palette</mat-icon>
+          <span>
+            {{
+              'products.priceHistory.unchartedLists'
+                | translate: { lists: unchartedNames().join(', '), max: seriesSlots }
+            }}
+          </span>
+        </p>
+      }
+
+      @if (truncated()) {
+        <p class="price-history__note price-history__note--warning">
+          <mat-icon aria-hidden="true">filter_alt</mat-icon>
+          <span>{{ 'products.priceHistory.truncated' | translate }}</span>
+        </p>
+      }
+    </section>
+
+    <section class="price-history__card" aria-labelledby="price-history-table-title">
+      <h2 class="price-history__card-title" id="price-history-table-title">
+        <mat-icon aria-hidden="true">history</mat-icon>
+        {{ 'products.priceHistory.tableTitle' | translate }}
+      </h2>
+
+      @if (tableRows().length === 0) {
+        <p class="price-history__empty">{{ 'products.priceHistory.tableEmpty' | translate }}</p>
+      } @else {
+        <div class="price-history__table-scroll">
+          <table class="price-history__table">
+            <caption class="sr-only">
+              {{
+                'products.priceHistory.tableAria' | translate
+              }}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">{{ 'products.priceHistory.columns.date' | translate }}</th>
+                <th scope="col">{{ 'products.priceHistory.columns.priceList' | translate }}</th>
+                <th scope="col" class="price-history__table-price">
+                  {{ 'products.priceHistory.columns.oldPrice' | translate }}
+                </th>
+                <th scope="col" class="price-history__table-price">
+                  {{ 'products.priceHistory.columns.price' | translate }}
+                </th>
+                <th scope="col" class="price-history__table-price">
+                  {{ 'products.priceHistory.columns.delta' | translate }}
+                </th>
+                <th scope="col">{{ 'products.priceHistory.columns.source' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of tableRows(); track row.uuid) {
+                <tr>
+                  <th scope="row">{{ row.timestamp | localizedDate: 'medium' }}</th>
+                  <td>{{ row.priceListName }}</td>
+                  <td class="price-history__table-price">
+                    @if (row.oldPrice === null) {
+                      —
+                    } @else {
+                      <app-currency-display [value]="row.oldPrice" />
+                    }
+                  </td>
+                  <td class="price-history__table-price">
+                    <app-currency-display [value]="row.price" />
+                  </td>
+                  <td class="price-history__table-price">
+                    @if (row.oldPrice === null) {
+                      <span class="price-history__badge">
+                        {{ 'products.priceHistory.created' | translate }}
+                      </span>
+                    } @else {
+                      <app-currency-display
+                        [value]="row.price - row.oldPrice"
+                        tone="auto"
+                        [showSign]="true"
+                      />
+                    }
+                  </td>
+                  <td>{{ sourceLabel(row.source) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <p class="price-history__hint">{{ 'products.priceHistory.tableHint' | translate }}</p>
+      }
+    </section>
+  </app-load-state>
+}

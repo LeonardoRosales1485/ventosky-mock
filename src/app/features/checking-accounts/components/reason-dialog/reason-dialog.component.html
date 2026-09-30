@@ -1,0 +1,47 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>{{ data.titleKey | translate }}</h2>
+
+  <mat-dialog-content>
+    <p class="reason-dialog__message">
+      {{ data.messageKey | translate: data.messageParams }}
+    </p>
+
+    @if (data.details?.length) {
+      <dl class="reason-dialog__details">
+        @for (detail of data.details; track detail.labelKey) {
+          <div class="reason-dialog__detail">
+            <dt>{{ detail.labelKey | translate }}</dt>
+            <dd>{{ detail.value }}</dd>
+          </div>
+        }
+      </dl>
+    }
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>{{ 'checkingAccounts.reasonDialog.reason' | translate }}</mat-label>
+      <textarea
+        matInput
+        rows="3"
+        [formField]="reasonForm.reason"
+        [attr.aria-label]="'checkingAccounts.reasonDialog.reason' | translate"
+      ></textarea>
+      <mat-hint>{{ 'checkingAccounts.reasonDialog.hint' | translate }}</mat-hint>
+      @if (reasonForm.reason().touched() && reasonForm.reason().invalid()) {
+        <mat-error>{{ reasonForm.reason().errors() | fieldError }}</mat-error>
+      }
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'checkingAccounts.actions.cancel' | translate }}
+    </button>
+    <button
+      mat-flat-button
+      type="submit"
+      [color]="data.destructive ? 'warn' : 'primary'"
+    >
+      {{ data.confirmKey | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

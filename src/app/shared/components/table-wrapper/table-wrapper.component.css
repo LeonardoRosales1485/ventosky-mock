@@ -1,0 +1,48 @@
+:host {
+  display: block;
+}
+
+/* La tabla vive en una card de la Propuesta B: borde de 1px, radio 12, sin sombra. */
+.table-wrapper {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--vk-radius);
+  border: 1px solid var(--vk-line);
+  background: var(--vk-surface);
+}
+
+.table-wrapper__header:has(*) {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--vk-line);
+}
+
+.table-wrapper__body {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.table-wrapper__footer:has(*) {
+  flex-shrink: 0;
+}
+
+.table-wrapper__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--vk-surface) 70%, transparent);
+}
+
+/*
+  En el teléfono la tabla no se aprieta hasta partir cada celda en tres renglones: conserva un ancho
+  mínimo y el cuerpo scrollea de costado, como en la Propuesta B.
+*/
+@media (max-width: 900px) {
+  .table-wrapper__body ::ng-deep table.mat-mdc-table {
+    min-width: 720px;
+  }
+}

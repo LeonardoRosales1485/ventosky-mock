@@ -1,0 +1,39 @@
+@switch (state()) {
+  @case (LoadState.Success) {
+    <ng-content />
+  }
+
+  @case (LoadState.Loading) {
+    @let loadingText = loadingMessage() ?? ('loadState.loading' | translate);
+
+    <div class="load-state" role="status" [style.min-height]="minHeight()">
+      <mat-spinner diameter="40" />
+      <p class="load-state__message">{{ loadingText }}</p>
+    </div>
+  }
+
+  @case (LoadState.Error) {
+    <div class="load-state load-state--error" role="alert" [style.min-height]="minHeight()">
+      <mat-icon class="load-state__icon" aria-hidden="true">{{ errorIcon() }}</mat-icon>
+      <p class="load-state__message">
+        {{ errorMessage() ?? ('loadState.error' | translate) }}
+      </p>
+
+      @if (retryable()) {
+        <button mat-stroked-button type="button" (click)="retry.emit()">
+          <mat-icon aria-hidden="true">refresh</mat-icon>
+          {{ retryLabel() ?? ('loadState.retry' | translate) }}
+        </button>
+      }
+    </div>
+  }
+
+  @default {
+    <div class="load-state" [style.min-height]="minHeight()">
+      <mat-icon class="load-state__icon" aria-hidden="true">{{ idleIcon() }}</mat-icon>
+      <p class="load-state__message">
+        {{ idleMessage() ?? ('loadState.idle' | translate) }}
+      </p>
+    </div>
+  }
+}

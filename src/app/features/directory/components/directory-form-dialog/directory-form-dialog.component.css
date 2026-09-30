@@ -1,0 +1,119 @@
+:host {
+  display: block;
+}
+
+.directory-form__subtitle {
+  margin: 0 0 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.directory-form__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--app-error-container);
+  color: var(--app-on-error-container);
+  font-size: 0.875rem;
+}
+
+.directory-form__columns {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .directory-form__columns {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  }
+
+  /*
+   * En el alta, el acceso ocupa las dos filas de la derecha y los vínculos que piden sus roles quedan en la segunda
+   * fila de la izquierda, pegados a los campos de la carpeta: la primera fila mide lo que miden esos campos, y lo
+   * que el acceso tenga de más va a la segunda.
+   */
+  .directory-form__columns--with-links {
+    grid-template-rows: auto 1fr;
+  }
+
+  .directory-form__columns--with-links .directory-form__column--main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .directory-form__columns--with-links .directory-form__column--access {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .directory-form__extra-links {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+  }
+}
+
+.directory-form__column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding-top: 0.25rem;
+}
+
+.directory-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.directory-form__eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.directory-form__chosen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container);
+}
+
+.directory-form__chosen-name {
+  font-weight: 600;
+}
+
+.directory-form__chosen-doc {
+  font-variant-numeric: tabular-nums;
+}
+
+.directory-form__chosen-note,
+.directory-form__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.directory-form__access-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.directory-form__access-summary p {
+  margin: 0;
+}

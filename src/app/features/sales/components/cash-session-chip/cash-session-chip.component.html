@@ -1,0 +1,55 @@
+<button
+  type="button"
+  class="chip"
+  [class.chip--ready]="isReady()"
+  [class.chip--blocked]="!isReady() && !loading()"
+  [disabled]="!selectable()"
+  [matMenuTriggerFor]="selectable() ? cashRegisterMenu : null"
+  [matTooltip]="
+    (selectable() ? 'sales.cashSession.switchAria' : 'sales.cashSession.hint') | translate
+  "
+>
+  <mat-icon aria-hidden="true" class="chip__icon">point_of_sale</mat-icon>
+
+  <span class="chip__text">
+    {{ statusKey() | translate }}
+
+    @if (cashRegister(); as register) {
+      <strong class="chip__name">{{ register.name }}</strong>
+
+      @if (openedBy(); as opener) {
+        <span class="chip__opener">({{ opener }})</span>
+      }
+    }
+  </span>
+
+  @if (selectable()) {
+    <mat-icon aria-hidden="true" class="chip__caret">expand_more</mat-icon>
+  }
+</button>
+
+<!--
+  Abrir es lo que destraba la operación, así que se ofrece acá mismo y no se manda al ABM: el
+  chip ya está diciendo que la caja está cerrada.
+-->
+@if (canOfferOpen()) {
+  <button
+    mat-stroked-button
+    type="button"
+    class="chip__open"
+    [disabled]="opening()"
+    (click)="openSession.emit()"
+  >
+    <mat-icon aria-hidden="true">lock_open</mat-icon>
+    {{ 'sales.cashSession.openAction' | translate }}
+  </button>
+}
+
+<mat-menu #cashRegisterMenu="matMenu">
+  @for (register of cashRegisters(); track register.uuid) {
+    <button mat-menu-item type="button" (click)="cashRegisterChange.emit(register.uuid)">
+      <mat-icon aria-hidden="true">{{ isOpen(register) ? 'lock_open' : 'lock' }}</mat-icon>
+      <span>{{ register.name }}</span>
+    </button>
+  }
+</mat-menu>

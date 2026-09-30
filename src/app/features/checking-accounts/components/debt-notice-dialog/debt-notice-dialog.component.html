@@ -1,0 +1,133 @@
+<h2 mat-dialog-title>{{ 'checkingAccounts.noticeDialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="notice__lead">
+    {{ 'checkingAccounts.noticeDialog.lead' | translate: { name: data.partyName } }}
+  </p>
+
+  @if (preview(); as preview) {
+    <!--
+      Dos columnas y no una: a la izquierda el texto, que **sí** se edita —el servidor propuso y no
+      vuelve a opinar—; a la derecha el detalle que armó el backend, que no se toca. Ese paso es la
+      funcionalidad, no un trámite.
+    -->
+    <div class="notice__grid">
+      <div class="notice__form">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>{{ 'checkingAccounts.noticeDialog.recipient' | translate }}</mat-label>
+          <input
+            matInput
+            type="email"
+            name="recipient"
+            [ngModel]="recipient()"
+            (ngModelChange)="recipient.set($event)"
+          />
+          <!--
+            Un titular sin mail cargado no es un error: la propuesta llega igual con el destinatario
+            vacío, porque enterarse al mandar —con el texto ya escrito— es la peor versión.
+          -->
+          @if (!preview.recipient) {
+            <mat-hint>{{ 'checkingAccounts.noticeDialog.noEmailHint' | translate }}</mat-hint>
+          } @else {
+            <mat-hint>{{ 'checkingAccounts.noticeDialog.recipientHint' | translate }}</mat-hint>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>{{ 'checkingAccounts.noticeDialog.subject' | translate }}</mat-label>
+          <input
+            matInput
+            name="subject"
+            [ngModel]="subject()"
+            (ngModelChange)="subject.set($event)"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>{{ 'checkingAccounts.noticeDialog.body' | translate }}</mat-label>
+          <textarea
+            matInput
+            rows="10"
+            name="body"
+            [ngModel]="body()"
+            (ngModelChange)="body.set($event)"
+          ></textarea>
+          <mat-hint>{{ 'checkingAccounts.noticeDialog.bodyHint' | translate }}</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!--
+        El detalle que arma el backend: es lo que el operador revisa antes de decidir, y no se
+        edita. Sin esto, el diálogo pediría confirmar un texto sin poder contrastarlo con lo que la
+        cuenta debe. El importe reclamado tampoco viaja en el request — es lo que el aviso afirma.
+      -->
+      <section
+        class="notice__detail"
+        [attr.aria-label]="'checkingAccounts.noticeDialog.detailAria' | translate"
+      >
+        <div class="notice__row">
+          <span class="notice__label">
+            {{ 'checkingAccounts.noticeDialog.claimed' | translate }}
+          </span>
+          <app-currency-display [value]="preview.overdueAmount" tone="negative" />
+        </div>
+
+        @if (hasOverdue()) {
+          <ul class="notice__debts">
+            @for (debt of preview.debts; track debt.uuid) {
+              <li class="notice__debt">
+                <span>{{ debt.publicId ?? debt.description }}</span>
+                <span class="notice__debt-due">
+                  {{ debt.dateDue | localizedDate: 'mediumDate' }}
+                </span>
+                <app-currency-display [value]="debt.pendingAmount" />
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="notice__note" role="alert">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            {{ 'checkingAccounts.noticeDialog.nothingOverdue' | translate }}
+          </p>
+        }
+
+        <!--
+          Sólo entra lo vencido. Meter lo que está al día convertiría el aviso en un resumen de
+          cuenta, que es otra cosa y se pide de otra manera.
+        -->
+        <p class="notice__scope">{{ 'checkingAccounts.noticeDialog.overdueOnly' | translate }}</p>
+      </section>
+    </div>
+
+    <!--
+      Si el envío falla no queda registro: la fila del aviso es la prueba de que al cliente se le
+      avisó, y escribirla sin que el mail salga la volvería una afirmación falsa.
+    -->
+    <p class="notice__footnote">
+      <mat-icon aria-hidden="true">history_edu</mat-icon>
+      {{ 'checkingAccounts.noticeDialog.leavesTrail' | translate }}
+    </p>
+  } @else if (loading()) {
+    <p class="notice__note">{{ 'checkingAccounts.detail.loading' | translate }}</p>
+  } @else {
+    <p class="notice__note" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      {{ 'checkingAccounts.noticeDialog.previewError' | translate }}
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">
+    {{ 'checkingAccounts.actions.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [disabled]="!canSubmit()"
+    (click)="onConfirm()"
+  >
+    {{ 'checkingAccounts.noticeDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

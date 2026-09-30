@@ -1,0 +1,27 @@
+:host {
+  display: block;
+}
+
+.permission-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  line-height: 1.25;
+  padding-block: 0.25rem;
+}
+
+.permission-option__name {
+  font-weight: 500;
+}
+
+.permission-option__description {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.75rem;
+}
+
+.directory-links {
+  min-height: 1.25rem;
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8125rem;
+}

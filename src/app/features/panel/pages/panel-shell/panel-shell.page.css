@@ -1,0 +1,178 @@
+.sidebar-drawer {
+  width: var(--panel-sidebar-width);
+  border-right: 0;
+  box-shadow: none;
+  --mat-sidenav-container-background-color: var(--vk-side);
+  --mat-sidenav-container-text-color: var(--vk-side-fg);
+  --mat-sidenav-container-divider-color: transparent;
+  background: var(--vk-side);
+}
+
+.panel-shell {
+  --panel-sidebar-width: var(--vk-sidebar-width);
+  --panel-sidebar-width-collapsed: 4.5rem;
+  /*
+    Shared rail motion. Inherited by the sidebar so its inner spacing settles on
+    the same curve as the drawer width. `transform` keeps Material's own timing
+    so the mobile overlay slide is untouched.
+  */
+  --panel-sidebar-motion: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.panel-shell--collapsed {
+  --panel-sidebar-width: var(--panel-sidebar-width-collapsed);
+}
+
+/*
+  The drawer ships a `corner-large` shape, which reads as a floating overlay.
+  That suits the mobile drawer, but in side mode the rail is flush against the
+  content, so the rounded edge cuts into its own border. Zeroing the token
+  covers every corner Material derives from it, in both writing directions.
+*/
+.panel-shell:not(.panel-shell--mobile) .sidebar-drawer {
+  --mat-sidenav-container-shape: 0;
+}
+
+/*
+  Material's `.mat-drawer-transition .mat-drawer` rule only transitions
+  `transform`, and its stylesheet is injected after this one, so a plain
+  `.sidebar-drawer` selector ties on specificity and loses — the width snaps.
+  Matching the container class outranks it; `transform` is restated so the
+  overlay slide still animates. Gating on `.mat-drawer-transition` keeps the
+  first paint static, like Material does.
+*/
+.panel-shell.mat-drawer-transition .sidebar-drawer {
+  transition:
+    width var(--panel-sidebar-motion),
+    transform 400ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/*
+  MatSidenav keeps the content margin from the expanded width when the drawer
+  only changes via CSS. Sync the margin explicitly for desktop side mode, and
+  own the transition here too so it outranks Material's 400ms content rule and
+  tracks the drawer width exactly.
+
+  El modo inmersivo se excluye acá y no se pisa con una regla propia a continuación: `:not()` suma
+  especificidad, así que un selector aparte con menos clases perdería y el contenido quedaría
+  corrido el ancho de un rail que ya no está.
+*/
+.panel-shell:not(.panel-shell--mobile):not(.panel-shell--immersive) .panel-content {
+  margin-left: var(--panel-sidebar-width) !important;
+  transition: margin-left var(--panel-sidebar-motion);
+}
+
+.panel-shell--mobile .panel-content,
+.panel-shell--immersive .panel-content {
+  margin-left: 0 !important;
+}
+
+/*
+  The header of the shell: the topbar, and the breadcrumb pinned against its
+  lower edge so the two read as one block while the page scrolls under them.
+  The scroller is the drawer content itself, which is what `sticky` needs to
+  resolve against — both bars stay in flow, so the content area keeps sizing
+  itself against what is left instead of running underneath them.
+
+  `top` on the breadcrumb is the topbar's own height token: the toolbar is
+  border-box, so its bottom border is already inside that height. Both outrank
+  `main`'s `z-[1]`, and the topbar outranks the breadcrumb, so scrolled content
+  passes below their opaque surfaces. Neither may be shrunk when the viewport
+  gets short — a squeezed header would slide out from under the sticky offset.
+*/
+.panel-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-shell {
+    --panel-sidebar-motion: 1ms linear;
+  }
+}
+
+.panel-shell .mat-drawer-backdrop.mat-drawer-shown {
+  background-color: color-mix(in srgb, var(--mat-sys-scrim, #000) 40%, transparent);
+}
+
+/*
+  The content area, and the wave's positioning context.
+
+  It carries no height of its own on purpose. As a `flex-1` item of the drawer
+  content it already fills whatever the header leaves, and — since it does not
+  clip — grows past it with a tall page, which is what makes the drawer content
+  scroll and the two header bars stick. A `min-height` here would have to
+  subtract both bars, and the breadcrumb is only there on the screens that
+  declare one.
+*/
+.panel-content__inner {
+  position: relative;
+}
+
+/*
+  El área de trabajo. El padding y la separación entre bloques viven acá —y no en utilidades del
+  template— porque el modo inmersivo los tiene que anular, y una clase de Tailwind con prefijo de
+  breakpoint no se puede apagar con un binding.
+*/
+.panel-main {
+  padding: 24px 16px 40px;
+}
+
+@media (min-width: 900px) {
+  .panel-main {
+    padding: 32px 32px 56px;
+  }
+}
+
+/* Contenedor de página de la Propuesta B: 1280px de ancho útil, 20px entre bloques. */
+.panel-main__inner {
+  gap: var(--vk-gap);
+  max-width: 1280px;
+}
+
+/*
+  Inmersivo: el contenido llena lo que el shell dejó de ocupar, y el scroll pasa a ser asunto de la
+  pantalla. `min-height: 0` en toda la cadena es lo que deja que un hijo con `overflow` scrollee por
+  dentro en vez de estirar al padre.
+
+  Empieza por el drawer: Material le da `display: block` a `.mat-drawer-content` desde su hoja
+  inyectada en runtime, que por orden le gana a la utilidad `flex` del template — así que la
+  columna del shell nunca repartió altura, y cada bloque se quedaba con la suya. Dos clases
+  alcanzan para superarla. `overflow: hidden` mueve el scroll a los paneles, que es donde tiene que
+  estar cuando la pantalla no scrollea.
+*/
+.panel-shell--immersive .panel-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-shell--immersive .panel-content__inner {
+  display: flex;
+  min-height: 0;
+}
+
+.panel-shell--immersive .panel-main {
+  background: var(--vk-bg);
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.panel-shell--immersive .panel-main__inner {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  /* El punto de venta ocupa todo el monitor: el tope de 1280px es para las páginas del panel. */
+  max-width: none;
+  gap: 0;
+}
+
+/* El `router-outlet` es un hijo vacío del flex: sin esto se lleva un `gap` antes de la página. */
+.panel-main__inner > router-outlet {
+  display: none;
+}

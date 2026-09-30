@@ -1,0 +1,55 @@
+:host {
+  display: block;
+}
+
+mat-dialog-content {
+  min-width: min(100%, 22rem);
+}
+
+.version-conflict__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.version-conflict__title-icon {
+  color: var(--mat-sys-error);
+}
+
+.version-conflict__record {
+  margin: 0 0 0.5rem;
+  font-weight: 500;
+}
+
+.version-conflict__message {
+  margin: 0;
+  /* El `userMessage` del backend trae `\n` entre el resumen y el detalle. */
+  white-space: pre-line;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: 1.5;
+}
+
+.version-conflict__options {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.version-conflict__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+  line-height: 1.4;
+}
+
+.version-conflict__option-icon {
+  flex: none;
+  color: var(--mat-sys-primary);
+}
+
+.version-conflict__option--warn .version-conflict__option-icon {
+  color: var(--mat-sys-error);
+}

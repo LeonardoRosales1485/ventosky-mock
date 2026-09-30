@@ -1,0 +1,235 @@
+.serial-lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 56rem;
+}
+
+.serial-lookup__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.serial-lookup__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.serial-lookup__description {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.serial-lookup__search {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.serial-lookup__field {
+  flex: 1 1 22rem;
+  max-width: 34rem;
+}
+
+.serial-lookup__card {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+  overflow: hidden;
+}
+
+.serial-lookup__card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container);
+}
+
+.serial-lookup__product {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.serial-lookup__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin: 0.25rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.serial-lookup__state {
+  flex: none;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--mat-sys-surface-container-high);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.serial-lookup__state[data-state='IN_STOCK'] {
+  background: color-mix(in srgb, var(--mat-sys-tertiary) 16%, transparent);
+  color: var(--mat-sys-tertiary);
+}
+
+.serial-lookup__state[data-state='RETURNED'] {
+  background: color-mix(in srgb, var(--mat-sys-primary) 16%, transparent);
+  color: var(--mat-sys-primary);
+}
+
+.serial-lookup__state[data-state='SCRAPPED'] {
+  background: color-mix(in srgb, var(--mat-sys-error) 14%, transparent);
+  color: var(--mat-sys-error);
+}
+
+/*
+ * La línea de tiempo. El punto relleno es un hecho que pasó; el vacío del final es dónde quedó la
+ * unidad, que es lo que la consulta viene a contestar.
+ */
+.serial-lookup__timeline {
+  list-style: none;
+  margin: 0;
+  padding: 1.25rem 1.25rem 1.25rem 2.5rem;
+}
+
+.serial-lookup__step {
+  position: relative;
+  padding-bottom: 1.25rem;
+}
+
+.serial-lookup__step:last-child {
+  padding-bottom: 0;
+}
+
+.serial-lookup__step::before {
+  content: '';
+  position: absolute;
+  left: -1.25rem;
+  top: 0.35rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--mat-sys-on-surface);
+}
+
+.serial-lookup__step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: -0.98rem;
+  top: 1.1rem;
+  bottom: 0.2rem;
+  width: 1px;
+  background: var(--mat-sys-outline-variant);
+}
+
+.serial-lookup__step--pending::before {
+  background: transparent;
+  border: 1px solid var(--mat-sys-outline);
+}
+
+.serial-lookup__step--pending .serial-lookup__step-title,
+.serial-lookup__step--pending .serial-lookup__step-line {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.serial-lookup__step-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.serial-lookup__step-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  margin: 0.25rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9375rem;
+}
+
+.serial-lookup__step-line > span:not(:last-child)::after,
+.serial-lookup__party > span:not(:last-child)::after {
+  content: ' ·';
+}
+
+.serial-lookup__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--mat-sys-primary);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.serial-lookup__link:hover {
+  text-decoration: underline;
+}
+
+.serial-lookup__party {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  margin: 0.35rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9375rem;
+}
+
+.serial-lookup__party-name strong {
+  color: var(--mat-sys-on-surface);
+}
+
+.serial-lookup__contact {
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+}
+
+.serial-lookup__contact:hover {
+  text-decoration: underline;
+}
+
+.serial-lookup__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.serial-lookup__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 3rem 1.5rem;
+  border: 1px dashed var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+}
+
+.serial-lookup__empty mat-icon {
+  width: 2rem;
+  height: 2rem;
+  font-size: 2rem;
+  opacity: 0.6;
+}
+
+.serial-lookup__empty-title {
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+}
+
+.serial-lookup__empty-hint {
+  margin: 0;
+  font-size: 0.875rem;
+}

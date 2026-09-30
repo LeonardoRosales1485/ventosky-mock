@@ -1,0 +1,331 @@
+@let folderLabel = 'directory.folders.' + folderId() + '.label' | translate;
+
+<app-page-header
+  [title]="'directory.title' | translate"
+  [description]="'directory.description' | translate"
+/>
+
+<div class="directory">
+  <nav class="directory__tree" [attr.aria-label]="'directory.treeAria' | translate">
+    <app-directory-tree [folders]="folders" [active]="folderId()" [counts]="counts()" />
+  </nav>
+
+  <section class="directory__folder" aria-labelledby="directory-folder-title">
+    <header class="directory__folder-header">
+      <div class="directory__folder-heading">
+        <h2 id="directory-folder-title" class="directory__folder-title">
+          {{ 'directory.folders.' + folderId() + '.title' | translate }}
+        </h2>
+        <p class="directory__folder-subtitle">
+          {{ 'directory.folders.' + folderId() + '.subtitle' | translate }}
+        </p>
+      </div>
+
+      @switch (folder().create.kind) {
+        @case ('form') {
+          @for (link of creatableLinks(); track link) {
+            <button mat-flat-button type="button" (click)="onCreate(link)">
+              <mat-icon aria-hidden="true">add</mat-icon>
+              {{ 'directory.actions.create.' + link | translate }}
+            </button>
+          }
+        }
+        @case ('menu') {
+          @if (creatableLinks().length > 0) {
+            <button mat-flat-button type="button" [matMenuTriggerFor]="typesMenu">
+              <mat-icon aria-hidden="true">add</mat-icon>
+              {{
+                (folderId() === 'employees'
+                  ? 'directory.actions.createEmployee'
+                  : 'directory.actions.createAny'
+                ) | translate
+              }}
+              <mat-icon iconPositionEnd aria-hidden="true">arrow_drop_down</mat-icon>
+            </button>
+            <mat-menu #typesMenu="matMenu" xPosition="before">
+              <p class="directory__menu-lead">{{ 'directory.actions.chooseType' | translate }}</p>
+              @for (link of creatableLinks(); track link) {
+                <button mat-menu-item type="button" (click)="onCreate(link)">
+                  {{ 'directoryLinks.' + link | translate }}
+                </button>
+              }
+            </mat-menu>
+          }
+        }
+        @case ('access') {
+          @if (canGrantAccess) {
+            <button mat-flat-button type="button" (click)="onGrantAccess()">
+              <mat-icon aria-hidden="true">key</mat-icon>
+              {{ 'directory.actions.grantAccess' | translate }}
+            </button>
+          }
+        }
+      }
+    </header>
+
+    <app-table-wrapper
+      [loading]="paginator().loading()"
+      [loadingAriaLabel]="'directory.loading' | translate: { folder: folderLabel }"
+    >
+      <div tableWrapperHeader class="directory__toolbar">
+        <app-table-toolbar
+          class="directory__toolbar-search"
+          [search]="searchQuery()"
+          [activeFilters]="activeFilters()"
+          [searchPlaceholder]="'directory.searchPlaceholder.' + folderId() | translate"
+          (searchChange)="searchQuery.set($event)"
+          (refresh)="onRefresh()"
+          (clearFilters)="onClearFilters()"
+        />
+        @if (folder().hidesTerminated) {
+          <mat-slide-toggle
+            [checked]="includeTerminated()"
+            (change)="onIncludeTerminatedChange($event.checked)"
+          >
+            {{ 'directory.includeTerminated' | translate }}
+          </mat-slide-toggle>
+        }
+      </div>
+
+      <table
+        mat-table
+        matSort
+        [dataSource]="paginator().items()"
+        [matSortActive]="paginator().sortActive() ?? ''"
+        [matSortDirection]="paginator().sortDirection()"
+        (matSortChange)="onSort($event)"
+        class="w-full"
+        [attr.aria-label]="'directory.tableAria' | translate: { folder: folderLabel }"
+      >
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header [disabled]="!isSortable('name')">
+            {{ 'directory.columns.name' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row">
+            @if (folderId() === 'access') {
+              @if (row.party?.name; as partyName) {
+                {{ partyName }}
+              } @else {
+                <!-- «Nadie del directorio» ya lo dice la columna de sus vínculos: acá alcanza la raya. -->
+                <span class="directory__muted" aria-hidden="true">—</span>
+                <span class="sr-only">{{ 'directory.values.nobody' | translate }}</span>
+              }
+            } @else {
+              <span class="directory__name">{{ row.name }}</span>
+              @if (row.dateTerminated) {
+                <span class="directory__tag directory__tag--terminated">{{
+                  'directory.values.terminated' | translate
+                }}</span>
+              }
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="document">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            [disabled]="!isSortable('document')"
+          >
+            {{ 'directory.columns.document' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row" class="directory__numeric-text">
+            {{ formatDocument(row) }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="roles">
+          <th mat-header-cell *matHeaderCellDef>{{ 'directory.columns.roles' | translate }}</th>
+          <td mat-cell *matCellDef="let row">{{ rolesOf(row) || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="username">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            [disabled]="!isSortable('username')"
+          >
+            {{ 'directory.columns.username' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.username || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="priceList">
+          <th mat-header-cell *matHeaderCellDef>{{ 'directory.columns.priceList' | translate }}</th>
+          <td mat-cell *matCellDef="let row">{{ row.priceList?.name ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="fileNumber">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            [disabled]="!isSortable('fileNumber')"
+          >
+            {{ 'directory.columns.fileNumber' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row" class="directory__numeric-text">
+            {{ row.fileNumber || '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="dateHired">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            mat-sort-header
+            [disabled]="!isSortable('dateHired')"
+          >
+            {{ 'directory.columns.dateHired' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row">
+            {{ (row.dateHired | localizedDate: 'mediumDate') || '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="specialties">
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'directory.columns.specialties' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row">{{ specialtiesOf(row) || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="branch">
+          <th mat-header-cell *matHeaderCellDef>{{ 'directory.columns.branch' | translate }}</th>
+          <td mat-cell *matCellDef="let row">{{ row.branch?.name ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="licenseNumber">
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'directory.columns.licenseNumber' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row" class="directory__numeric-text">
+            {{ row.licenseNumber || '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="licenseClass">
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'directory.columns.licenseClass' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.licenseClass || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="licenseExpiresOn">
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'directory.columns.licenseExpiresOn' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row">
+            {{ (row.licenseExpiresOn | localizedDate: 'mediumDate') || '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="vehicle">
+          <th mat-header-cell *matHeaderCellDef>{{ 'directory.columns.vehicle' | translate }}</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.vehiclePlate || row.vehicleDescription) {
+              {{ row.vehiclePlate || '—' }}
+              @if (row.vehicleDescription) {
+                · {{ row.vehicleDescription }}
+              }
+            } @else {
+              —
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="sellerPriceList">
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'directory.columns.sellerPriceList' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row">{{ row.priceList?.name ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="commissionRate">
+          <th mat-header-cell *matHeaderCellDef class="directory__numeric">
+            {{ 'directory.columns.commissionRate' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row" class="directory__numeric">
+            {{
+              row.commissionRate !== null && row.commissionRate !== undefined
+                ? row.commissionRate + ' %'
+                : '—'
+            }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="salesGoalAmount">
+          <th mat-header-cell *matHeaderCellDef class="directory__numeric">
+            {{ 'directory.columns.salesGoalAmount' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row" class="directory__numeric">
+            <app-currency-display [value]="row.salesGoalAmount" />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="grantedRoles">
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'directory.columns.grantedRoles' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row">{{ grantedRolesOf(row) || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="directoryRoles">
+          <th mat-header-cell *matHeaderCellDef>
+            {{ 'directory.columns.directoryRoles' | translate }}
+          </th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.party) {
+              {{ directoryRolesOf(row) || '—' }}
+            } @else {
+              <span class="directory__muted">{{
+                'directory.values.notInDirectory' | translate
+              }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions" [stickyEnd]="true">
+          <th mat-header-cell *matHeaderCellDef class="actions-header">
+            <span class="sr-only">{{ 'directory.columns.actions' | translate }}</span>
+          </th>
+          <td mat-cell *matCellDef="let row" class="actions-cell">
+            <app-row-actions
+              [actions]="rowActions().get(row.uuid) ?? []"
+              [ariaLabel]="'directory.actions.rowAria' | translate"
+              (actionClick)="onRowAction($event, row)"
+            />
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td
+            class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+            [attr.colspan]="displayedColumns().length"
+          >
+            @if (!paginator().loading()) {
+              {{ 'directory.empty' | translate }}
+            }
+          </td>
+        </tr>
+      </table>
+
+      <mat-paginator
+        tableWrapperFooter
+        [length]="paginator().totalCount()"
+        [pageIndex]="paginator().pageIndex()"
+        [pageSize]="paginator().pageSize()"
+        [pageSizeOptions]="pageSizeOptions"
+        [disabled]="paginator().loading()"
+        [attr.aria-label]="'directory.paginationAria' | translate: { folder: folderLabel }"
+        (page)="onPage($event)"
+        showFirstLastButtons
+      />
+    </app-table-wrapper>
+  </section>
+</div>

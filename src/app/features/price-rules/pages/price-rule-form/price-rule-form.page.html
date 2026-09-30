@@ -1,0 +1,385 @@
+<form (submit)="onSubmit($event)">
+  <app-page-header
+    [title]="(isEdit ? 'priceRules.form.editTitle' : 'priceRules.form.createTitle') | translate"
+    [description]="
+      (isEdit ? 'priceRules.form.editDescription' : 'priceRules.form.createDescription') | translate
+    "
+    [showBack]="true"
+    [backLabel]="'priceRules.form.back' | translate"
+    (back)="onCancel()"
+  >
+    <button mat-stroked-button type="button" [disabled]="saving()" (click)="onCancel()">
+      {{ 'priceRules.form.cancel' | translate }}
+    </button>
+    <button
+      mat-flat-button
+      color="primary"
+      type="submit"
+      [disabled]="saving() || loadState() !== LoadState.Success || !hasActiveBranch()"
+    >
+      {{ (isEdit ? 'priceRules.form.saveChanges' : 'priceRules.form.save') | translate }}
+    </button>
+  </app-page-header>
+
+  <app-load-state
+    [state]="loadState()"
+    [loadingMessage]="
+      (isEdit ? 'priceRules.form.loadingRule' : 'priceRules.form.loading') | translate
+    "
+    [errorMessage]="'priceRules.form.loadError' | translate"
+    [retryable]="true"
+    (retry)="onRetry()"
+    minHeight="24rem"
+  >
+    <div class="price-rule-form__body flex flex-col gap-4">
+      <!-- ─────────────────────────────  General  ───────────────────────────── -->
+      <section class="price-rule-form__card" aria-labelledby="rule-general-title">
+        <h2 class="price-rule-form__card-title" id="rule-general-title">
+          <mat-icon aria-hidden="true">rule</mat-icon>
+          {{ 'priceRules.form.sections.general' | translate }}
+        </h2>
+
+        <div class="grid gap-2 sm:grid-cols-2">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'priceRules.form.fields.name' | translate }}</mat-label>
+            <input
+              matInput
+              type="text"
+              autocomplete="off"
+              [formField]="priceRuleForm.name"
+              [attr.aria-label]="'priceRules.form.fields.name' | translate"
+            />
+            @if (priceRuleForm.name().touched() && priceRuleForm.name().invalid()) {
+              <mat-error>{{ priceRuleForm.name().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'priceRules.form.fields.ruleType' | translate }}</mat-label>
+            <mat-select
+              [value]="priceRuleForm.ruleType().value()"
+              (valueChange)="onRuleTypeChange($event)"
+              [attr.aria-label]="'priceRules.form.fields.ruleType' | translate"
+            >
+              @for (type of ruleTypes; track type) {
+                <mat-option [value]="type">{{ 'priceRules.types.' + type | translate }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>
+              {{ 'priceRules.typeHints.' + priceRuleForm.ruleType().value() | translate }}
+            </mat-hint>
+            @if (priceRuleForm.ruleType().touched() && priceRuleForm.ruleType().invalid()) {
+              <mat-error>{{ priceRuleForm.ruleType().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <!-- El redondeo lo declara la regla, no la sucursal: dos reglas del mismo local pueden
+             cerrar una en múltiplos de 10 y la otra en dos decimales. -->
+        <div class="grid gap-2 sm:grid-cols-2">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'priceRules.form.fields.roundingMode' | translate }}</mat-label>
+            <mat-select
+              [value]="priceRuleForm.roundingMode().value()"
+              (valueChange)="onRoundingModeChange($event)"
+              [attr.aria-label]="'priceRules.form.fields.roundingMode' | translate"
+            >
+              @for (mode of roundingModes; track mode) {
+                <mat-option [value]="mode">{{
+                  'priceRules.roundingModes.' + mode | translate
+                }}</mat-option>
+              }
+            </mat-select>
+            @if (priceRuleForm.roundingMode().touched() && priceRuleForm.roundingMode().invalid()) {
+              <mat-error>{{ priceRuleForm.roundingMode().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'priceRules.form.fields.roundingDirection' | translate }}</mat-label>
+            <mat-select
+              [value]="priceRuleForm.roundingDirection().value()"
+              (valueChange)="onRoundingDirectionChange($event)"
+              [attr.aria-label]="'priceRules.form.fields.roundingDirection' | translate"
+            >
+              @for (direction of roundingDirections; track direction) {
+                <mat-option [value]="direction">{{
+                  'priceRules.roundingDirections.' + direction | translate
+                }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>{{
+              'priceRules.form.hints.rounding' | translate: roundingExample()
+            }}</mat-hint>
+            @if (
+              priceRuleForm.roundingDirection().touched() &&
+              priceRuleForm.roundingDirection().invalid()
+            ) {
+              <mat-error>{{ priceRuleForm.roundingDirection().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <p class="price-rule-form__note">
+          <mat-icon aria-hidden="true">lightbulb</mat-icon>
+          <span>{{ 'priceRules.form.hints.rule' | translate }}</span>
+        </p>
+      </section>
+
+      <!-- ──────────────  Grilla: qué lista y con qué %, en la sucursal activa  ────────────── -->
+      <section class="price-rule-form__card" aria-labelledby="rule-price-lists-title">
+        <h2 class="price-rule-form__card-title" id="rule-price-lists-title">
+          <mat-icon aria-hidden="true">sell</mat-icon>
+          {{ 'priceRules.form.sections.priceLists' | translate }}
+          @if (activeBranchName()) {
+            <span class="price-rule-form__badge">{{ activeBranchName() }}</span>
+          }
+        </h2>
+
+        <p class="price-rule-form__hint">{{ 'priceRules.form.priceLists.hint' | translate }}</p>
+
+        @if (!hasActiveBranch()) {
+          <p class="price-rule-form__error" role="alert">
+            {{ 'priceRules.form.priceLists.noBranch' | translate }}
+          </p>
+        }
+
+        <!-- Editar desde una sucursal no puede borrar lo que la regla hace en las otras: esas filas
+             se conservan y se reenvían tal cual. -->
+        @let otherBranches = otherBranchesSummary();
+        @if (otherBranches.count > 0) {
+          <p class="price-rule-form__note">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <span>{{
+              'priceRules.form.priceLists.otherBranches'
+                | translate: { count: otherBranches.count, branches: otherBranches.branches }
+            }}</span>
+          </p>
+        }
+
+        @if (hasNoPriceLists()) {
+          <p class="price-rule-form__empty">
+            {{ 'priceRules.form.priceLists.empty' | translate }}
+          </p>
+        } @else {
+          <table class="price-rule-form__table">
+            <caption class="sr-only">
+              {{
+                'priceRules.form.priceLists.tableAria' | translate
+              }}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">{{ 'priceRules.form.priceLists.priceList' | translate }}</th>
+                <th scope="col" class="price-rule-form__table-percent">
+                  {{ 'priceRules.form.priceLists.percent' | translate }}
+                </th>
+                <th scope="col" class="price-rule-form__table-remove">
+                  <span class="sr-only">{{
+                    'priceRules.form.priceLists.removeRow' | translate
+                  }}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (rowField of priceRuleForm.priceLists; track $index) {
+                <tr>
+                  <td>
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-select
+                        [value]="rowField.priceListUuid().value()"
+                        (valueChange)="onRowPriceListChange($index, $event)"
+                        [attr.aria-label]="'priceRules.form.priceLists.priceList' | translate"
+                      >
+                        @for (list of priceListOptions(); track list.uuid) {
+                          <mat-option [value]="list.uuid">{{ list.name }}</mat-option>
+                        }
+                      </mat-select>
+                      @if (
+                        rowField.priceListUuid().touched() && rowField.priceListUuid().invalid()
+                      ) {
+                        <mat-error>{{ rowField.priceListUuid().errors() | fieldError }}</mat-error>
+                      }
+                    </mat-form-field>
+                  </td>
+
+                  <td class="price-rule-form__table-percent">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <input
+                        matInput
+                        type="number"
+                        step="0.01"
+                        [formField]="rowField.percent"
+                        [attr.aria-label]="'priceRules.form.priceLists.percent' | translate"
+                      />
+                      <span matTextSuffix>%</span>
+                      @if (rowField.percent().touched() && rowField.percent().invalid()) {
+                        <mat-error>{{ rowField.percent().errors() | fieldError }}</mat-error>
+                      }
+                    </mat-form-field>
+                  </td>
+
+                  <td class="price-rule-form__table-remove">
+                    <button
+                      mat-icon-button
+                      type="button"
+                      (click)="onRemoveRow($index)"
+                      [matTooltip]="'priceRules.form.priceLists.removeRow' | translate"
+                      [attr.aria-label]="'priceRules.form.priceLists.removeRow' | translate"
+                    >
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          @if (priceRuleForm.priceLists().invalid()) {
+            <p class="price-rule-form__error" role="alert">
+              {{ priceRuleForm.priceLists().errors() | fieldError }}
+            </p>
+          }
+        }
+
+        <button mat-stroked-button type="button" (click)="onAddRow()" class="self-start">
+          <mat-icon aria-hidden="true">add</mat-icon>
+          {{ 'priceRules.form.priceLists.addRow' | translate }}
+        </button>
+      </section>
+
+      <!-- ─────────────────────────  Alcance de la regla  ───────────────────────── -->
+      <div class="grid gap-4 lg:grid-cols-2">
+        <section class="price-rule-form__card" aria-labelledby="rule-products-title">
+          <h2 class="price-rule-form__card-title" id="rule-products-title">
+            <mat-icon aria-hidden="true">inventory_2</mat-icon>
+            {{ 'priceRules.form.sections.products' | translate }}
+          </h2>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'priceRules.form.products.search' | translate }}</mat-label>
+            <input
+              matInput
+              type="text"
+              autocomplete="off"
+              [value]="productSearch()"
+              (input)="onProductSearchInput($event)"
+              [matAutocomplete]="productAutocomplete"
+              [attr.aria-label]="'priceRules.form.products.search' | translate"
+            />
+            @if (productSearching()) {
+              <mat-spinner matSuffix diameter="18" />
+            }
+            <mat-hint>{{ 'priceRules.form.products.searchHint' | translate }}</mat-hint>
+            <mat-autocomplete
+              #productAutocomplete
+              (optionSelected)="onProductSelected($event.option.value)"
+            >
+              @for (product of productSuggestions(); track product.uuid) {
+                <mat-option [value]="product">
+                  <span class="price-rule-form__option-name">{{ product.name }}</span>
+                  @if (product.sku) {
+                    <span class="price-rule-form__option-meta">{{ product.sku }}</span>
+                  }
+                </mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+
+          @if (selectedProducts().length === 0) {
+            <p class="price-rule-form__empty">
+              {{ 'priceRules.form.products.empty' | translate }}
+            </p>
+          } @else {
+            <mat-chip-set [attr.aria-label]="'priceRules.form.products.selectedAria' | translate">
+              @for (product of selectedProducts(); track product.uuid) {
+                <mat-chip [removable]="true" (removed)="onRemoveProduct(product.uuid)">
+                  {{ product.name }}
+                  <button
+                    matChipRemove
+                    type="button"
+                    [attr.aria-label]="
+                      'priceRules.form.products.remove' | translate: { name: product.name }
+                    "
+                  >
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                </mat-chip>
+              }
+            </mat-chip-set>
+          }
+
+          <p class="price-rule-form__hint">{{ 'priceRules.form.products.hint' | translate }}</p>
+        </section>
+
+        <section class="price-rule-form__card" aria-labelledby="rule-categories-title">
+          <h2 class="price-rule-form__card-title" id="rule-categories-title">
+            <mat-icon aria-hidden="true">account_tree</mat-icon>
+            {{ 'priceRules.form.sections.categories' | translate }}
+          </h2>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'priceRules.form.categories.select' | translate }}</mat-label>
+            <mat-select
+              multiple
+              [value]="categorySelection()"
+              (valueChange)="onCategoriesChange($event)"
+              [attr.aria-label]="'priceRules.form.categories.select' | translate"
+            >
+              <mat-select-trigger>{{ categorySelectionLabel() }}</mat-select-trigger>
+
+              <!-- Las subcategorías de una elegida se tildan solas y quedan bloqueadas: la regla ya
+                   las alcanza, y elegirlas aparte sería el par padre/hija que el backend rechaza. -->
+              @for (category of categoryChoices(); track category.uuid) {
+                @let coveredLabel =
+                  'priceRules.form.categories.covered' | translate: { path: category.path };
+                <mat-option
+                  [value]="category.uuid"
+                  [disabled]="category.covered"
+                  [matTooltip]="category.covered ? coveredLabel : category.path"
+                  [attr.aria-label]="category.covered ? coveredLabel : null"
+                  [style.--category-depth]="category.depth"
+                  class="price-rule-form__category-option"
+                  [class.price-rule-form__category-option--covered]="category.covered"
+                >
+                  {{ category.name }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          @if (priceRuleForm.categoryUuids().invalid()) {
+            <p class="price-rule-form__error" role="alert">
+              {{ priceRuleForm.categoryUuids().errors() | fieldError }}
+            </p>
+          }
+
+          @if (selectedCategories().length === 0) {
+            <p class="price-rule-form__empty">
+              {{ 'priceRules.form.categories.empty' | translate }}
+            </p>
+          } @else {
+            <mat-chip-set [attr.aria-label]="'priceRules.form.categories.selectedAria' | translate">
+              @for (category of selectedCategories(); track category.uuid) {
+                <mat-chip [removable]="true" (removed)="onRemoveCategory(category.uuid)">
+                  {{ category.path }}
+                  <button
+                    matChipRemove
+                    type="button"
+                    [attr.aria-label]="
+                      'priceRules.form.categories.remove' | translate: { name: category.name }
+                    "
+                  >
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                </mat-chip>
+              }
+            </mat-chip-set>
+          }
+
+          <p class="price-rule-form__hint">{{ 'priceRules.form.categories.hint' | translate }}</p>
+        </section>
+      </div>
+    </div>
+  </app-load-state>
+</form>

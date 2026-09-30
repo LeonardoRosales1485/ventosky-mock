@@ -1,0 +1,184 @@
+@let f = form();
+
+<h3 class="profile-fields__title">{{ 'directory.form.because.' + link() | translate }}</h3>
+<ng-content />
+
+@if (isEmployee() && showEmployment()) {
+  <div class="profile-fields__row">
+    <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
+      <mat-label>{{ 'directory.form.fileNumber' | translate }}</mat-label>
+      <input
+        matInput
+        type="text"
+        autocomplete="off"
+        [formField]="f.fileNumber"
+        [attr.aria-label]="'directory.form.fileNumber' | translate"
+      />
+      <mat-hint>{{ 'directory.form.fileNumberHint' | translate }}</mat-hint>
+      @if (f.fileNumber().touched() && f.fileNumber().invalid()) {
+        <mat-error>{{ f.fileNumber().errors() | fieldError }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="flex-1">
+      <mat-label>{{ 'directory.form.dateHired' | translate }}</mat-label>
+      <input
+        matInput
+        type="date"
+        [formField]="f.dateHired"
+        [attr.aria-label]="'directory.form.dateHired' | translate"
+      />
+    </mat-form-field>
+  </div>
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'directory.form.branch' | translate }}</mat-label>
+    <mat-select [formField]="f.branchUuid" [attr.aria-label]="'directory.form.branch' | translate">
+      <mat-option [value]="''">{{ 'directory.form.unassigned' | translate }}</mat-option>
+      @for (branch of branches(); track branch.uuid) {
+        <mat-option [value]="branch.uuid">{{ branch.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+}
+
+@switch (link()) {
+  @case ('CUSTOMER') {
+    <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+      <mat-label>{{ 'directory.form.priceList' | translate }}</mat-label>
+      <mat-select
+        [formField]="f.priceListUuid"
+        [attr.aria-label]="'directory.form.priceList' | translate"
+      >
+        <mat-option [value]="''">{{ 'directory.form.principalPriceList' | translate }}</mat-option>
+        @for (list of priceLists(); track list.uuid) {
+          <mat-option [value]="list.uuid">{{ list.name }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>{{ 'directory.form.priceListHint' | translate }}</mat-hint>
+    </mat-form-field>
+  }
+  @case ('SUPPLIER') {
+    <p class="profile-fields__empty">{{ 'directory.form.supplierHasNoFields' | translate }}</p>
+  }
+  @case ('SELLER') {
+    <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+      <mat-label>{{ 'directory.form.sellerPriceList' | translate }}</mat-label>
+      <mat-select
+        [formField]="f.sellerPriceListUuid"
+        [attr.aria-label]="'directory.form.sellerPriceList' | translate"
+      >
+        <mat-option [value]="''">{{ 'directory.form.unassigned' | translate }}</mat-option>
+        @for (list of priceLists(); track list.uuid) {
+          <mat-option [value]="list.uuid">{{ list.name }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>{{ 'directory.form.sellerPriceListHint' | translate }}</mat-hint>
+    </mat-form-field>
+
+    <div class="profile-fields__row">
+      <mat-form-field appearance="outline" class="flex-1">
+        <mat-label>{{ 'directory.form.commissionRate' | translate }}</mat-label>
+        <input
+          matInput
+          type="number"
+          step="0.01"
+          [formField]="f.commissionRate"
+          [attr.aria-label]="'directory.form.commissionRate' | translate"
+        />
+        <span matTextSuffix>%</span>
+        @if (f.commissionRate().touched() && f.commissionRate().invalid()) {
+          <mat-error>{{ f.commissionRate().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="flex-1">
+        <mat-label>{{ 'directory.form.salesGoalAmount' | translate }}</mat-label>
+        <input
+          matInput
+          type="number"
+          step="0.01"
+          [formField]="f.salesGoalAmount"
+          [attr.aria-label]="'directory.form.salesGoalAmount' | translate"
+        />
+        @if (f.salesGoalAmount().touched() && f.salesGoalAmount().invalid()) {
+          <mat-error>{{ f.salesGoalAmount().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+  }
+  @case ('BUYER') {
+    <p class="profile-fields__empty">{{ 'directory.form.buyerHasNoFields' | translate }}</p>
+  }
+  @case ('TRANSPORTIST') {
+    <div class="profile-fields__row">
+      <mat-form-field appearance="outline" class="flex-1">
+        <mat-label>{{ 'directory.form.licenseNumber' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="f.licenseNumber"
+          [attr.aria-label]="'directory.form.licenseNumber' | translate"
+        />
+        @if (f.licenseNumber().touched() && f.licenseNumber().invalid()) {
+          <mat-error>{{ f.licenseNumber().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-32">
+        <mat-label>{{ 'directory.form.licenseClass' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="f.licenseClass"
+          [attr.aria-label]="'directory.form.licenseClass' | translate"
+        />
+        @if (f.licenseClass().touched() && f.licenseClass().invalid()) {
+          <mat-error>{{ f.licenseClass().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>{{ 'directory.form.licenseExpiresOn' | translate }}</mat-label>
+      <input
+        matInput
+        type="date"
+        [formField]="f.licenseExpiresOn"
+        [attr.aria-label]="'directory.form.licenseExpiresOn' | translate"
+      />
+    </mat-form-field>
+
+    <div class="profile-fields__row">
+      <mat-form-field appearance="outline" class="w-40">
+        <mat-label>{{ 'directory.form.vehiclePlate' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="f.vehiclePlate"
+          [attr.aria-label]="'directory.form.vehiclePlate' | translate"
+        />
+        @if (f.vehiclePlate().touched() && f.vehiclePlate().invalid()) {
+          <mat-error>{{ f.vehiclePlate().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="flex-1">
+        <mat-label>{{ 'directory.form.vehicleDescription' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="f.vehicleDescription"
+          [attr.aria-label]="'directory.form.vehicleDescription' | translate"
+        />
+        @if (f.vehicleDescription().touched() && f.vehicleDescription().invalid()) {
+          <mat-error>{{ f.vehicleDescription().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+  }
+}

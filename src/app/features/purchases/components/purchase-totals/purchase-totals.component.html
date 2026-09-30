@@ -1,0 +1,48 @@
+<dl class="totals__breakdown">
+  <div class="totals__row">
+    <dt>{{ 'purchases.totals.net' | translate }}</dt>
+    <dd><app-currency-display [value]="totals().netAmount" /></dd>
+  </div>
+
+  <div class="totals__row">
+    <dt>{{ 'purchases.totals.tax' | translate }}</dt>
+    <dd><app-currency-display [value]="totals().taxAmount" /></dd>
+  </div>
+
+  <!--
+    El backend fija `discountAmount` en 0 en cada línea: todavía no hay descuento por operación ni
+    por ítem. Se muestra igual para que el desglose cierre contra el comprobante emitido.
+  -->
+  <div class="totals__row">
+    <dt>{{ 'purchases.totals.discount' | translate }}</dt>
+    <dd>
+      <app-currency-display [value]="-totals().discountAmount" tone="positive" />
+    </dd>
+  </div>
+</dl>
+
+<div class="totals__total">
+  <span class="totals__total-label">{{ 'purchases.totals.total' | translate }}</span>
+  <app-currency-display class="totals__total-value" [value]="totals().totalAmount" />
+</div>
+
+@if (hasRemaining()) {
+  <p class="totals__remaining">
+    <span>{{ 'purchases.totals.remaining' | translate }}</span>
+    <app-currency-display [value]="remainingAmount()" />
+  </p>
+} @else if (hasChange()) {
+  <p class="totals__change">
+    <span>{{ 'purchases.totals.change' | translate }}</span>
+    <app-currency-display [value]="changeAmount()" />
+  </p>
+} @else if (!requiresPayment()) {
+  <!--
+    No es un saldo pendiente: este comprobante no genera pago, así que el importe queda como lo que
+    se está encargando y nada más.
+  -->
+  <p class="totals__note">
+    <mat-icon aria-hidden="true">info</mat-icon>
+    <span>{{ 'purchases.totals.withoutPayment' | translate }}</span>
+  </p>
+}

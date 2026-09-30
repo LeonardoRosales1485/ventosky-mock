@@ -1,0 +1,126 @@
+<app-page-header
+  [title]="'configuration.title' | translate"
+  [description]="'configuration.description' | translate"
+/>
+
+<section class="configuration__scope">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="configuration__scope-field">
+    <mat-label>{{ 'configuration.scopeSelector.level' | translate }}</mat-label>
+    <mat-select [value]="level()" (selectionChange)="onLevelChange($event.value)">
+      @for (option of levels; track option) {
+        <mat-option [value]="option">{{ 'configuration.scope.' + option | translate }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (level() === 'BRANCH') {
+    <mat-form-field
+      appearance="outline"
+      subscriptSizing="dynamic"
+      class="configuration__scope-field"
+    >
+      <mat-label>{{ 'configuration.scopeSelector.branch' | translate }}</mat-label>
+      <mat-select
+        [value]="selectedBranchUuid()"
+        (selectionChange)="onBranchChange($event.value)"
+      >
+        @for (branch of branches(); track branch.uuid) {
+          <mat-option [value]="branch.uuid">{{ branch.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
+
+  <p class="configuration__scope-hint">
+    {{ 'configuration.scopeSelector.hint.' + level() | translate: { context: contextName() } }}
+  </p>
+</section>
+
+@if (!canEdit()) {
+  <p class="configuration__banner configuration__banner--info" role="status">
+    <mat-icon aria-hidden="true">info</mat-icon>
+    <span>{{ 'configuration.readOnly' | translate }}</span>
+  </p>
+}
+
+@if (loading()) {
+  <p class="configuration__loading" role="status">{{ 'configuration.loading' | translate }}</p>
+} @else if (groups().length === 0) {
+  <p class="configuration__loading" role="status">{{ 'configuration.empty' | translate }}</p>
+} @else {
+  <form class="configuration__form" (submit)="onSubmit($event)">
+    <mat-tab-group
+      [selectedIndex]="selectedTab()"
+      (selectedIndexChange)="onTabChange($event)"
+      animationDuration="0ms"
+    >
+      @for (group of groups(); track group) {
+        <mat-tab [label]="'configuration.groups.' + group | translate" />
+      }
+    </mat-tab-group>
+
+    <div class="configuration__panel">
+      @if (activeGroup() === 'system') {
+        <p class="configuration__banner configuration__banner--locked">
+          <mat-icon aria-hidden="true">lock</mat-icon>
+          <span>{{ 'configuration.systemGroup' | translate }}</span>
+        </p>
+      }
+
+      @if (userLevelEmpty()) {
+        <div class="configuration__empty-level">
+          <mat-icon aria-hidden="true">person_outline</mat-icon>
+          <span>{{ 'configuration.userLevelEmpty' | translate }}</span>
+        </div>
+      }
+
+      @if (settingsForm(); as settings) {
+        @for (definition of definitionsOf(); track definition.key) {
+          <app-setting-field
+            [definition]="definition"
+            [field]="settings[definition.key]"
+            [level]="levelOf(definition)"
+            [source]="sourceOf(definition.key)"
+            [overridden]="isOverridden(definition.key)"
+            [inheritedValue]="inheritedValue(definition.key)"
+            [levels]="levelsOf(definition.key)"
+            [editable]="canEdit()"
+            (changed)="onFieldChanged(definition.key)"
+            (cleared)="onFieldReset(definition.key)"
+          />
+        }
+      }
+    </div>
+
+    @if (canEdit()) {
+      <div class="configuration__actions">
+        <span class="configuration__pending">
+          {{
+            pendingChanges() === 1
+              ? ('configuration.pending.one' | translate)
+              : ('configuration.pending.many' | translate: { count: pendingChanges() })
+          }}
+        </span>
+
+        <div class="configuration__buttons">
+          <button
+            mat-button
+            type="button"
+            [disabled]="pendingChanges() === 0 || saving()"
+            (click)="onDiscard()"
+          >
+            {{ 'configuration.actions.discard' | translate }}
+          </button>
+          <button
+            mat-flat-button
+            type="submit"
+            color="primary"
+            [disabled]="pendingChanges() === 0 || saving()"
+          >
+            {{ 'configuration.actions.save' | translate }}
+          </button>
+        </div>
+      </div>
+    }
+  </form>
+}

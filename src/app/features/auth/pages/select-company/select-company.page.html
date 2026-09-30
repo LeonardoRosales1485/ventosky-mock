@@ -1,0 +1,33 @@
+<app-auth-layout
+  titleKey="auth.hero.selectCompanyTitle"
+  descriptionKey="auth.hero.selectCompanyDescription"
+>
+  <div class="mx-auto flex w-full max-w-sm flex-col gap-4">
+    <h2 class="mb-2 text-center text-xl font-medium text-[var(--mat-sys-primary)]">
+      {{ 'auth.selectCompany.title' | translate }}
+    </h2>
+
+    <p class="text-center text-sm text-[var(--mat-sys-on-surface-variant)]">
+      {{ 'auth.selectCompany.description' | translate }}
+    </p>
+
+    <mat-nav-list class="company-list !p-0">
+      @for (company of companies(); track company.companyUuid) {
+        <button mat-list-item type="button" class="company-list__item" (click)="selectCompany(company)">
+          <mat-icon matListItemIcon aria-hidden="true">business</mat-icon>
+          <span matListItemTitle>
+            {{ company.companyName || ('auth.selectCompany.unnamed' | translate) }}
+          </span>
+          @if (company.companyCuit) {
+            <span matListItemLine>{{ company.companyCuit }}</span>
+          }
+          <!-- Envuelto por lo mismo que en `select-branch`: el slot meta tipografía su contenido
+               como texto de apoyo y le rompe la ligadura al icono. -->
+          <span matListItemMeta>
+            <mat-icon aria-hidden="true">chevron_right</mat-icon>
+          </span>
+        </button>
+      }
+    </mat-nav-list>
+  </div>
+</app-auth-layout>

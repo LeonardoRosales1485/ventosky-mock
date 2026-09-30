@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+
+table {
+  width: 100%;
+}
+
+.mat-column-actions {
+  width: 1%;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+  text-align: end;
+}
+
+.actions-header,
+.actions-cell {
+  background: var(--mat-sys-surface);
+  border-left: 1px solid var(--mat-sys-outline-variant);
+}
+
+.price-lists__name {
+  margin-inline-end: 0.5rem;
+}
+
+.price-lists__badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* La lista de costo la escribe el sistema: se distingue de la principal, que sí es editable. */
+.price-lists__badge--system {
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.price-lists__muted {
+  color: var(--mat-sys-on-surface-variant);
+}

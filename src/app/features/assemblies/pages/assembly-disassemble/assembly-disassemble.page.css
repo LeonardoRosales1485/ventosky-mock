@@ -1,0 +1,130 @@
+:host {
+  display: block;
+}
+
+.disassemble {
+  display: grid;
+  grid-template-columns: minmax(20rem, 28rem) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 62rem) {
+  .disassemble {
+    grid-template-columns: 1fr;
+  }
+}
+
+.disassemble__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.disassemble__card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.disassemble__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.disassemble__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.disassemble__picker {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.disassemble__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.disassemble__note {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-high);
+  font-size: 0.8125rem;
+}
+
+/* «No es una merma» va en ámbar: es la confusión que duplicaría el inventario. */
+.disassemble__note--warn {
+  background: var(--app-warning-container, var(--mat-sys-tertiary-container));
+  color: var(--app-on-warning-container, var(--mat-sys-on-tertiary-container));
+}
+
+.disassemble__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.disassemble__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 0;
+}
+
+.disassemble__summary dt {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.disassemble__summary dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.disassemble__table-scroll {
+  overflow-x: auto;
+}
+
+.disassemble__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.disassemble__table th,
+.disassemble__table td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.disassemble__table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.disassemble__num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.disassemble__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}

@@ -1,0 +1,68 @@
+:host {
+  display: block;
+}
+
+.force__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.force__title-icon {
+  flex: none;
+  color: var(--mat-sys-error);
+}
+
+.force__line {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.force__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.force__stat {
+  display: flex;
+  flex: 1 1 8rem;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.force__stat-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.force__stat-value {
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El saldo resultante es lo que se está confirmando: se pinta como lo que es, un negativo. */
+.force__stat[data-state='negative'] {
+  border-color: var(--app-error-container);
+  background: var(--app-error-container);
+  color: var(--app-on-error-container);
+}
+
+.force__stat[data-state='negative'] .force__stat-label {
+  color: inherit;
+}
+
+.force__policy {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+}

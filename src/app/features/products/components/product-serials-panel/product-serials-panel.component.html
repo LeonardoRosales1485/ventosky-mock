@@ -1,0 +1,225 @@
+<!-- ────────────────────────  Unidades con número de serie (1f)  ──────────────────────── -->
+<!-- A todo el ancho y sin ajuste: el saldo de un serializado lo mueven las unidades. -->
+<div class="product-serials">
+  <div class="product-serials__toolbar">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="product-serials__search">
+      <mat-label>{{ 'products.serials.searchLabel' | translate }}</mat-label>
+      <input
+        matInput
+        type="search"
+        autocomplete="off"
+        [value]="search()"
+        (input)="onSearch($event)"
+        [attr.placeholder]="'products.serials.searchPlaceholder' | translate"
+      />
+      <mat-icon matSuffix aria-hidden="true">search</mat-icon>
+    </mat-form-field>
+
+    <div
+      class="product-serials__chips"
+      role="group"
+      [attr.aria-label]="'products.serials.filterAria' | translate"
+    >
+      @for (state of serialStates; track state) {
+        <button
+          type="button"
+          class="product-serials__chip"
+          [class.product-serials__chip--active]="stateFilter() === state"
+          [attr.aria-pressed]="stateFilter() === state"
+          (click)="onStateFilter(state)"
+        >
+          {{ 'products.serials.states.' + state | translate }} · {{ counts()[state] }}
+        </button>
+      }
+    </div>
+
+    @if (canCreatePurchase) {
+      <!-- «Cargar series» es una compra: es la pantalla que pide los números (§9). -->
+      <a mat-stroked-button class="product-serials__load" [routerLink]="newPurchasePath">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        {{ 'products.serials.loadSerials' | translate }}
+      </a>
+    }
+  </div>
+
+  <section class="product-serials__card" aria-labelledby="product-serials-title">
+    <h3 class="sr-only" id="product-serials-title">
+      {{ 'products.serials.sectionTitle' | translate }}
+    </h3>
+
+    @if (!visible().length) {
+      <p class="product-serials__empty">
+        {{
+          (search().trim() ? 'products.serials.emptySearch' : 'products.serials.emptyState')
+            | translate: { state: 'products.serials.states.' + stateFilter() | translate }
+        }}
+      </p>
+    } @else {
+      <div class="product-serials__scroll">
+        <table class="product-serials__table">
+          <caption class="sr-only">{{ 'products.serials.tableAria' | translate }}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{{ 'products.serials.columns.serial' | translate }}</th>
+              <th scope="col">{{ 'products.serials.columns.state' | translate }}</th>
+              <th scope="col">{{ 'products.serials.columns.warehouse' | translate }}</th>
+              <th scope="col">{{ 'products.serials.columns.batch' | translate }}</th>
+              <th scope="col">{{ 'products.serials.columns.entry' | translate }}</th>
+              <th scope="col">{{ 'products.serials.columns.exit' | translate }}</th>
+              @if (canViewSerial) {
+                <th scope="col" class="product-serials__actions">
+                  <span class="sr-only">{{ 'products.serials.actions.column' | translate }}</span>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (serial of visible(); track serial.uuid) {
+              <tr>
+                <th scope="row" class="product-serials__number">
+                  <!-- La consulta por serie devuelve el contacto del cliente: el número sólo es un
+                       link para quien puede abrirla. -->
+                  @if (canViewSerial) {
+                    <a class="product-serials__link" [routerLink]="serialPath(serial.serialNumber)">
+                      {{ serial.serialNumber }}
+                    </a>
+                  } @else {
+                    {{ serial.serialNumber }}
+                  }
+                </th>
+                <td>
+                  <!--
+                    La fila describe UNA unidad y el chip cuenta un conjunto: «Vendida» y
+                    «Vendidas · 12» no son el mismo texto.
+                  -->
+                  <span class="product-serials__state" [attr.data-state]="serial.state">
+                    {{ 'products.serials.stateLabels.' + serial.state | translate }}
+                  </span>
+                </td>
+                <td>
+                  @if (serial.warehouse; as warehouse) {
+                    {{ warehouse.name }}
+                  } @else {
+                    <span class="product-serials__muted">—</span>
+                  }
+                </td>
+                <td>
+                  @if (serial.batchNumber) {
+                    {{ serial.batchNumber }}
+                  } @else {
+                    <span class="product-serials__muted">—</span>
+                  }
+                </td>
+                <!-- «Ingresó con / Salió con» son la trazabilidad, no un dato de auditoría
+                     escondido: cada uno abre el listado de la operación por su número. -->
+                <td>
+                  @if (serial.entryOrigin; as origin) {
+                    @if (canViewPurchases) {
+                      <a
+                        class="product-serials__order"
+                        [routerLink]="purchasesPath"
+                        [queryParams]="{ q: origin.name }"
+                      >
+                        {{ 'products.serials.entryOrder' | translate: { id: origin.name } }}
+                      </a>
+                    } @else {
+                      <span class="product-serials__order product-serials__order--plain">
+                        {{ 'products.serials.entryOrder' | translate: { id: origin.name } }}
+                      </span>
+                    }
+                  } @else {
+                    <span class="product-serials__muted">—</span>
+                  }
+                </td>
+                <td>
+                  @if (serial.exitOrigin; as origin) {
+                    <a
+                      class="product-serials__order"
+                      [routerLink]="salesPath"
+                      [queryParams]="{ q: origin.name }"
+                    >
+                      {{ 'products.serials.exitOrder' | translate: { id: origin.name } }}
+                    </a>
+                  } @else {
+                    <span class="product-serials__muted">—</span>
+                  }
+                </td>
+                @if (canViewSerial) {
+                  <td class="product-serials__actions">
+                    <button
+                      mat-icon-button
+                      type="button"
+                      [matMenuTriggerFor]="serialMenu"
+                      [matMenuTriggerData]="{ serial: serial }"
+                      [disabled]="pending() !== null"
+                      [attr.aria-label]="
+                        'products.serials.actions.menuAria' | translate: { serial: serial.serialNumber }
+                      "
+                    >
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                  </td>
+                }
+              </tr>
+            }
+            @if (hiddenCount() > 0) {
+              <!-- «…N series más»: la grilla se pliega y el resto se despliega a pedido. El filtro
+                   y el buscador son el camino normal. -->
+              <tr class="product-serials__more">
+                <td [attr.colspan]="canViewSerial ? 7 : 6">
+                  <button type="button" class="product-serials__more-button" (click)="showAll.set(true)">
+                    {{ 'products.serials.more' | translate: { count: hiddenCount() } }}
+                    · {{ 'products.serials.showAll' | translate }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Un solo menú para todas las filas: el contenido es perezoso y recibe la unidad. -->
+      <mat-menu #serialMenu="matMenu">
+        <ng-template matMenuContent let-serial="serial">
+          <a mat-menu-item [routerLink]="serialPath(serial.serialNumber)">
+            <mat-icon aria-hidden="true">history</mat-icon>
+            <span>{{ 'products.serials.actions.trace' | translate }}</span>
+          </a>
+          @if (serial.state === 'SOLD') {
+            <button mat-menu-item type="button" (click)="onRegisterReturn(serial)">
+              <mat-icon aria-hidden="true">assignment_return</mat-icon>
+              <span>{{ 'stock.serial.actions.registerReturn' | translate }}</span>
+            </button>
+          }
+          @if (serial.state === 'RETURNED' && canReinstate) {
+            <button mat-menu-item type="button" (click)="onReinstate(serial)">
+              <mat-icon aria-hidden="true">inventory</mat-icon>
+              <span>{{ 'stock.serial.actions.reinstate' | translate }}</span>
+            </button>
+          }
+        </ng-template>
+      </mat-menu>
+    }
+
+    <!--
+      La invariante de §9 a la vista: el saldo de las partidas contra las series IN_STOCK. Se muestra
+      siempre, coincida o no — un cartel que sólo apareciera cuando ya está rota no serviría para
+      confiar en el número el resto del tiempo.
+    -->
+    @if (serials(); as data) {
+      <p
+        class="product-serials__consistency"
+        [class.product-serials__consistency--broken]="!data.consistent"
+        role="status"
+      >
+        <mat-icon aria-hidden="true">{{ data.consistent ? 'check' : 'warning' }}</mat-icon>
+        {{
+          (data.consistent
+            ? 'products.serials.consistencyOk'
+            : 'products.serials.consistencyBroken'
+          ) | translate: { balance: data.balanceQuantity, inStock: data.inStockCount }
+        }}
+      </p>
+    }
+  </section>
+</div>

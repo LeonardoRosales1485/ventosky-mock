@@ -1,0 +1,258 @@
+<app-page-header
+  [title]="'stock.expirations.title' | translate"
+  [description]="'stock.expirations.description' | translate"
+>
+  <button
+    mat-stroked-button
+    type="button"
+    [disabled]="rows().length === 0"
+    (click)="onExport()"
+  >
+    <mat-icon aria-hidden="true">download</mat-icon>
+    {{ 'stock.expirations.export.button' | translate }}
+  </button>
+</app-page-header>
+
+<!--
+  Las tres tarjetas son la pantalla entera para el que la mira todos los días: cuánto hay que sacar
+  hoy y cuánto hay que rematar. Respetan los mismos filtros que la grilla.
+-->
+@if (summary(); as cards) {
+  <section class="cards" [attr.aria-label]="'stock.expirations.cards.aria' | translate">
+    <article class="card" data-tone="error">
+      <span class="card__label">{{ 'stock.expirations.cards.expired' | translate }}</span>
+      <span class="card__value">{{ cards.expiredBatches }}</span>
+      <span class="card__meta">
+        <app-currency-display [value]="cards.expiredValue" />
+        {{ 'stock.expirations.cards.immobilized' | translate }}
+      </span>
+    </article>
+    <article class="card" data-tone="warning">
+      <span class="card__label">
+        {{ 'stock.expirations.cards.dueSoon' | translate: { days: cards.dueSoonDays } }}
+      </span>
+      <span class="card__value">{{ cards.dueSoonBatches }}</span>
+      <span class="card__meta">
+        {{ 'stock.expirations.cards.products' | translate: { count: cards.dueSoonProducts } }}
+      </span>
+    </article>
+    <article class="card" data-tone="neutral">
+      <span class="card__label">
+        {{ 'stock.expirations.cards.alert' | translate: { days: cards.alertDays } }}
+      </span>
+      <span class="card__value">{{ cards.alertBatches }}</span>
+      <span class="card__meta">
+        {{ 'stock.expirations.cards.products' | translate: { count: cards.alertProducts } }}
+      </span>
+    </article>
+  </section>
+}
+
+<app-table-wrapper
+  [loading]="loading()"
+  [loadingAriaLabel]="'stock.expirations.loading' | translate"
+  maxHeight="40rem"
+>
+  <div tableWrapperHeader class="expirations-header">
+    <div class="filters" [attr.aria-label]="'stock.expirations.filters.aria' | translate">
+      @if (canViewAllBranches) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'stock.expirations.filters.branch' | translate }}</mat-label>
+          <mat-select [value]="branchFilter()" (valueChange)="onBranchChange($event)">
+            <mat-option [value]="null">{{ 'stock.expirations.filters.all' | translate }}</mat-option>
+            @for (branch of branches(); track branch.uuid) {
+              <mat-option [value]="branch.uuid">{{ branch.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'stock.expirations.filters.warehouse' | translate }}</mat-label>
+        <mat-select [value]="warehouseFilter()" (valueChange)="onWarehouseChange($event)">
+          <mat-option [value]="null">{{ 'stock.expirations.filters.all' | translate }}</mat-option>
+          @for (warehouse of warehouseOptions(); track warehouse.uuid) {
+            <mat-option [value]="warehouse.uuid">{{ warehouse.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'stock.expirations.filters.category' | translate }}</mat-label>
+        <mat-select [value]="categoryFilter()" (valueChange)="onCategoryChange($event)">
+          <mat-option [value]="null">{{ 'stock.expirations.filters.all' | translate }}</mat-option>
+          @for (category of categories(); track category.uuid) {
+            <mat-option [value]="category.uuid" [style.padding-inline-start.rem]="1 + category.depth">
+              {{ category.name }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <div class="filters__range">
+        <span class="filters__range-label">{{ 'stock.expirations.filters.range' | translate }}</span>
+        <mat-button-toggle-group
+          [value]="rangePreset()"
+          (change)="onRangeChange($event.value)"
+          [attr.aria-label]="'stock.expirations.filters.range' | translate"
+        >
+          <mat-button-toggle value="EXPIRED">{{ 'stock.expirations.filters.expired' | translate }}</mat-button-toggle>
+          <mat-button-toggle value="DUE_SOON">{{ 'stock.expirations.filters.days' | translate: { days: dueSoonDays } }}</mat-button-toggle>
+          <mat-button-toggle value="ALERT">{{ 'stock.expirations.filters.days' | translate: { days: alertDays() } }}</mat-button-toggle>
+          <mat-button-toggle value="ALL">{{ 'stock.expirations.filters.all' | translate }}</mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+    </div>
+
+    <!-- La baja masiva nombra la consecuencia en la misma barra, antes del clic. -->
+    @if (selectedCount() > 0) {
+      <div class="bulk" role="group" [attr.aria-label]="'stock.expirations.bulk.aria' | translate">
+        <span class="bulk__count">
+          {{ 'stock.expirations.bulk.selected' | translate: { count: selectedCount(), quantity: selectedQuantity() } }}
+        </span>
+        @if (canWriteOff) {
+          <button
+            mat-flat-button
+            type="button"
+            class="bulk__write-off"
+            [disabled]="writingOff()"
+            (click)="onWriteOff()"
+          >
+            <mat-icon aria-hidden="true">delete_sweep</mat-icon>
+            {{ 'stock.expirations.bulk.writeOff' | translate }}
+          </button>
+        }
+        <button mat-button type="button" (click)="onClearSelection()">
+          {{ 'stock.expirations.bulk.clear' | translate }}
+        </button>
+        <span class="bulk__hint">{{ 'stock.expirations.bulk.hint' | translate }}</span>
+      </div>
+    }
+  </div>
+
+  <table mat-table [dataSource]="rows()" [attr.aria-label]="'stock.expirations.tableAria' | translate">
+    <ng-container matColumnDef="select">
+      <th mat-header-cell *matHeaderCellDef class="select-cell">
+        <mat-checkbox
+          [checked]="allSelected()"
+          [indeterminate]="someSelected()"
+          [disabled]="rows().length === 0 || !canWriteOff"
+          [aria-label]="'stock.expirations.selectAll' | translate"
+          (change)="onToggleAll()"
+        />
+      </th>
+      <td mat-cell *matCellDef="let row" class="select-cell">
+        <mat-checkbox
+          [checked]="isSelected(row)"
+          [disabled]="!canWriteOff"
+          [aria-label]="'stock.expirations.selectRow' | translate: { batch: row.batchNumber ?? '' }"
+          (change)="onToggle(row)"
+        />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="product">
+      <th mat-header-cell *matHeaderCellDef>{{ 'stock.expirations.columns.product' | translate }}</th>
+      <td mat-cell *matCellDef="let row">
+        <span class="product__name">{{ row.product.name }}</span>
+        @if (row.productSku) {
+          <span class="product__sku">{{ row.productSku }}</span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="batch">
+      <th mat-header-cell *matHeaderCellDef>{{ 'stock.expirations.columns.batch' | translate }}</th>
+      <td mat-cell *matCellDef="let row" class="batch">
+        <a [routerLink]="batchPath(row.batchUuid)" class="batch__link">{{ row.batchNumber || '—' }}</a>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="expiration">
+      <th mat-header-cell *matHeaderCellDef>{{ 'stock.expirations.columns.expiration' | translate }}</th>
+      <td mat-cell *matCellDef="let row">
+        <app-expiration-chip
+          [expirationDate]="row.expirationDate"
+          [status]="row.expirationStatus"
+          [days]="row.daysToExpiration"
+          [showDays]="false"
+        />
+      </td>
+    </ng-container>
+
+    <!-- Días negativos en vez de un chip «vencido»: es un número ordenable y dice cuánto hace. -->
+    <ng-container matColumnDef="days">
+      <th mat-header-cell *matHeaderCellDef class="numeric">{{ 'stock.expirations.columns.days' | translate }}</th>
+      <td mat-cell *matCellDef="let row" class="numeric days" [attr.data-status]="row.expirationStatus">
+        {{ row.daysToExpiration }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="location">
+      <th mat-header-cell *matHeaderCellDef>{{ 'stock.expirations.columns.warehouse' | translate }}</th>
+      <td mat-cell *matCellDef="let row">
+        <span class="location__warehouse">{{ row.warehouse.name }}</span>
+        @if (canViewAllBranches && row.branch) {
+          <span class="location__branch">{{ row.branch.name }}</span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="quantity">
+      <th mat-header-cell *matHeaderCellDef class="numeric">{{ 'stock.expirations.columns.quantity' | translate }}</th>
+      <td mat-cell *matCellDef="let row" class="numeric">{{ row.quantity }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="cost">
+      <th mat-header-cell *matHeaderCellDef class="numeric">{{ 'stock.expirations.columns.cost' | translate }}</th>
+      <td mat-cell *matCellDef="let row" class="numeric">
+        <app-currency-display [value]="row.totalCost" />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-cell">
+        <span class="sr-only">{{ 'stock.expirations.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let row" class="actions-cell">
+        <button
+          mat-icon-button
+          type="button"
+          [matTooltip]="'stock.expirations.actions.traceability' | translate"
+          [attr.aria-label]="'stock.expirations.actions.traceability' | translate"
+          (click)="onOpenBatch(row)"
+        >
+          <mat-icon aria-hidden="true">timeline</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr
+      mat-row
+      *matRowDef="let row; columns: displayedColumns"
+      [attr.data-status]="row.expirationStatus"
+      [class.row--selected]="isSelected(row)"
+    ></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell empty" [attr.colspan]="displayedColumns.length">
+        @if (!loading()) {
+          {{ (loadError() ? 'stock.expirations.loadError' : 'stock.expirations.empty') | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="total()"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="loading()"
+    [attr.aria-label]="'stock.expirations.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

@@ -1,0 +1,49 @@
+:host {
+  display: block;
+}
+
+/* Propuesta B: buscador con borde de 40px, segmentado y «Filtros» a la derecha. */
+.table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 22px;
+}
+
+.table-toolbar__search {
+  flex: 1 1 14rem;
+  min-width: 12rem;
+  max-width: 22.5rem;
+}
+
+.table-toolbar__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+
+.table-toolbar__filters {
+  --mat-button-outlined-container-height: 40px;
+}
+
+.table-toolbar__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-inline-start: 6px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: var(--vk-accent-fill);
+  color: #fff;
+  font-size: 11px;
+}
+
+.table-toolbar__clear-search--hidden {
+  visibility: hidden;
+  pointer-events: none;
+}

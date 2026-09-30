@@ -1,0 +1,165 @@
+<h2 mat-dialog-title>{{ data.title ?? ('customerPicker.title' | translate) }}</h2>
+
+<mat-dialog-content class="customer-picker__content">
+  <p class="customer-picker__description">{{ 'customerPicker.description' | translate }}</p>
+
+  <app-table-wrapper
+    [loading]="paginator.loading()"
+    [loadingAriaLabel]="'customerPicker.loading' | translate"
+    maxHeight="24rem"
+  >
+    <!--
+      Un solo campo para las dos columnas: quien atiende escribe lo que el cliente le dice —el
+      nombre o el CUIT— sin tener que elegir antes en cuál de los dos va a buscar.
+    -->
+    <div tableWrapperHeader class="customer-picker__header">
+      <mat-form-field
+        appearance="outline"
+        subscriptSizing="dynamic"
+        class="customer-picker__search"
+      >
+        <mat-icon matIconPrefix aria-hidden="true">search</mat-icon>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          [placeholder]="'customerPicker.searchPlaceholder' | translate"
+          [attr.aria-label]="'customerPicker.searchAria' | translate"
+        />
+        @if (searchQuery()) {
+          <button
+            matIconButton
+            matSuffix
+            type="button"
+            [attr.aria-label]="'customerPicker.clearSearch' | translate"
+            (click)="searchQuery.set('')"
+          >
+            <mat-icon aria-hidden="true">close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+
+      <button
+        mat-icon-button
+        type="button"
+        [disabled]="paginator.loading()"
+        [matTooltip]="'customerPicker.refresh' | translate"
+        [attr.aria-label]="'customerPicker.refresh' | translate"
+        (click)="onRefresh()"
+      >
+        <mat-icon aria-hidden="true">refresh</mat-icon>
+      </button>
+    </div>
+
+    <table
+      mat-table
+      matSort
+      [dataSource]="paginator.items()"
+      [matSortActive]="paginator.sortActive() ?? ''"
+      [matSortDirection]="paginator.sortDirection()"
+      (matSortChange)="onSort($event)"
+      [attr.aria-label]="'customerPicker.tableAria' | translate"
+    >
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          {{ 'customerPicker.columns.name' | translate }}
+        </th>
+        <td mat-cell *matCellDef="let customer">
+          <span class="customer-picker__name">{{ customer.name }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="document">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>
+          {{ 'parties.columns.document' | translate }}
+        </th>
+        <td mat-cell *matCellDef="let customer" class="customer-picker__document">
+          {{ formatDocument(customer) }}
+        </td>
+      </ng-container>
+
+      <!-- Con qué lista se le va a cobrar: es la consecuencia de elegirlo, así que se ve antes. -->
+      <ng-container matColumnDef="priceList">
+        <th mat-header-cell *matHeaderCellDef>
+          {{ 'customerPicker.columns.priceList' | translate }}
+        </th>
+        <td mat-cell *matCellDef="let customer">{{ customer.priceList?.name || '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions" [stickyEnd]="true">
+        <th mat-header-cell *matHeaderCellDef class="customer-picker__actions-cell">
+          <span class="sr-only">{{ 'customerPicker.columns.actions' | translate }}</span>
+        </th>
+        <td mat-cell *matCellDef="let customer" class="customer-picker__actions-cell">
+          <!--
+            El flex va en un envoltorio y no en la celda: un `display: flex` sobre el `td` lo saca
+            del layout de la tabla y la columna deja de respetar su ancho.
+          -->
+          <div class="customer-picker__actions">
+            @if (isSelected(customer)) {
+              <mat-icon
+                class="customer-picker__current"
+                [matTooltip]="'customerPicker.current' | translate"
+                >how_to_reg</mat-icon
+              >
+            }
+
+            <button
+              mat-icon-button
+              type="button"
+              [matTooltip]="'customerPicker.select' | translate"
+              [attr.aria-label]="'customerPicker.selectAria' | translate: { name: customer.name }"
+              (click)="$event.stopPropagation(); onSelect(customer)"
+            >
+              <mat-icon aria-hidden="true">check_circle</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <!--
+        La fila entera es el blanco natural con el mouse. Para el teclado y el lector de pantalla
+        está el botón de la última columna, que es quien lleva el nombre accesible de la acción.
+      -->
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        class="customer-picker__row"
+        [class.customer-picker__row--current]="isSelected(row)"
+        [attr.aria-current]="isSelected(row) ? 'true' : null"
+        (click)="onSelect(row)"
+      ></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="customer-picker__empty" [attr.colspan]="displayedColumns.length">
+          @if (paginator.loadState() === LoadState.Error) {
+            {{ 'customerPicker.loadError' | translate }}
+          } @else if (!paginator.loading()) {
+            {{ 'customerPicker.empty' | translate }}
+          }
+        </td>
+      </tr>
+    </table>
+
+    <mat-paginator
+      tableWrapperFooter
+      [length]="paginator.totalCount()"
+      [pageIndex]="paginator.pageIndex()"
+      [pageSize]="paginator.pageSize()"
+      [pageSizeOptions]="pageSizeOptions"
+      [disabled]="paginator.loading()"
+      [attr.aria-label]="'customerPicker.paginationAria' | translate"
+      (page)="onPage($event)"
+      showFirstLastButtons
+    />
+  </app-table-wrapper>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="undefined">
+    {{ 'customerPicker.cancel' | translate }}
+  </button>
+</mat-dialog-actions>

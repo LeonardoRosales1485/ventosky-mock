@@ -1,0 +1,26 @@
+:host {
+  display: inline-block;
+}
+
+.currency-display {
+  font-family: var(--vk-font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --app-success / --app-error resuelven claro u oscuro con light-dark() en styles.css. */
+.currency-display--positive {
+  color: var(--app-success);
+  font-weight: 600;
+}
+
+.currency-display--negative {
+  color: var(--app-error);
+  font-weight: 600;
+}
+
+.currency-display--empty {
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+}

@@ -1,0 +1,321 @@
+/*
+  Sidebar de la Propuesta B: tinta violeta en los dos temas, ítem activo con fondo violeta lleno.
+  Todo sale de los tokens `--vk-side-*`; el texto claro está validado AA sobre `--vk-side`.
+*/
+:host {
+  display: block;
+  height: 100%;
+}
+
+.sb {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px 12px;
+  background: var(--vk-side);
+  color: var(--vk-side-fg);
+  scrollbar-color: var(--vk-side-2) transparent;
+}
+
+/* ---- Marca ---- */
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 8px 14px;
+}
+
+.sb-brand__logo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--vk-accent-fill);
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 4px 14px -4px var(--vk-accent-fill);
+}
+
+.sb-brand__text {
+  min-width: 0;
+}
+
+.sb-brand__text b {
+  display: block;
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.sb-brand__text small {
+  display: block;
+  overflow: hidden;
+  color: var(--vk-side-fg-2);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---- Selector de sucursal ---- */
+.sb-branch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--vk-radius-sm);
+  background: var(--vk-side-2);
+  color: var(--vk-side-fg);
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+  transition: color 150ms ease-out;
+}
+
+.sb-branch--static {
+  cursor: default;
+}
+
+button.sb-branch:hover {
+  color: #fff;
+}
+
+.sb-branch:focus-visible,
+.sb-link:focus-visible {
+  outline: 2px solid var(--vk-accent);
+  outline-offset: 2px;
+}
+
+.sb-branch .mat-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  color: var(--vk-side-fg-2);
+}
+
+.sb-branch__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---- Navegación ---- */
+.sb-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-inline: -4px;
+  padding-inline: 4px;
+}
+
+.sb-group__title {
+  margin: 0;
+  padding: 16px 10px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--vk-side-fg-2);
+}
+
+.sb-group__rule {
+  margin: 10px 8px;
+  border: 0;
+  border-top: 1px solid var(--vk-side-line);
+}
+
+.sb-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  margin-bottom: 2px;
+  padding: 9px 10px;
+  border-radius: var(--vk-radius-sm);
+  color: var(--vk-side-fg);
+  font-size: 14px;
+  line-height: 1.3;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    padding-inline var(--panel-sidebar-motion, 280ms ease-out);
+}
+
+.sb-link__icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  color: var(--vk-side-fg-2);
+}
+
+.sb-link__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-link__ext {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+.sb-link:hover {
+  background: var(--vk-side-2);
+  color: #fff;
+}
+
+.sb-link.sidebar-link--active {
+  background: var(--vk-accent-fill);
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 6px 18px -8px var(--vk-accent-fill);
+}
+
+.sb-link.sidebar-link--active .sb-link__icon,
+.sb-link.sidebar-link--active .sb-link__ext {
+  color: #fff;
+}
+
+/* Rail colapsado: el ícono va centrado en los 4.5rem del rail. */
+:host.sidebar--collapsed .sb {
+  padding-inline: 10px;
+}
+
+:host.sidebar--collapsed .sb-brand {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+:host.sidebar--collapsed .sb-branch,
+:host.sidebar--collapsed .sb-link {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+/* ---- Usuario ---- */
+.sb-me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 14px 4px 0 8px;
+  border-top: 1px solid var(--vk-side-line);
+}
+
+:host.sidebar--collapsed .sb-me {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.sb-me__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--vk-side-2);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.sb-me__text {
+  flex: 1;
+  min-width: 0;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.sb-me__text span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sb-me__text small {
+  display: block;
+  color: var(--vk-side-fg-2);
+  font-size: 12px;
+}
+
+.sb-me__logout {
+  --mat-icon-button-icon-color: var(--vk-side-fg-2);
+  --mat-icon-button-state-layer-color: #fff;
+  flex: none;
+}
+
+.sb-me__logout:hover {
+  color: #fff !important;
+}
+
+/*
+  Los labels aparecen y desaparecen en un frame; con la demora esperan a que el rail termine de
+  abrirse. `--panel-sidebar-motion` viene del shell.
+*/
+.sidebar-label {
+  animation: sidebar-label-in var(--panel-sidebar-motion, 280ms ease-out) 120ms both;
+}
+
+@keyframes sidebar-label-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---- Menú de sucursales (vive en el overlay) ---- */
+.branch-menu__title {
+  min-width: 14rem;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--vk-fg-3);
+}
+
+.branch-menu__inactive {
+  margin-inline-start: 0.5rem;
+  font-size: 11px;
+  color: var(--vk-fg-3);
+}
+
+.branch-menu__hint {
+  max-width: 14rem;
+  margin: 4px 0 0;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--vk-line);
+  font-size: 11px;
+  color: var(--vk-fg-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-label {
+    animation: none;
+  }
+}

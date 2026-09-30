@@ -1,0 +1,331 @@
+<!--
+  Sin el topbar del panel, esta barra es la única salida de la pantalla: lleva el estado de la caja,
+  con quién está armada la venta y el botón que la cierra. Es deliberadamente baja — cada línea que
+  ocupa es una línea menos de carrito.
+
+  El cliente vive acá y no en la columna de la derecha: es la otra parada obligada de una venta
+  —después de la caja— y es la que se cambia con una tecla, así que va donde está lo que se mira sin
+  buscar. La columna derecha queda entonces para lo que **resulta** de la venta: cuánto da, y qué se
+  le puede hacer a la línea marcada.
+-->
+<header class="sale-bar">
+  <h1 class="sr-only">{{ 'nav.items.pos' | translate }}</h1>
+
+  <app-cash-session-chip
+    [cashRegister]="cashRegister()"
+    [cashRegisters]="cashRegisters()"
+    [loading]="catalogsState() === LoadState.Loading"
+    [canOpen]="canOpenCashSession"
+    [opening]="openingCashSession()"
+    (cashRegisterChange)="onCashRegisterChange($event)"
+    (openSession)="onOpenCashSession()"
+  />
+
+  <!--
+    Se busca en su diálogo y no en un desplegable: una cartera de miles no entra en una lista, y
+    traerla entera para llenarla es un pedido que crece con ella. Vacío es un estado final y no uno
+    pendiente —la venta de mostrador no tiene tercero—, así que el botón dice «Consumidor final» sin
+    marcarlo como algo que falte.
+  -->
+  <button
+    type="button"
+    class="sale-bar__chip sale-bar__customer"
+    [class.sale-bar__chip--on]="cart.customer() !== null"
+    aria-haspopup="dialog"
+    [attr.aria-keyshortcuts]="shortcuts.customer"
+    [matTooltip]="'sales.checkout.customerSearch' | translate: { key: shortcuts.customer }"
+    (click)="onPickCustomer()"
+  >
+    <mat-icon aria-hidden="true">person</mat-icon>
+    <span class="sale-bar__customer-name">
+      {{ customerLabel() || ('sales.checkout.customerEmpty' | translate) }}
+    </span>
+    <kbd aria-hidden="true">{{ shortcuts.customer }}</kbd>
+  </button>
+
+  @if (cart.customer()) {
+    <button
+      matIconButton
+      type="button"
+      class="sale-bar__customer-clear"
+      [matTooltip]="'sales.checkout.customerClear' | translate"
+      [attr.aria-label]="'sales.checkout.customerClear' | translate"
+      (click)="onClearCustomer()"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  }
+
+  <!--
+    El comprobante declara qué hace la operación con el stock y el balance, y si el impuesto se suma
+    al importe de la línea. Vive en la barra y no en la columna de la derecha por lo mismo que el
+    cliente: es una de las tres cosas que definen **qué operación es esta venta** —con quién, con qué
+    comprobante y cuándo—, se elige una vez al abrirla y después se mira de reojo para confirmar que
+    sigue siendo la que se quería.
+
+    Se ofrecen sólo los de venta: uno de compra con un cliente lo rechaza el commit con un 400.
+  -->
+  @if (vouchers().length > 0) {
+    <button
+      type="button"
+      class="sale-bar__chip"
+      [class.sale-bar__chip--warn]="!cart.addsTax()"
+      [matMenuTriggerFor]="voucherMenu"
+      [matTooltip]="
+        (cart.addsTax() ? 'sales.checkout.voucher' : 'sales.checkout.voucherWithoutTax') | translate
+      "
+    >
+      <mat-icon aria-hidden="true">receipt_long</mat-icon>
+      <span class="sale-bar__chip-text">
+        {{ cart.voucher()?.name ?? ('sales.checkout.voucher' | translate) }}
+      </span>
+      <mat-icon aria-hidden="true" class="sale-bar__chip-caret">arrow_drop_down</mat-icon>
+    </button>
+
+    <mat-menu #voucherMenu [aria-label]="'sales.checkout.voucher' | translate">
+      @for (voucher of vouchers(); track voucher.uuid) {
+        <button
+          mat-menu-item
+          type="button"
+          role="menuitemradio"
+          [attr.aria-checked]="cart.voucher()?.uuid === voucher.uuid"
+          (click)="onVoucherChange(voucher.uuid)"
+        >
+          <mat-icon aria-hidden="true" [class.sale-bar__check--off]="cart.voucher()?.uuid !== voucher.uuid"
+            >check</mat-icon
+          >
+          <span>{{ voucher.name }}</span>
+          @if (voucher.code) {
+            <span class="sale__voucher-code">· {{ voucher.code }}</span>
+          }
+        </button>
+      }
+    </mat-menu>
+  } @else {
+    <span class="sale-bar__chip sale-bar__chip--error">
+      <mat-icon aria-hidden="true">receipt_long</mat-icon>
+      <span class="sale-bar__chip-text">{{ 'sales.checkout.noVouchers' | translate }}</span>
+    </span>
+  }
+
+  <!--
+    Cuándo ocurrió la venta. Arranca en el ahora —que es lo que pasa en un mostrador— y se corrige
+    para registrar una venta que quedó sin cargar: es lo que ancla la sesión de caja, porque el
+    backend busca la que cubra ese instante. Por eso una fecha que no es la de hoy se marca: es el
+    único dato de la barra que puede hacer que el commit se rechace sin que nadie lo haya tocado en
+    esta venta.
+
+    Sigue siendo un campo y no un botón con diálogo: es lo único de la barra que se **escribe**, y
+    mandarlo a un diálogo para tipear cuatro números sería un paso de más.
+  -->
+  <label
+    class="sale-bar__chip sale-bar__date"
+    [class.sale-bar__chip--warn]="!isToday()"
+    [matTooltip]="
+      (isToday() ? 'sales.checkout.dateOperation' : 'sales.checkout.pastDateHint') | translate
+    "
+  >
+    <mat-icon aria-hidden="true">event</mat-icon>
+    <span class="sr-only">{{ 'sales.checkout.dateOperation' | translate }}</span>
+    <input
+      type="datetime-local"
+      class="sale-bar__date-input"
+      [value]="dateOperationValue()"
+      (change)="onDateOperationChange($any($event.target).value)"
+    />
+  </label>
+
+  <!--
+    Quién está vendiendo y qué hora es. En un mostrador con turnos, las dos cosas son las que se
+    miran para saber si la caja abierta es la propia: el commit imputa la venta a esta sesión.
+  -->
+  <span class="sale-bar__seller">{{ sellerName() }} · {{ clock() }}</span>
+
+  <!--
+    La pantalla completa del navegador. Es un botón y no algo que la pantalla se tome sola: la API
+    sólo se concede sobre un gesto del usuario, y además tomarle el navegador a alguien que entró a
+    mirar una venta es exactamente lo que no hay que hacer. Quien vende el turno entero la aprieta
+    una vez.
+  -->
+  <button
+    matIconButton
+    type="button"
+    class="sale-bar__fullscreen"
+    [matTooltip]="
+      (fullscreen.active() ? 'sales.directSale.exitFullscreen' : 'sales.directSale.enterFullscreen')
+        | translate
+    "
+    [attr.aria-label]="
+      (fullscreen.active() ? 'sales.directSale.exitFullscreen' : 'sales.directSale.enterFullscreen')
+        | translate
+    "
+    [attr.aria-pressed]="fullscreen.active()"
+    (click)="onToggleFullscreen()"
+  >
+    <mat-icon aria-hidden="true">{{
+      fullscreen.active() ? 'fullscreen_exit' : 'fullscreen'
+    }}</mat-icon>
+  </button>
+
+  <!-- La salida se distingue del resto de la barra: texto a la izquierda y el ícono en un círculo rojo tenue. -->
+  <button
+    type="button"
+    class="sale-bar__exit"
+    [matTooltip]="'sales.directSale.exitHint' | translate"
+    (click)="onExit()"
+  >
+    <span class="sale-bar__exit-label">{{ 'sales.directSale.exitPos' | translate }}</span>
+    <span class="sale-bar__exit-icon"><mat-icon aria-hidden="true">logout</mat-icon></span>
+  </button>
+</header>
+
+<app-load-state
+  [state]="catalogsState()"
+  [loadingMessage]="'sales.directSale.loading' | translate"
+  [errorMessage]="'sales.directSale.loadError' | translate"
+  [retryable]="true"
+  [retryLabel]="'sales.directSale.retry' | translate"
+  minHeight="24rem"
+  (retry)="loadCatalogs()"
+>
+  <div class="sale">
+    @if (failedCatalogs().length > 0) {
+      <p class="sale__catalogs-alert" role="alert">
+        <mat-icon aria-hidden="true">warning</mat-icon>
+        <span>
+          {{ 'sales.catalogs.failed' | translate }}
+          @for (name of failedCatalogs(); track name; let last = $last) {
+            {{ 'sales.catalogs.names.' + name | translate }}@if (!last) {,}
+          }
+        </span>
+        <button mat-stroked-button type="button" (click)="loadCatalogs()">
+          {{ 'sales.catalogs.retry' | translate }}
+        </button>
+      </p>
+    }
+
+    <!-- Panel izquierdo: qué se vende. -->
+    <section class="sale__cart" [attr.aria-label]="'sales.cart.sectionAria' | translate">
+      <!--
+        Con qué lista se cobra la venta entera se elige desde el encabezado de la columna «Lista»,
+        adentro del carrito: acá arriba gastaba una fila de alto para algo que se decide una vez al
+        abrir la venta, y lo que tiene que quedar corto —y quieto— es el camino de escanear a ver la
+        línea.
+      -->
+      <app-sale-product-search
+        [priceLists]="priceLists()"
+        (productSelected)="onProductSelected($event)"
+      />
+
+      <app-sale-cart
+        [lines]="cart.lineViews()"
+        [stockPolicy]="cart.stockValidationPolicy()"
+        [priceLists]="priceLists()"
+        [cartPriceListUuid]="cart.cartPriceListUuid()"
+        [canSelectBatch]="canSelectBatch"
+        [activeUuid]="activeUuid()"
+        (activeChange)="activeUuid.set($event)"
+        (batchPick)="onBatchPick($event)"
+        (serialPick)="onSerialPick($event)"
+        (serialRemove)="onSerialRemove($event)"
+        (batchReset)="onBatchReset($event)"
+        (packagingChange)="onLinePackagingChange($event)"
+        (quantityChange)="onQuantityChange($event)"
+        (cartPriceListChange)="onCartPriceListChange($event)"
+        (priceListChange)="onLinePriceListChange($event)"
+        (lineRemove)="onRemoveLine($event)"
+        (selectionRemove)="onRemoveLines($event)"
+        (clear)="onClearCart()"
+      />
+    </section>
+
+    <!-- Panel derecho: cuánto da, qué se le hace a la línea marcada, y con qué se registra. -->
+    <aside class="sale__checkout" [attr.aria-label]="'sales.checkout.sectionAria' | translate">
+      <!--
+        El estado de la cuenta corriente del cliente, apenas se lo elige y ANTES de cargar el
+        carrito (§10.1): enterarse de que está excedido después de cargar veinte artículos es la
+        peor versión de esta funcionalidad. Por eso va arriba de todo y fuera del scroll: un aviso
+        que hay que ir a buscar llega tarde.
+
+        Sin cliente no ocupa lugar —la venta de mostrador no tiene tercero, que es la mayoría—, así
+        que el total no se corre salvo en la venta que además tiene cuenta corriente detrás.
+
+        El chip informa y no interrumpe. Ninguno de los cuatro niveles deshabilita nada; lo único
+        que deshabilita el medio de pago es que la cuenta esté deshabilitada, y eso lo dice el
+        propio panel.
+      -->
+      @if (availabilityLoading() || availability() || noAccount()) {
+        <app-account-panel
+          [availability]="availability()"
+          [loading]="availabilityLoading()"
+          [noAccount]="noAccount()"
+        />
+      }
+
+      <!--
+        El cobro no vive acá: es un momento y no un estado, así que se pide entero en su diálogo. Lo
+        que queda arriba de todo es el número que se dice en voz alta y la puerta al cobro.
+      -->
+      <app-sale-totals
+        [totals]="cart.totals()"
+        [promotions]="cart.promotionBreakdown()"
+        [paidAmount]="cart.paidAmount()"
+        [lineCount]="cart.itemCount()"
+        [unitCount]="unitCount()"
+        [canCancel]="!cart.isEmpty()"
+        [submitting]="submitting()"
+        [missingRequirements]="chargeAlert()"
+        [shortcut]="shortcuts.charge"
+        (charge)="onCharge()"
+        (cancelSale)="onCancelSale()"
+      />
+
+      <!--
+        Qué se le puede hacer a la línea marcada, con la tecla de cada acción escrita al lado. Es lo
+        que convierte al teclado en la forma normal de trabajar: la línea se elige con las flechas y
+        todo lo que se le hace sale de acá.
+      -->
+      <app-sale-line-actions
+        [line]="activeLine()"
+        [index]="activeIndex() + 1"
+        [priceLists]="priceLists()"
+        [canSelectBatch]="canSelectBatch"
+        (quantityEdit)="onEditQuantity()"
+        (priceListChange)="onActiveLinePriceList($event)"
+        (batchPick)="onPickActiveBatch()"
+        (serialPick)="onPickActiveSerials()"
+        (remove)="onRemoveActiveLine()"
+      />
+
+      <div class="sale__checkout-scroll">
+        <!--
+          La nota de la venta. Es opcional y no toca ningún importe: deja asentado lo que el
+          comprobante no dice —qué se acordó en el mostrador, a quién se le entregó— y viaja como
+          `observations` en el commit.
+        -->
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sale__notes">
+          <mat-label>{{ 'sales.checkout.observations' | translate }}</mat-label>
+          <textarea
+            matInput
+            rows="3"
+            autocomplete="off"
+            class="sale__notes-input"
+            [attr.maxlength]="observationsMaxLength"
+            [placeholder]="'sales.checkout.observationsPlaceholder' | translate"
+            [value]="cart.observations()"
+            (input)="onObservationsChange($any($event.target).value)"
+          ></textarea>
+          <mat-hint align="end" class="sale__notes-counter"
+            >{{ cart.observations().length }}/{{ observationsMaxLength }}</mat-hint
+          >
+        </mat-form-field>
+      </div>
+    </aside>
+  </div>
+</app-load-state>
+
+<!--
+  La leyenda de teclas es parte del diseño y no un apéndice: es lo único que convierte a un cajero
+  nuevo en uno que no toca el mouse.
+-->
+<app-sale-shortcuts />

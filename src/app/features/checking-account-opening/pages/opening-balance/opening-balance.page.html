@@ -1,0 +1,244 @@
+<app-page-header
+  [title]="'openingBalance.title' | translate"
+  [description]="'openingBalance.description' | translate"
+>
+  <button mat-stroked-button type="button" (click)="onToggleHistory()">
+    <mat-icon aria-hidden="true">history</mat-icon>
+    {{ 'openingBalance.historyAction' | translate }}
+  </button>
+</app-page-header>
+
+<section class="opening__source">
+  <!--
+    El formato se explica acá y no en un manual: quien carga esto lo hace una vez en la vida de la
+    empresa, así que no va a acordarse de nada.
+  -->
+  <p class="opening__format">{{ 'openingBalance.format' | translate }}</p>
+  <pre class="opening__sample">{{ 'openingBalance.sample' | translate }}</pre>
+
+  <div class="opening__file">
+    <input
+      type="file"
+      accept=".csv,.txt,text/csv,text/plain"
+      [attr.aria-label]="'openingBalance.file' | translate"
+      (change)="onFile($event)"
+    />
+    @if (sourceName()) {
+      <span class="opening__file-name">{{ sourceName() }}</span>
+    }
+  </div>
+
+  <mat-form-field appearance="outline" class="opening__csv">
+    <mat-label>{{ 'openingBalance.csv' | translate }}</mat-label>
+    <textarea
+      matInput
+      rows="8"
+      name="csv"
+      [ngModel]="csv()"
+      (ngModelChange)="onCsvChange($event)"
+    ></textarea>
+    <mat-hint>{{ 'openingBalance.csvHint' | translate }}</mat-hint>
+  </mat-form-field>
+
+  <button mat-stroked-button type="button" [disabled]="!canPreview()" (click)="onPreview()">
+    <mat-icon aria-hidden="true">visibility</mat-icon>
+    {{ 'openingBalance.previewAction' | translate }}
+  </button>
+</section>
+
+<!--
+  Las filas que ni siquiera se pudieron interpretar, todas juntas: corregir un archivo de a un error
+  por vez es el peor uso posible del tiempo de quien lo está cargando.
+-->
+@if (parseErrors().length > 0) {
+  <section class="opening__parse-errors" role="alert">
+    <h2>{{ 'openingBalance.parseErrors' | translate }}</h2>
+    <ul>
+      @for (error of parseErrors(); track error.line) {
+        <li>{{ 'openingBalance.parseErrorLine' | translate: { line: error.line } }} {{ error.message }}</li>
+      }
+    </ul>
+  </section>
+}
+
+@if (preview(); as preview) {
+  <section class="opening__preview" [attr.aria-label]="'openingBalance.previewAria' | translate">
+    @if (preview.alreadyImported) {
+      <p class="opening__note opening__note--warn">
+        <mat-icon aria-hidden="true">history</mat-icon>
+        {{ 'openingBalance.alreadyImported' | translate }}
+      </p>
+    }
+
+    <p class="opening__source-line">
+      <strong>{{ sourceName() || ('openingBalance.csv' | translate) }}</strong>
+      ·
+      {{
+        'openingBalance.sourceSummary'
+          | translate: { lines: preview.lineCount, accounts: preview.accountCount }
+      }}
+    </p>
+    <!--
+      La previa no escribe nada y es la única oportunidad de revisar esto que va a existir: se puede
+      corregir el archivo y volver a pedirla las veces que haga falta.
+    -->
+    <p class="opening__note">{{ 'openingBalance.previewRepeatable' | translate }}</p>
+
+    <dl class="opening__figures">
+      <div>
+        <dt>{{ 'openingBalance.figures.new' | translate }}</dt>
+        <dd>{{ preview.newCount }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'openingBalance.figures.duplicate' | translate }}</dt>
+        <dd>{{ preview.duplicateCount }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'openingBalance.figures.error' | translate }}</dt>
+        <dd>{{ preview.errorCount }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'openingBalance.figures.accounts' | translate }}</dt>
+        <dd>{{ preview.accountCount }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'openingBalance.figures.debt' | translate }}</dt>
+        <dd><app-currency-display [value]="preview.totalDebt" /></dd>
+      </div>
+      <div>
+        <dt>{{ 'openingBalance.figures.credit' | translate }}</dt>
+        <dd><app-currency-display [value]="preview.totalCredit" /></dd>
+      </div>
+      <!--
+        El número que sorprende: cuánto de lo que se está por cargar YA está vencido. Suele ser la
+        mitad, y verlo antes evita el susto de que el módulo arranque mandando avisos de deuda.
+      -->
+      <div class="opening__overdue">
+        <dt>{{ 'openingBalance.figures.overdue' | translate }}</dt>
+        <dd>
+          <app-currency-display [value]="preview.totalOverdue" />
+          @if (overduePercent() !== null) {
+            <span class="opening__overdue-share">
+              {{ 'openingBalance.overdueShare' | translate: { percent: overduePercent() } }}
+            </span>
+          }
+        </dd>
+      </div>
+    </dl>
+
+    <div class="opening__table-wrap">
+      <table class="opening__table">
+        <thead>
+          <tr>
+            <th>{{ 'openingBalance.columns.line' | translate }}</th>
+            <th>{{ 'openingBalance.columns.state' | translate }}</th>
+            <th>{{ 'openingBalance.columns.party' | translate }}</th>
+            <th>{{ 'openingBalance.columns.publicId' | translate }}</th>
+            <th class="numeric-header">{{ 'openingBalance.columns.amount' | translate }}</th>
+            <th>{{ 'openingBalance.columns.dueDate' | translate }}</th>
+            <th>{{ 'openingBalance.columns.detail' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of preview.lines; track line.line) {
+            <tr [class.opening__row--error]="line.state === 'ERROR'">
+              <td>{{ line.line }}</td>
+              <td>
+                <span class="opening__state" [class]="'opening__state--' + line.state">
+                  {{ 'openingBalance.states.' + line.state | translate }}
+                </span>
+              </td>
+              <td>
+                <span class="opening__party">{{ line.partyName ?? '—' }}</span>
+                @if (line.role) {
+                  <span class="opening__role">
+                    {{ 'checkingAccounts.roles.' + line.role | translate }}
+                  </span>
+                }
+              </td>
+              <td>{{ line.publicId }}</td>
+              <td class="numeric-cell"><app-currency-display [value]="line.amount" /></td>
+              <td>
+                {{ line.dateDue ?? '—' }}
+                @if (line.overdue) {
+                  <span class="opening__overdue-chip">{{
+                    'openingBalance.overdue' | translate
+                  }}</span>
+                }
+              </td>
+              <td class="opening__message">{{ line.message ?? '' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!--
+      Una línea mala frena el lote entero: escribir «las que estaban bien» dejaría un saldo inicial
+      parcial que nadie sabe que lo es, sobre el dato que después no se puede auditar contra nada.
+    -->
+    @if (!preview.canImport && preview.errorCount > 0) {
+      <p class="opening__note opening__note--error" role="alert">
+        <mat-icon aria-hidden="true">warning_amber</mat-icon>
+        {{ 'openingBalance.blocked' | translate }}
+      </p>
+    }
+
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      [disabled]="!canImport()"
+      (click)="onImport()"
+    >
+      {{ 'openingBalance.importAction' | translate }}
+    </button>
+  </section>
+}
+
+<!--
+  El historial: la única respuesta a «estas 40 deudas, ¿de dónde salieron?». Los totales se guardan
+  y no se recalculan — son los que una persona aprobó en la previa, y compararlos después contra la
+  suma de las partidas es cómo se detecta que alguien tocó algo.
+-->
+@if (historyOpen()) {
+  <section class="opening__history" [attr.aria-label]="'openingBalance.historyTitle' | translate">
+    <h2 class="opening__history-title">{{ 'openingBalance.historyTitle' | translate }}</h2>
+
+    @if (history().length === 0) {
+      <p class="opening__note">{{ 'openingBalance.historyEmpty' | translate }}</p>
+    } @else {
+      <ul class="opening__history-list">
+        @for (item of history(); track item.uuid) {
+          <li class="opening__history-item">
+            <span class="opening__history-file">
+              {{ item.sourceName ?? ('openingBalance.historyNoName' | translate) }}
+            </span>
+            <span class="opening__history-meta">
+              {{ item.dateCreated | localizedDate: 'short' }}
+              ·
+              {{
+                'openingBalance.historyCounts'
+                  | translate: { created: item.createdCount, skipped: item.skippedCount }
+              }}
+              ·
+              {{ 'openingBalance.historyHash' | translate: { hash: item.contentHash.slice(0, 8) } }}
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}
+
+@if (result(); as result) {
+  <section class="opening__result" role="status">
+    <p class="opening__result-lead">
+      {{
+        'openingBalance.resultLead'
+          | translate: { created: result.createdCount, skipped: result.skippedCount }
+      }}
+    </p>
+    <p class="opening__note">{{ 'openingBalance.resultHint' | translate }}</p>
+  </section>
+}

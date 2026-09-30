@@ -1,0 +1,597 @@
+<form (submit)="onSubmit($event)">
+  <app-page-header
+    [title]="(isEdit ? 'promotions.form.editTitle' : 'promotions.form.createTitle') | translate"
+    [description]="
+      (isEdit ? 'promotions.form.editDescription' : 'promotions.form.createDescription') | translate
+    "
+    [showBack]="true"
+    [backLabel]="'promotions.form.back' | translate"
+    (back)="onCancel()"
+  >
+    <button mat-stroked-button type="button" [disabled]="saving()" (click)="onCancel()">
+      {{ 'promotions.form.cancel' | translate }}
+    </button>
+    <button
+      mat-flat-button
+      color="primary"
+      type="submit"
+      [disabled]="saving() || loadState() !== LoadState.Success"
+    >
+      {{ (isEdit ? 'promotions.form.saveChanges' : 'promotions.form.save') | translate }}
+    </button>
+  </app-page-header>
+
+  <app-load-state
+    [state]="loadState()"
+    [loadingMessage]="
+      (isEdit ? 'promotions.form.loadingPromotion' : 'promotions.form.loading') | translate
+    "
+    [errorMessage]="'promotions.form.loadError' | translate"
+    [retryable]="true"
+    (retry)="onRetry()"
+    minHeight="24rem"
+  >
+    <div class="promotion-form__body flex flex-col gap-4">
+      <!-- ───────────────────  1 · Datos generales  ─────────────────── -->
+      <section class="promotion-form__card" aria-labelledby="promotion-general-title">
+        <h2 class="promotion-form__card-title" id="promotion-general-title">
+          <span class="promotion-form__step" aria-hidden="true">1</span>
+          {{ 'promotions.form.sections.general' | translate }}
+        </h2>
+
+        <div class="grid gap-2 sm:grid-cols-2">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'promotions.form.fields.name' | translate }}</mat-label>
+            <input
+              matInput
+              type="text"
+              autocomplete="off"
+              [formField]="promotionForm.name"
+              [attr.aria-label]="'promotions.form.fields.name' | translate"
+            />
+            <mat-hint>{{ 'promotions.form.hints.name' | translate }}</mat-hint>
+            @if (promotionForm.name().touched() && promotionForm.name().invalid()) {
+              <mat-error>{{ promotionForm.name().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'promotions.form.fields.description' | translate }}</mat-label>
+            <input
+              matInput
+              type="text"
+              autocomplete="off"
+              [formField]="promotionForm.description"
+              [attr.aria-label]="'promotions.form.fields.description' | translate"
+            />
+            @if (promotionForm.description().touched() && promotionForm.description().invalid()) {
+              <mat-error>{{ promotionForm.description().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <!--
+          Acumulable, y no «exclusiva»: el default es sí. Las NxM conviene crearlas en no acumulable
+          —una línea con 3x2 no recibe además un porcentaje—, pero el campo sigue siendo editable.
+        -->
+        <mat-checkbox
+          [checked]="promotionForm.isCombinable().value()"
+          (change)="onCombinableChange($event.checked)"
+        >
+          {{ 'promotions.form.fields.combinable' | translate }}
+        </mat-checkbox>
+        <p class="promotion-form__hint">
+          {{ 'promotions.form.hints.combinable' | translate }}
+        </p>
+      </section>
+
+      <!-- ───────────────────  2 · Tipo y valor  ─────────────────── -->
+      <section class="promotion-form__card" aria-labelledby="promotion-type-title">
+        <h2 class="promotion-form__card-title" id="promotion-type-title">
+          <span class="promotion-form__step" aria-hidden="true">2</span>
+          {{ 'promotions.form.sections.type' | translate }}
+        </h2>
+
+        <mat-form-field appearance="outline" class="promotion-form__half">
+          <mat-label>{{ 'promotions.form.fields.type' | translate }}</mat-label>
+          <mat-select
+            [value]="selectedType()"
+            (valueChange)="onTypeChange($event)"
+            [attr.aria-label]="'promotions.form.fields.type' | translate"
+          >
+            @for (type of typeOptions(); track type) {
+              <mat-option [value]="type">{{ 'promotions.types.' + type | translate }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{ 'promotions.typeHints.' + selectedType() | translate }}</mat-hint>
+        </mat-form-field>
+
+        <!--
+          Un solo bloque de campos, el del tipo elegido: sin inputs muertos. Cambiar de tipo borra
+          los parámetros de los otros, que es lo que el backend exige (V9).
+        -->
+        @switch (selectedType()) {
+          @case ('PERCENTAGE') {
+            <mat-form-field appearance="outline" class="promotion-form__half">
+              <mat-label>{{ 'promotions.form.fields.percent' | translate }}</mat-label>
+              <input
+                matInput
+                type="number"
+                step="0.01"
+                [formField]="promotionForm.percent"
+                [attr.aria-label]="'promotions.form.fields.percent' | translate"
+              />
+              <span matTextSuffix>%</span>
+              @if (promotionForm.percent().touched() && promotionForm.percent().invalid()) {
+                <mat-error>{{ promotionForm.percent().errors() | fieldError }}</mat-error>
+              }
+            </mat-form-field>
+
+            <!-- 10 % y 5 % descuentan 14,5 %, no 15 %: se explica acá y no en la caja. -->
+            <p class="promotion-form__note">
+              <mat-icon aria-hidden="true">lightbulb</mat-icon>
+              <span>{{ 'promotions.form.hints.percentCascade' | translate }}</span>
+            </p>
+          }
+
+          @case ('FIXED_AMOUNT') {
+            <mat-form-field appearance="outline" class="promotion-form__half">
+              <mat-label>{{ 'promotions.form.fields.amount' | translate }}</mat-label>
+              <input
+                matInput
+                type="number"
+                step="0.01"
+                [formField]="promotionForm.amount"
+                [attr.aria-label]="'promotions.form.fields.amount' | translate"
+              />
+              <span matTextPrefix>$&nbsp;</span>
+              @if (promotionForm.amount().touched() && promotionForm.amount().invalid()) {
+                <mat-error>{{ promotionForm.amount().errors() | fieldError }}</mat-error>
+              }
+            </mat-form-field>
+
+            <!-- El número que se carga es el que ve el cliente: precio final, no neto. -->
+            <p class="promotion-form__note">
+              <mat-icon aria-hidden="true">lightbulb</mat-icon>
+              <span>{{ 'promotions.form.hints.fixedAmount' | translate }}</span>
+            </p>
+          }
+
+          @case ('NXM') {
+            <div class="grid gap-2 sm:grid-cols-2">
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'promotions.form.fields.buyQuantity' | translate }}</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  step="1"
+                  [formField]="promotionForm.buyQuantity"
+                  [attr.aria-label]="'promotions.form.fields.buyQuantity' | translate"
+                />
+                @if (
+                  promotionForm.buyQuantity().touched() && promotionForm.buyQuantity().invalid()
+                ) {
+                  <mat-error>{{ promotionForm.buyQuantity().errors() | fieldError }}</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'promotions.form.fields.payQuantity' | translate }}</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  step="1"
+                  [formField]="promotionForm.payQuantity"
+                  [attr.aria-label]="'promotions.form.fields.payQuantity' | translate"
+                />
+                @if (
+                  promotionForm.payQuantity().touched() && promotionForm.payQuantity().invalid()
+                ) {
+                  <mat-error>{{ promotionForm.payQuantity().errors() | fieldError }}</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <!--
+              La vista previa textual: se bonifica la unidad de menor valor **de cada grupo**, que no
+              es lo mismo que la más barata del conjunto — en una venta de siete unidades la
+              diferencia es de cien pesos.
+            -->
+            <p class="promotion-form__note">
+              <mat-icon aria-hidden="true">lightbulb</mat-icon>
+              <span>
+                @let preview = nxmPreview();
+                @if (preview) {
+                  {{
+                    'promotions.form.hints.nxmPreview'
+                      | translate: { buy: preview.buy, pay: preview.pay, bonused: preview.bonused }
+                  }}
+                } @else {
+                  {{ 'promotions.form.hints.nxm' | translate }}
+                }
+              </span>
+            </p>
+          }
+        }
+      </section>
+
+      <!-- ───────────────────  3 · Ámbito  ─────────────────── -->
+      <section class="promotion-form__card" aria-labelledby="promotion-scope-title">
+        <h2 class="promotion-form__card-title" id="promotion-scope-title">
+          <span class="promotion-form__step" aria-hidden="true">3</span>
+          {{ 'promotions.form.sections.scope' | translate }}
+        </h2>
+
+        <mat-radio-group
+          class="promotion-form__radios"
+          [value]="promotionForm.scope().value()"
+          (change)="onScopeChange($event.value)"
+          [attr.aria-label]="'promotions.form.sections.scope' | translate"
+        >
+          @for (scope of promotionScopes; track scope) {
+            <!-- Un NxM cuenta unidades, así que el ámbito de total no se ofrece: el sistema lo rechaza. -->
+            <mat-radio-button [value]="scope" [disabled]="isNxm() && scope !== 'PRODUCTS'">
+              {{ 'promotions.scopes.' + scope | translate }}
+            </mat-radio-button>
+          }
+        </mat-radio-group>
+
+        <p class="promotion-form__hint">
+          {{ 'promotions.scopeHints.' + promotionForm.scope().value() | translate }}
+        </p>
+
+        @if (isNxm()) {
+          <p class="promotion-form__note">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <span>{{ 'promotions.form.hints.nxmScope' | translate }}</span>
+          </p>
+        }
+
+        @if (isProductsScope()) {
+          <p class="promotion-form__hint">{{ 'promotions.form.hints.eligibleSet' | translate }}</p>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            <!-- Productos puntuales: buscador server-side por nombre o SKU. -->
+            <div class="promotion-form__panel">
+              <h3 class="promotion-form__panel-title">
+                <mat-icon aria-hidden="true">inventory_2</mat-icon>
+                {{ 'promotions.form.products.title' | translate }}
+              </h3>
+
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'promotions.form.products.search' | translate }}</mat-label>
+                <input
+                  matInput
+                  type="text"
+                  autocomplete="off"
+                  [value]="productSearch()"
+                  (input)="onProductSearchInput($event)"
+                  [matAutocomplete]="productAutocomplete"
+                  [attr.aria-label]="'promotions.form.products.search' | translate"
+                />
+                @if (productSearching()) {
+                  <mat-spinner matSuffix diameter="18" />
+                }
+                <mat-hint>{{ 'promotions.form.products.searchHint' | translate }}</mat-hint>
+                <mat-autocomplete
+                  #productAutocomplete
+                  (optionSelected)="onProductSelected($event.option.value)"
+                >
+                  @for (product of productSuggestions(); track product.uuid) {
+                    <mat-option [value]="product">
+                      <span class="promotion-form__option-name">{{ product.name }}</span>
+                      @if (product.sku) {
+                        <span class="promotion-form__option-meta">{{ product.sku }}</span>
+                      }
+                    </mat-option>
+                  }
+                </mat-autocomplete>
+              </mat-form-field>
+
+              @if (selectedProducts().length === 0) {
+                <p class="promotion-form__empty">
+                  {{ 'promotions.form.products.empty' | translate }}
+                </p>
+              } @else {
+                <mat-chip-set
+                  [attr.aria-label]="'promotions.form.products.selectedAria' | translate"
+                >
+                  @for (product of selectedProducts(); track product.uuid) {
+                    <mat-chip [removable]="true" (removed)="onRemoveProduct(product.uuid)">
+                      {{ product.name }}
+                      <button
+                        matChipRemove
+                        type="button"
+                        [attr.aria-label]="
+                          'promotions.form.products.remove' | translate: { name: product.name }
+                        "
+                      >
+                        <mat-icon>cancel</mat-icon>
+                      </button>
+                    </mat-chip>
+                  }
+                </mat-chip-set>
+              }
+            </div>
+
+            <!-- Categorías: elegir una alcanza todo su subárbol. -->
+            <div class="promotion-form__panel">
+              <h3 class="promotion-form__panel-title">
+                <mat-icon aria-hidden="true">account_tree</mat-icon>
+                {{ 'promotions.form.categories.title' | translate }}
+              </h3>
+
+              <mat-form-field appearance="outline">
+                <mat-label>{{ 'promotions.form.categories.select' | translate }}</mat-label>
+                <mat-select
+                  multiple
+                  [value]="categorySelection()"
+                  (valueChange)="onCategoriesChange($event)"
+                  [attr.aria-label]="'promotions.form.categories.select' | translate"
+                >
+                  <mat-select-trigger>{{ categorySelectionLabel() }}</mat-select-trigger>
+
+                  <!--
+                    Las subcategorías de una elegida se tildan solas y quedan bloqueadas: la
+                    promoción ya las alcanza, y elegirlas aparte no agregaría nada.
+                  -->
+                  @for (category of categoryChoices(); track category.uuid) {
+                    @let coveredLabel =
+                      'promotions.form.categories.covered' | translate: { path: category.path };
+                    <mat-option
+                      [value]="category.uuid"
+                      [disabled]="category.covered"
+                      [matTooltip]="category.covered ? coveredLabel : category.path"
+                      [attr.aria-label]="category.covered ? coveredLabel : null"
+                      [style.--category-depth]="category.depth"
+                      class="promotion-form__category-option"
+                      [class.promotion-form__category-option--covered]="category.covered"
+                    >
+                      {{ category.name }}
+                    </mat-option>
+                  }
+                </mat-select>
+                <mat-hint>{{ 'promotions.form.categories.hint' | translate }}</mat-hint>
+              </mat-form-field>
+
+              @if (selectedCategories().length === 0) {
+                <p class="promotion-form__empty">
+                  {{ 'promotions.form.categories.empty' | translate }}
+                </p>
+              } @else {
+                <mat-chip-set
+                  [attr.aria-label]="'promotions.form.categories.selectedAria' | translate"
+                >
+                  @for (category of selectedCategories(); track category.uuid) {
+                    <mat-chip [removable]="true" (removed)="onRemoveCategory(category.uuid)">
+                      {{ category.path }}
+                      <button
+                        matChipRemove
+                        type="button"
+                        [attr.aria-label]="
+                          'promotions.form.categories.remove' | translate: { name: category.name }
+                        "
+                      >
+                        <mat-icon>cancel</mat-icon>
+                      </button>
+                    </mat-chip>
+                  }
+                </mat-chip-set>
+              }
+            </div>
+          </div>
+
+          <!-- Sin productos ni categorías la promoción no alcanza a nada, y el backend la rechaza. -->
+          @if (showSectionErrors() && promotionForm.productUuids().invalid()) {
+            <p class="promotion-form__error" role="alert">
+              {{ promotionForm.productUuids().errors() | fieldError }}
+            </p>
+          }
+        }
+
+        @if (showSectionErrors() && promotionForm.scope().invalid()) {
+          <p class="promotion-form__error" role="alert">
+            {{ promotionForm.scope().errors() | fieldError }}
+          </p>
+        }
+      </section>
+
+      <!-- ───────────────────  4 · Audiencia  ─────────────────── -->
+      <section class="promotion-form__card" aria-labelledby="promotion-audience-title">
+        <h2 class="promotion-form__card-title" id="promotion-audience-title">
+          <span class="promotion-form__step" aria-hidden="true">4</span>
+          {{ 'promotions.form.sections.audience' | translate }}
+        </h2>
+
+        <p class="promotion-form__hint">{{ 'promotions.form.audience.hint' | translate }}</p>
+
+        <mat-form-field appearance="outline" class="promotion-form__half">
+          <mat-label>{{ 'promotions.form.audience.search' | translate }}</mat-label>
+          <input
+            matInput
+            type="text"
+            autocomplete="off"
+            [value]="customerSearch()"
+            (input)="onCustomerSearchInput($event)"
+            [matAutocomplete]="customerAutocomplete"
+            [attr.aria-label]="'promotions.form.audience.search' | translate"
+          />
+          @if (customerSearching()) {
+            <mat-spinner matSuffix diameter="18" />
+          }
+          <mat-hint>{{ 'promotions.form.audience.searchHint' | translate }}</mat-hint>
+          <mat-autocomplete
+            #customerAutocomplete
+            (optionSelected)="onCustomerSelected($event.option.value)"
+          >
+            @for (customer of customerSuggestions(); track customer.uuid) {
+              <mat-option [value]="customer">
+                <span class="promotion-form__option-name">{{ customer.name }}</span>
+                @if (customer.docNumber) {
+                  <span class="promotion-form__option-meta">{{ customer.docNumber }}</span>
+                }
+              </mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+
+        @if (selectedCustomers().length === 0) {
+          <p class="promotion-form__empty">{{ 'promotions.form.audience.empty' | translate }}</p>
+        } @else {
+          <mat-chip-set [attr.aria-label]="'promotions.form.audience.selectedAria' | translate">
+            @for (customer of selectedCustomers(); track customer.uuid) {
+              <mat-chip [removable]="true" (removed)="onRemoveCustomer(customer.uuid)">
+                {{ customer.name }}
+                <button
+                  matChipRemove
+                  type="button"
+                  [attr.aria-label]="
+                    'promotions.form.audience.remove' | translate: { name: customer.name }
+                  "
+                >
+                  <mat-icon>cancel</mat-icon>
+                </button>
+              </mat-chip>
+            }
+          </mat-chip-set>
+        }
+      </section>
+
+      <!-- ───────────────────  5 · Medios de pago  ─────────────────── -->
+      <section class="promotion-form__card" aria-labelledby="promotion-payment-title">
+        <h2 class="promotion-form__card-title" id="promotion-payment-title">
+          <span class="promotion-form__step" aria-hidden="true">5</span>
+          {{ 'promotions.form.sections.payment' | translate }}
+        </h2>
+
+        <mat-form-field appearance="outline" class="promotion-form__half">
+          <mat-label>{{ 'promotions.form.payment.select' | translate }}</mat-label>
+          <mat-select
+            multiple
+            [value]="promotionForm.paymentMethodUuids().value()"
+            (valueChange)="onPaymentMethodsChange($event)"
+            [attr.aria-label]="'promotions.form.payment.select' | translate"
+          >
+            @for (method of paymentMethodOptions(); track method.uuid) {
+              <mat-option [value]="method.uuid">{{ method.name }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{ 'promotions.form.payment.hint' | translate }}</mat-hint>
+        </mat-form-field>
+
+        <!--
+          Todo-o-nada: con un solo pago de otro medio la promoción no aplica. Es la regla que hay que
+          entender antes de prometer un descuento que después no se da.
+        -->
+        @if (promotionForm.paymentMethodUuids().value().length > 0) {
+          <p class="promotion-form__note">
+            <mat-icon aria-hidden="true">warning</mat-icon>
+            <span>{{ 'promotions.form.payment.allOrNothing' | translate }}</span>
+          </p>
+        }
+      </section>
+
+      <!-- ───────────────────  6 · Sucursales  ─────────────────── -->
+      <section class="promotion-form__card" aria-labelledby="promotion-branches-title">
+        <h2 class="promotion-form__card-title" id="promotion-branches-title">
+          <span class="promotion-form__step" aria-hidden="true">6</span>
+          {{ 'promotions.form.sections.branches' | translate }}
+        </h2>
+
+        <mat-form-field appearance="outline" class="promotion-form__half">
+          <mat-label>{{ 'promotions.form.branches.select' | translate }}</mat-label>
+          <mat-select
+            multiple
+            [value]="promotionForm.branchUuids().value()"
+            (valueChange)="onBranchesChange($event)"
+            [attr.aria-label]="'promotions.form.branches.select' | translate"
+          >
+            @for (branch of branchOptions(); track branch.uuid) {
+              <mat-option [value]="branch.uuid">{{ branch.name }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{ 'promotions.form.branches.hint' | translate }}</mat-hint>
+        </mat-form-field>
+      </section>
+
+      <!-- ───────────────────  7 · Vigencia  ─────────────────── -->
+      <section class="promotion-form__card" aria-labelledby="promotion-validity-title">
+        <h2 class="promotion-form__card-title" id="promotion-validity-title">
+          <span class="promotion-form__step" aria-hidden="true">7</span>
+          {{ 'promotions.form.sections.validity' | translate }}
+        </h2>
+
+        <div class="grid gap-2 sm:grid-cols-2">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'promotions.form.fields.validFrom' | translate }}</mat-label>
+            <input
+              matInput
+              [matDatepicker]="fromPicker"
+              [value]="validFromDate()"
+              (dateChange)="onValidFromChange($event.value)"
+              [attr.aria-label]="'promotions.form.fields.validFrom' | translate"
+            />
+            <mat-datepicker-toggle matIconSuffix [for]="fromPicker" />
+            <mat-datepicker #fromPicker />
+            <mat-hint>{{ 'promotions.form.hints.validFrom' | translate }}</mat-hint>
+            @if (promotionForm.validFrom().touched() && promotionForm.validFrom().invalid()) {
+              <mat-error>{{ promotionForm.validFrom().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'promotions.form.fields.validUntil' | translate }}</mat-label>
+            <input
+              matInput
+              [matDatepicker]="untilPicker"
+              [value]="validUntilDate()"
+              [min]="validFromDate()"
+              (dateChange)="onValidUntilChange($event.value)"
+              [attr.aria-label]="'promotions.form.fields.validUntil' | translate"
+            />
+            @if (validUntilDate()) {
+              <button
+                matIconButton
+                matSuffix
+                type="button"
+                [matTooltip]="'promotions.form.validity.clearEnd' | translate"
+                [attr.aria-label]="'promotions.form.validity.clearEnd' | translate"
+                (click)="onClearValidUntil(); $event.stopPropagation()"
+              >
+                <mat-icon aria-hidden="true">close</mat-icon>
+              </button>
+            }
+            <mat-datepicker-toggle matIconSuffix [for]="untilPicker" />
+            <mat-datepicker #untilPicker />
+            <!-- Vacía es una decisión, no un olvido: corre hasta que alguien la discontinúe. -->
+            <mat-hint>{{ 'promotions.form.hints.validUntil' | translate }}</mat-hint>
+            @if (promotionForm.validUntil().touched() && promotionForm.validUntil().invalid()) {
+              <mat-error>{{ promotionForm.validUntil().errors() | fieldError }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <!--
+          El interruptor manual, en su forma inversa: `isDiscontinued`, no «Activa». Discontinuar
+          apaga la promoción sin borrarla ni tocar sus fechas, y se deshace destildando (ADR-0001).
+        -->
+        <mat-checkbox
+          [checked]="promotionForm.isDiscontinued().value()"
+          (change)="onDiscontinuedChange($event.checked)"
+        >
+          {{ 'promotions.form.fields.discontinued' | translate }}
+        </mat-checkbox>
+        <p class="promotion-form__hint">{{ 'promotions.form.hints.discontinued' | translate }}</p>
+      </section>
+
+      <!--
+        El solapamiento es legítimo: dos promociones pueden alcanzar el mismo producto y lo resuelve
+        el motor. Se avisa cómo se combinan, no se impide cargarlas.
+      -->
+      <p class="promotion-form__note">
+        <mat-icon aria-hidden="true">info</mat-icon>
+        <span>{{ 'promotions.form.hints.overlap' | translate }}</span>
+      </p>
+    </div>
+  </app-load-state>
+</form>

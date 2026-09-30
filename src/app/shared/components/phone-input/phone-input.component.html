@@ -1,0 +1,60 @@
+<div class="phone-input__row">
+  <input
+    #countryBox
+    class="phone-input__country"
+    type="text"
+    autocomplete="off"
+    autocapitalize="off"
+    autocorrect="off"
+    spellcheck="false"
+    [value]="countryText()"
+    [disabled]="disabled"
+    [placeholder]="displayCountry(country())"
+    [matAutocomplete]="countryPanel"
+    [attr.aria-label]="'phoneInput.country' | translate"
+    (focus)="onCountryFocus($event)"
+    (blur)="onCountryBlur()"
+    (input)="onCountryInput($event)"
+  />
+
+  <span class="phone-input__divider" aria-hidden="true"></span>
+
+  <input
+    #numberBox
+    class="phone-input__number"
+    type="tel"
+    inputmode="tel"
+    autocomplete="tel-national"
+    [id]="id"
+    [value]="formattedNumber()"
+    [disabled]="disabled"
+    [placeholder]="placeholder"
+    [attr.aria-label]="ariaLabel() || ('phoneInput.number' | translate)"
+    [attr.aria-describedby]="describedBy() || null"
+    [attr.aria-invalid]="errorState"
+    [attr.aria-required]="required || null"
+    (input)="onNumberInput($event)"
+    (keydown)="onNumberKeydown($event)"
+    (paste)="onNumberPaste($event)"
+  />
+</div>
+
+<mat-autocomplete
+  #countryPanel="matAutocomplete"
+  autoActiveFirstOption
+  panelWidth="min(20rem, 90vw)"
+  [displayWith]="displayCountry"
+  (optionSelected)="onCountrySelected($event)"
+>
+  @for (option of filteredCountries(); track option.iso2) {
+    <mat-option [value]="option">
+      <span class="phone-input__option">
+        <span class="phone-input__option-flag" aria-hidden="true">{{ option.emoji }}</span>
+        <span class="phone-input__option-name">{{ option.name }}</span>
+        <span class="phone-input__option-code">{{ option.phoneCode }}</span>
+      </span>
+    </mat-option>
+  } @empty {
+    <mat-option disabled>{{ 'phoneInput.noResults' | translate }}</mat-option>
+  }
+</mat-autocomplete>

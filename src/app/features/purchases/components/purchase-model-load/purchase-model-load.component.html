@@ -1,0 +1,168 @@
+<h2 mat-dialog-title>{{ 'purchases.modelLoad.title' | translate }}</h2>
+
+<mat-dialog-content class="model-load">
+  <p class="model-load__hint">{{ 'purchases.modelLoad.hint' | translate }}</p>
+
+  <!--
+    El modelo se elige acá y no en el selector de productos: el remito del proveedor nombra el
+    modelo, y llegar a él buscando una de sus variantes era un rodeo (wireframe 1p).
+  -->
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="model-load__model">
+    <mat-label>{{ 'purchases.modelLoad.model' | translate }}</mat-label>
+    <mat-icon matPrefix aria-hidden="true">grid_on</mat-icon>
+    <mat-select
+      [value]="selectedModelUuid()"
+      [disabled]="modelsState() !== 'ready' || models().length === 0"
+      (selectionChange)="onModelChange($event.value)"
+    >
+      @for (model of models(); track model.uuid) {
+        <mat-option [value]="model.uuid">
+          {{ model.name }}
+          @if (model.variantsCount !== null && model.variantsCount !== undefined) {
+            <span class="model-load__meta">
+              · {{ 'purchases.modelLoad.variants' | translate: { count: model.variantsCount } }}
+            </span>
+          }
+        </mat-option>
+      }
+    </mat-select>
+
+    @if (modelsState() === 'loading') {
+      <mat-spinner
+        matSuffix
+        diameter="20"
+        [attr.aria-label]="'purchases.modelLoad.loadingModels' | translate"
+      />
+    }
+
+    <!-- Sin permiso, sin modelos o con la lista caída se dice acá, debajo del campo apagado. -->
+    @if (modelsState() === 'loading') {
+      <mat-hint>{{ 'purchases.modelLoad.loadingModels' | translate }}</mat-hint>
+    } @else if (modelsState() === 'forbidden') {
+      <mat-hint class="model-load__hint-error">
+        {{ 'purchases.modelLoad.forbidden' | translate }}
+      </mat-hint>
+    } @else if (modelsState() === 'error') {
+      <mat-hint class="model-load__hint-error">
+        {{ 'purchases.modelLoad.modelsError' | translate }}
+      </mat-hint>
+    } @else if (models().length === 0) {
+      <mat-hint>{{ 'purchases.modelLoad.noModels' | translate }}</mat-hint>
+    }
+  </mat-form-field>
+
+  @if (loadingVariants()) {
+    <p class="model-load__status" role="status">
+      <mat-spinner diameter="18" />
+      <span>{{ 'purchases.modelLoad.loadingVariants' | translate }}</span>
+    </p>
+  } @else if (variantsFailed()) {
+    <p class="model-load__status model-load__status--error" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ 'purchases.modelLoad.loadError' | translate }}</span>
+    </p>
+  } @else if (!selectedModelUuid()) {
+    <p class="model-load__empty">{{ 'purchases.modelLoad.pickModel' | translate }}</p>
+  } @else if (rows().length === 0) {
+    <p class="model-load__empty">{{ 'purchases.modelLoad.noVariants' | translate }}</p>
+  } @else {
+    <div class="model-load__scroll">
+      <table class="model-load__grid" [attr.aria-label]="'purchases.modelLoad.gridAria' | translate">
+        <thead>
+          <tr>
+            <th scope="col">{{ cornerLabel() }}</th>
+            @for (column of columns(); track column.uuid) {
+              <th scope="col" class="cell">{{ column.value }}</th>
+            }
+            @if (columns().length === 0) {
+              <th scope="col" class="cell">{{ 'purchases.modelLoad.quantity' | translate }}</th>
+            }
+            <th scope="col" class="num">{{ 'purchases.modelLoad.total' | translate }}</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (row of rows(); track row.uuid) {
+            <tr>
+              <th scope="row">{{ row.value }}</th>
+
+              @if (columns().length === 0) {
+                @let cell = cellOf(row, undefined);
+                <td class="cell">
+                  @if (cell?.variant) {
+                    <input
+                      class="model-load__input"
+                      type="number"
+                      min="0"
+                      [ngModel]="cell?.quantity"
+                      (ngModelChange)="onQuantityChange(row, undefined, $event)"
+                      [attr.aria-label]="row.value"
+                    />
+                  }
+                </td>
+              } @else {
+                @for (column of columns(); track column.uuid) {
+                  @let cell = cellOf(row, column);
+                  <td class="cell">
+                    @if (cell?.variant) {
+                      <input
+                        class="model-load__input"
+                        type="number"
+                        min="0"
+                        [ngModel]="cell?.quantity"
+                        (ngModelChange)="onQuantityChange(row, column, $event)"
+                        [attr.aria-label]="row.value + ' ' + column.value"
+                      />
+                    } @else {
+                      <!-- Apagada, no vacía: evita cargar en el lugar equivocado. -->
+                      <span class="model-load__missing">{{
+                        'purchases.modelLoad.notMade' | translate
+                      }}</span>
+                    }
+                  </td>
+                }
+              }
+
+              <td class="num model-load__total">{{ rowTotalOf(row) }}</td>
+            </tr>
+          }
+        </tbody>
+
+        <tfoot>
+          <tr>
+            <th scope="row">{{ 'purchases.modelLoad.total' | translate }}</th>
+            @for (column of columns(); track column.uuid) {
+              <td class="cell model-load__total">{{ columnTotalOf(column) }}</td>
+            }
+            @if (columns().length === 0) {
+              <td class="cell model-load__total">{{ total() }}</td>
+            }
+            <td class="num model-load__total">{{ total() }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions class="model-load__actions">
+  <span class="model-load__summary">
+    {{
+      'purchases.modelLoad.summary'
+        | translate: { lines: lines().length, units: total() }
+    }}
+  </span>
+
+  <button mat-button type="button" (click)="onClose()">
+    {{ 'purchases.modelLoad.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    type="button"
+    color="primary"
+    [disabled]="lines().length === 0"
+    (click)="onAdd()"
+  >
+    {{ 'purchases.modelLoad.add' | translate }}
+  </button>
+</mat-dialog-actions>

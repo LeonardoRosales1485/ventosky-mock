@@ -1,0 +1,94 @@
+/*
+  Ventosky · Propuesta B — tokens de diseño
+  ------------------------------------------------------------------
+  Pensado para src/styles.css (o importado desde ahí).
+  El repo cambia de tema poniendo `color-scheme` en <body> (ThemeService),
+  así que todos los colores usan `light-dark()` y se resuelven donde se usan
+  (siempre dentro de body). Todos los pares texto/fondo cumplen WCAG AA
+  (ver tabla de contraste en DESIGN-SPEC.md).
+*/
+:root {
+  /* ---- Superficies del contenido ---- */
+  --vk-bg:          light-dark(#F6F5FB, #121019); /* fondo de página, tinte violeta */
+  --vk-surface:     light-dark(#FFFFFF, #1A1724); /* tarjetas, tablas, topbar */
+  --vk-sunken:      light-dark(#F0EEF8, #221E2F); /* hover de fila, inputs de búsqueda, thumbs */
+  --vk-line:        light-dark(#E7E4F2, #2B2640); /* bordes y divisores */
+  --vk-line-strong: light-dark(#D6D1EA, #3A3354); /* bordes de controles */
+
+  /* ---- Texto ---- */
+  --vk-fg:   light-dark(#1C1830, #EEEBFA); /* texto principal */
+  --vk-fg-2: light-dark(#5E5878, #ABA5C6); /* texto secundario, subtítulos */
+  --vk-fg-3: light-dark(#6B6684, #8C86A8); /* labels, placeholders, metadatos */
+
+  /* ---- Acento violeta ---- */
+  --vk-accent:            light-dark(#6352EE, #9B8FFF); /* texto/íconos en color de acento sobre surface */
+  --vk-accent-fill:       #6352EE;                      /* fondos llenos: botón primario, ítem activo del menú, paginador */
+  --vk-accent-fill-hover: light-dark(#4F3FD6, #5140D8);
+  --vk-on-accent:         #FFFFFF;                      /* texto sobre accent-fill (5.29:1) */
+  --vk-accent-soft:       light-dark(#EDEAFF, #2B2552); /* fondos suaves: íconos de card, pills, total */
+  --vk-on-accent-soft:    light-dark(#4F3FD6, #B8AEFF); /* texto sobre accent-soft */
+  --vk-hero:              light-dark(#6352EE, #5140D8); /* bloque KPI principal de Inicio */
+
+  /* ---- Sidebar (siempre oscura, en ambos temas) ---- */
+  --vk-side:      light-dark(#1D1734, #0C0A13);
+  --vk-side-2:    light-dark(#2A2248, #1C1830); /* hover, selector de sucursal */
+  --vk-side-fg:   #C8C2E8;                      /* ítems */
+  --vk-side-fg-2: #9A93BF;                      /* íconos, títulos de grupo, contadores */
+  --vk-side-line: light-dark(#2F2750, #211C33);
+
+  /* ---- Estados (reemplazan/alinean los --app-* existentes) ---- */
+  --vk-ok:        light-dark(#12704A, #4CC990);
+  --vk-ok-soft:   light-dark(#E3F5EC, #14291F);
+  --vk-warn:      light-dark(#8A5600, #E8AE45);
+  --vk-warn-soft: light-dark(#FCF0DA, #2E2413);
+  --vk-bad:       light-dark(#B3303B, #F2727C);
+  --vk-bad-soft:  light-dark(#FCE8EA, #34191D);
+  --vk-info:      light-dark(#2560C2, #72A7F7);
+  --vk-info-soft: light-dark(#E6EFFC, #152239);
+
+  /* ---- Tipografía ---- */
+  --vk-font-ui:   'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --vk-font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  /* ---- Forma y medidas ---- */
+  --vk-radius:      12px; /* cards, bloque hero, toasts */
+  --vk-radius-sm:   9px;  /* botones, inputs, ítems del menú, filas de pago */
+  --vk-radius-pill: 999px;
+
+  --vk-sidebar-width: 15.5rem;  /* 248px */
+  --vk-topbar-height: 4rem;     /* 64px */
+  --vk-page-pad:      2rem;     /* 32px desktop, 1rem mobile */
+  --vk-gap:           1.25rem;  /* 20px entre cards */
+
+  --vk-control-h:  2.625rem; /* 42px botones */
+  --vk-control-lg: 3.125rem; /* 50px CTA principal (Registrar compra) */
+  --vk-input-h:    2.875rem; /* 46px campos de formulario */
+  --vk-row-h:      3.5rem;   /* 56px filas de tabla */
+  --vk-row-h-edit: 4rem;     /* 64px filas con inputs (líneas de compra) */
+  --vk-thead-h:    2.75rem;  /* 44px encabezado de tabla */
+
+  --vk-shadow-accent: 0 8px 20px -10px var(--vk-accent-fill); /* solo botón primario e ítem activo */
+}
+
+/* Alias para que los toasts y chips actuales tomen la paleta nueva sin tocar sus componentes. */
+:root {
+  --app-success: var(--vk-ok);
+  --app-success-container: var(--vk-ok-soft);
+  --app-on-success-container: var(--vk-ok);
+  --app-warning: var(--vk-warn);
+  --app-warning-container: var(--vk-warn-soft);
+  --app-on-warning-container: var(--vk-warn);
+  --app-error: var(--vk-bad);
+  --app-error-container: var(--vk-bad-soft);
+  --app-on-error-container: var(--vk-bad);
+  --app-info: var(--vk-info);
+  --app-info-container: var(--vk-info-soft);
+  --app-on-info-container: var(--vk-info);
+}
+
+/* Cifras: montos, SKU, códigos, fechas cortas, cantidades. */
+.vk-num {
+  font-family: var(--vk-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem; /* 13px */
+}

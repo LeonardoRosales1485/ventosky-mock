@@ -1,0 +1,124 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/600.css';
+@import 'material-symbols/rounded.css';
+@import './styles/ventosky-tokens.css';
+@import './styles/ventosky-material.css';
+@import './styles/ventosky-ui.css';
+
+/*
+  Tailwind toma la tipografía de la propuesta: `font-sans` es Inter y `font-mono` es JetBrains Mono,
+  así las utilidades que ya usan las pantallas no traen otra familia.
+*/
+@theme {
+  --font-sans: var(--vk-font-ui);
+  --font-mono: var(--vk-font-mono);
+}
+
+/*
+  Los estados (`--app-*`) son alias de los `--vk-*`: los define ventosky-tokens.css.
+  La barra superior mide 64px y el breadcrumb vive adentro de ella, así que no suma altura.
+*/
+:root {
+  --panel-topbar-height: var(--vk-topbar-height);
+  --panel-breadcrumb-height: 0px;
+}
+
+/*
+  Tamaño de letra fijo: la propuesta trabaja con 14px de cuerpo y medidas estables, sin escalar el
+  `rem` por breakpoint. El `html` queda en 16px para que 1rem siga valiendo 16px.
+*/
+html,
+body {
+  height: 100%;
+}
+
+/* Allow interactive controls inside MatMenu without closing immediately */
+.settings-menu-panel .mat-mdc-menu-content {
+  padding: 0;
+}
+
+.global-search-dialog-panel .mat-mdc-dialog-container .mdc-dialog__surface {
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--vk-radius);
+}
+
+/*
+  Toast (MatSnackBar) skins. The panel class lands on the snack bar container,
+  so overriding Material's snack bar tokens here re-colors the whole surface.
+*/
+.toast-panel {
+  /* Propuesta B: el toast es oscuro en los dos temas; el estado lo marca la franja y el ícono. */
+  --mat-snack-bar-container-color: var(--vk-side);
+  --mat-snack-bar-supporting-text-color: #ffffff;
+  --mat-snack-bar-button-color: var(--toast-accent);
+  --mat-snack-bar-container-shape: var(--vk-radius);
+  max-width: min(28rem, calc(100vw - 2rem));
+}
+
+.toast-panel .mat-mdc-snackbar-surface {
+  box-shadow: 0 12px 30px -10px rgba(10, 5, 40, 0.5);
+}
+
+.toast-panel .mat-mdc-snackbar-surface {
+  max-width: 100%;
+  padding: 0;
+  border-inline-start: 4px solid var(--toast-accent);
+  overflow: hidden;
+}
+
+.toast-panel .mdc-snackbar__label {
+  padding: 0;
+}
+
+.toast-success {
+  --toast-container: var(--vk-side);
+  --toast-on-container: #ffffff;
+  --toast-accent: #4CC990;
+}
+
+.toast-error {
+  --toast-container: var(--vk-side);
+  --toast-on-container: #ffffff;
+  --toast-accent: #F2727C;
+}
+
+.toast-warning {
+  --toast-container: var(--vk-side);
+  --toast-on-container: #ffffff;
+  --toast-accent: #E8AE45;
+}
+
+.toast-info {
+  --toast-container: var(--vk-side);
+  --toast-on-container: #ffffff;
+  --toast-accent: #B8AEFF;
+}
+
+/*
+  El grupo de toggles mide lo que miden sus botones. Como ítem de un flex en columna (o de un grid)
+  el `stretch` por defecto lo estira a todo el ancho del contenedor y queda como una barra ancha con
+  los botones separados; con un ancho explícito, `stretch` ya no aplica. Va en `base` para que quien
+  sí lo quiera a lo ancho lo pida desde su propia clase (`.collection__mode`, `.adjust__kind`) o con
+  una utilidad de Tailwind, y gane.
+*/
+@layer base {
+  mat-button-toggle-group {
+    width: fit-content;
+    max-width: 100%;
+  }
+}
+
+/*
+  `autoFocus: 'first-heading'` (el CDK enfoca el título para que el lector de pantalla lea de qué es
+  el diálogo) le pone al `<h2>` un `tabindex="-1"` prestado y lo enfoca. El navegador entonces le
+  pinta el anillo de foco y queda un recuadro sobre el título que no marca nada accionable —el
+  título no es un control ni entra en el orden de tabulación—. Material hace lo mismo con el
+  contenedor del diálogo cuando el foco cae ahí.
+*/
+.mat-mdc-dialog-container :is(h1, h2, h3, h4, h5, h6, [role='heading'])[tabindex='-1']:focus {
+  outline: none;
+}

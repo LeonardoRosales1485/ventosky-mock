@@ -1,0 +1,144 @@
+<app-page-header
+  [title]="'assemblies.disassemble.title' | translate"
+  [description]="'assemblies.disassemble.description' | translate"
+>
+  <button mat-stroked-button type="button" (click)="onBack()">
+    <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    {{ 'assemblies.disassemble.actions.back' | translate }}
+  </button>
+</app-page-header>
+
+<div class="disassemble">
+  <section class="disassemble__card" aria-labelledby="disassemble-title">
+    <h2 class="disassemble__card-title" id="disassemble-title">
+      {{ 'assemblies.disassemble.form.title' | translate }}
+    </h2>
+
+    <div class="disassemble__field">
+      <span class="disassemble__label">{{ 'assemblies.disassemble.form.product' | translate }}</span>
+      <button
+        mat-stroked-button
+        type="button"
+        class="disassemble__picker"
+        (click)="onPickProduct()"
+        [disabled]="!canDisassemble"
+      >
+        <mat-icon aria-hidden="true">search</mat-icon>
+        {{ product()?.name || ('assemblies.disassemble.form.pickProduct' | translate) }}
+      </button>
+    </div>
+
+    <div class="disassemble__row">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'assemblies.disassemble.form.quantity' | translate }}</mat-label>
+        <input
+          matInput
+          type="number"
+          step="any"
+          min="0"
+          [value]="quantity()"
+          (input)="quantity.set($any($event.target).valueAsNumber)"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'assemblies.disassemble.form.warehouse' | translate }}</mat-label>
+        <mat-select [value]="warehouseUuid()" (valueChange)="onWarehouseChange($event)">
+          @for (warehouse of warehouses(); track warehouse.uuid) {
+            <mat-option [value]="warehouse.uuid">{{ warehouse.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>{{ 'assemblies.disassemble.form.observations' | translate }}</mat-label>
+      <input matInput [value]="observations()" (input)="observations.set($any($event.target).value)" />
+    </mat-form-field>
+
+    <!--
+      Las dos aclaraciones que la pantalla tiene que dar, porque son las dos formas de usarla mal:
+      desarmar NO revierte un documento —las unidades pueden venir de dos armados distintos— y NO es
+      una merma. Confundirlo con lo segundo devolvería al stock los componentes de algo que se tiró.
+    -->
+    <p class="disassemble__note">
+      <mat-icon aria-hidden="true">info</mat-icon>
+      <span>{{ 'assemblies.disassemble.notRevert' | translate }}</span>
+    </p>
+    <p class="disassemble__note disassemble__note--warn">
+      <mat-icon aria-hidden="true">warning</mat-icon>
+      <span>{{ 'assemblies.disassemble.notScrap' | translate }}</span>
+    </p>
+
+    <div class="disassemble__actions">
+      <button
+        mat-flat-button
+        type="button"
+        color="warn"
+        (click)="onSubmit()"
+        [disabled]="!canSubmit()"
+      >
+        <mat-icon aria-hidden="true">call_split</mat-icon>
+        {{ 'assemblies.disassemble.actions.submit' | translate }}
+      </button>
+    </div>
+  </section>
+
+  <!-- Lo que volvió, con el costo prorrateado: es la prueba de que el desarme no perdió valor. -->
+  @if (result(); as data) {
+    <section class="disassemble__card" aria-labelledby="disassemble-result-title">
+      <h2 class="disassemble__card-title" id="disassemble-result-title">
+        {{ 'assemblies.disassemble.result.title' | translate }}
+      </h2>
+
+      <dl class="disassemble__summary">
+        <div>
+          <dt>{{ 'assemblies.disassemble.result.unitCost' | translate }}</dt>
+          <dd><app-currency-display [value]="data.unitCost ?? 0" /></dd>
+        </div>
+        <div>
+          <dt>{{ 'assemblies.disassemble.result.returnedCost' | translate }}</dt>
+          <dd><app-currency-display [value]="data.returnedCost ?? 0" /></dd>
+        </div>
+      </dl>
+
+      <div class="disassemble__table-scroll">
+        <table class="disassemble__table">
+          <caption class="sr-only">
+            {{ 'assemblies.disassemble.result.tableAria' | translate }}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">{{ 'assemblies.disassemble.result.component' | translate }}</th>
+              <th scope="col" class="disassemble__num">
+                {{ 'assemblies.disassemble.result.quantity' | translate }}
+              </th>
+              <th scope="col" class="disassemble__num">
+                {{ 'assemblies.disassemble.result.unitCost' | translate }}
+              </th>
+              <th scope="col" class="disassemble__num">
+                {{ 'assemblies.disassemble.result.lineCost' | translate }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of data.returnedComponents; track row.component.uuid) {
+              <tr>
+                <td>{{ row.component.name }}</td>
+                <td class="disassemble__num">{{ row.quantity ?? 0 }}</td>
+                <td class="disassemble__num">
+                  <app-currency-display [value]="row.unitCost ?? 0" />
+                </td>
+                <td class="disassemble__num">
+                  <app-currency-display [value]="row.lineCost ?? 0" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <p class="disassemble__hint">{{ 'assemblies.disassemble.result.hint' | translate }}</p>
+    </section>
+  }
+</div>

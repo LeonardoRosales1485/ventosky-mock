@@ -1,0 +1,275 @@
+.opening__source {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  max-width: 48rem;
+}
+
+.opening__format {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* El formato, a la vista: esto se carga una vez en la vida de la empresa. */
+.opening__sample {
+  margin: 0;
+  padding: 0.75rem;
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-low);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.opening__file {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.opening__file-name {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.opening__csv {
+  width: 100%;
+}
+
+.opening__parse-errors {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  max-width: 48rem;
+  border: 1px solid var(--mat-sys-error);
+  border-radius: 0.75rem;
+  color: var(--mat-sys-error);
+}
+
+.opening__parse-errors h2 {
+  margin: 0 0 0.375rem;
+  font-size: 0.875rem;
+}
+
+.opening__parse-errors ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.8125rem;
+}
+
+.opening__preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.opening__figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  width: 100%;
+  max-width: 56rem;
+}
+
+.opening__figures dt {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.opening__figures dd {
+  margin: 0.125rem 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.opening__overdue dd {
+  color: var(--mat-sys-error);
+  font-weight: 600;
+}
+
+.opening__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.opening__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.opening__table th,
+.opening__table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.opening__table th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.numeric-header,
+.numeric-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.opening__row--error {
+  background: color-mix(in srgb, var(--mat-sys-error) 8%, transparent);
+}
+
+.opening__state {
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.opening__state--ERROR {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.opening__party {
+  display: block;
+  font-weight: 600;
+}
+
+.opening__role {
+  font-size: 0.6875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.opening__overdue-chip {
+  margin-left: 0.375rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.opening__message {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-error);
+}
+
+.opening__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.opening__note mat-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+}
+
+.opening__note--warn {
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.opening__note--error {
+  font-weight: 600;
+  color: var(--mat-sys-error);
+}
+
+.opening__result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  max-width: 40rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.opening__result-lead {
+  margin: 0;
+  font-weight: 600;
+}
+
+.opening__source-line {
+  margin: 0 0 0.25rem;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El número que sorprende: suele ser la mitad, y verlo antes evita el susto. */
+.opening__overdue-share {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ─────────────────────────  El historial de cargas  ───────────────────────── */
+
+.opening__history {
+  margin-top: 1.25rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.opening__history-title {
+  margin: 0 0 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.opening__history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.opening__history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+.opening__history-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.opening__history-file {
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.opening__history-meta {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--mat-sys-on-surface-variant);
+}

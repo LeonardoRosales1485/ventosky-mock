@@ -1,0 +1,289 @@
+:host {
+  display: block;
+}
+
+/* ─────────────────────────────  Encabezado  ───────────────────────────── */
+
+.detail__hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.detail__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail__name {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.detail__badge {
+  padding: 0.0625rem 0.4375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.detail__meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Saldo y vencido, uno al lado del otro: dos datos y no uno. */
+.detail__figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.detail__figure-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.detail__figure-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail__figure-note {
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/*
+  El aviso de que el saldo neto esconde una deuda abierta. No es un error —con imputación manual es
+  el estado normal— así que va en el tono de advertencia y no en el de error.
+*/
+.detail__figure-warning {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mat-sys-tertiary);
+}
+
+.detail__figure-terms {
+  display: block;
+  margin-top: 0.125rem;
+  font-weight: 400;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/*
+  El vacío no es una tabla en blanco: ocupa la fila entera y explica qué es esta pantalla, que es lo
+  que le falta a quien la abre por primera vez.
+*/
+.detail__empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
+.detail__empty-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.detail__empty-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ────────────────────────────  Tablas del detalle  ──────────────────────── */
+
+table {
+  width: 100%;
+}
+
+.numeric-header,
+.numeric-cell {
+  text-align: end;
+}
+
+.numeric-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+/* La partida anulada se sigue listando, con una marca al lado que dice por qué no movió el saldo. */
+.detail__voided {
+  margin-left: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/*
+  La etiqueta de la fila que no salió de una operación: un ajuste, una prórroga. Va antes del texto
+  y no después, porque lo que califica es todo lo que sigue.
+*/
+.detail__tag {
+  margin-right: 0.375rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/*
+  La anulación se distingue del resto de las etiquetas: es la única fila del extracto que deshace
+  otra, y en una lista donde casi todo suma, la que resta tiene que encontrarse sin leerla.
+*/
+.detail__tag--void {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+/* Lo secundario de la fila —las fechas de una prórroga, quién la hizo— en su propio renglón. */
+.detail__entry-note {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ─────────────────────  Política del titular y morosidad  ───────────────────── */
+
+.detail__tab-loading {
+  padding: 1rem 0;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+
+/*
+  El aviso de que el saldo neto esconde una deuda abierta. **No es un error** —con imputación manual
+  es el estado normal— así que va en el tono informativo y no en el de error, y ofrece la salida en
+  vez de limitarse a describir el problema.
+*/
+.detail__alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--app-info) 35%, transparent);
+  border-radius: 0.75rem;
+  background: var(--app-info-container);
+  color: var(--app-on-info-container);
+}
+
+.detail__alert-icon {
+  flex: none;
+  color: var(--app-info);
+}
+
+.detail__alert-text {
+  flex: 1 1 20rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* ───────────────────────────  La política que le rige  ─────────────────────────── */
+
+.detail__policy {
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface);
+  padding: 0.875rem 1rem 0.5rem;
+}
+
+.detail__policy-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.detail__policy-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.detail__policy-loading {
+  margin: 0.5rem 0;
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* Tres filas en una sola columna en angosto, y en tres columnas cuando hay lugar. */
+.detail__policy-rows {
+  display: grid;
+  gap: 0 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 64rem) {
+  .detail__policy-rows {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ─────────────────────  Los filtros de las dos pestañas  ───────────────────── */
+
+.detail__ledger-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  padding: 0.75rem 0 0.25rem;
+}
+
+.detail__ledger-note {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* El vencimiento original al lado del nuevo: sin eso la mora se lee como si nunca se hubiera corrido. */
+.detail__extended {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--mat-sys-on-surface-variant);
+}

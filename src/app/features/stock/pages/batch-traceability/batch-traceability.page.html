@@ -1,0 +1,202 @@
+<app-load-state
+  [state]="loadState()"
+  [loadingMessage]="'stock.batch.loading' | translate"
+  [errorMessage]="'stock.batch.loadError' | translate"
+  [retryable]="true"
+  [retryLabel]="'stock.batch.retry' | translate"
+  (retry)="load()"
+  minHeight="20rem"
+>
+  @if (batch(); as batch) {
+    <section class="hero">
+      <div class="hero__identity">
+        <button
+          mat-icon-button
+          type="button"
+          class="hero__back"
+          [matTooltip]="'stock.batch.back' | translate"
+          [attr.aria-label]="'stock.batch.back' | translate"
+          (click)="onBack()"
+        >
+          <mat-icon aria-hidden="true">arrow_back</mat-icon>
+        </button>
+
+        <div>
+          <div class="hero__title-row">
+            <h1 class="hero__name">
+              {{ 'stock.batch.heading' | translate: { batch: batch.batchNumber || '—' } }}
+            </h1>
+            <app-expiration-chip
+              [expirationDate]="batch.expirationDate"
+              [status]="batch.expirationStatus"
+              [days]="batch.daysToExpiration"
+            />
+          </div>
+          <p class="hero__meta">
+            <strong>{{ batch.product.name }}</strong>
+            @if (batch.productSku) {
+              · {{ batch.productSku }}
+            }
+            · {{ batch.warehouse.name }}
+            @if (batch.branch) {
+              ({{ batch.branch.name }})
+            }
+          </p>
+          <p class="hero__meta">
+            {{
+              'stock.batch.enteredOn'
+                | translate
+                  : {
+                      date: (batch.dateCreated | localizedDate: 'shortDate'),
+                      origin: batch.entryOrigin?.name ?? '—',
+                    }
+            }}
+            @if (batch.supplier) {
+              · {{ 'stock.batch.supplier' | translate: { name: batch.supplier.name } }}
+            }
+          </p>
+        </div>
+      </div>
+
+      <div class="hero__actions">
+        <button mat-stroked-button type="button" [disabled]="sales().length === 0" (click)="onExport()">
+          <mat-icon aria-hidden="true">download</mat-icon>
+          {{ 'stock.batch.export.button' | translate }}
+        </button>
+        @if (canWriteOff) {
+          <button
+            mat-flat-button
+            type="button"
+            class="hero__danger"
+            [disabled]="!canWriteOffBalance() || writingOff()"
+            [matTooltip]="canWriteOffBalance() ? '' : ('stock.batch.writeOff.nothing' | translate)"
+            (click)="onWriteOff()"
+          >
+            <mat-icon aria-hidden="true">delete_sweep</mat-icon>
+            {{ 'stock.batch.writeOff.button' | translate }}
+          </button>
+        }
+      </div>
+    </section>
+
+    <!-- Los cuatro totales de la partida: lo que entró, lo que salió por cada camino y lo que queda. -->
+    <section class="totals" [attr.aria-label]="'stock.batch.totalsAria' | translate">
+      <article class="total">
+        <span class="total__label">{{ 'stock.batch.totals.entered' | translate }}</span>
+        <span class="total__value">{{ batch.enteredQuantity }}</span>
+      </article>
+      <article class="total">
+        <span class="total__label">{{ 'stock.batch.totals.sold' | translate }}</span>
+        <span class="total__value">{{ batch.soldQuantity }}</span>
+      </article>
+      <article class="total">
+        <span class="total__label">{{ 'stock.batch.totals.transferred' | translate }}</span>
+        <span class="total__value">{{ batch.transferredQuantity }}</span>
+      </article>
+      <article class="total">
+        <span class="total__label">{{ 'stock.batch.totals.adjustedOut' | translate }}</span>
+        <span class="total__value">{{ batch.adjustedOutQuantity }}</span>
+      </article>
+      <article class="total total--balance">
+        <span class="total__label">{{ 'stock.batch.totals.balance' | translate }}</span>
+        <span class="total__value">{{ batch.currentQuantity }}</span>
+        <span class="total__meta">
+          <app-currency-display [value]="batch.weightedCost" />
+          {{ 'stock.batch.totals.unitCost' | translate }}
+        </span>
+      </article>
+    </section>
+
+    <mat-tab-group class="tabs" [attr.aria-label]="'stock.batch.tabsAria' | translate">
+      <!-- Del lote a las ventas: el recall. -->
+      <mat-tab [label]="'stock.batch.tabs.sales' | translate">
+        <div class="tab">
+          <p class="note">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            {{ 'stock.batch.recallNote' | translate }}
+          </p>
+
+          @if (sales().length === 0) {
+            <p class="empty">{{ 'stock.batch.salesEmpty' | translate }}</p>
+          } @else {
+            <div class="scroll">
+              <table class="table" [attr.aria-label]="'stock.batch.tabs.sales' | translate">
+                <thead>
+                  <tr>
+                    <th scope="col">{{ 'stock.batch.columns.date' | translate }}</th>
+                    <th scope="col">{{ 'stock.batch.columns.voucher' | translate }}</th>
+                    <th scope="col">{{ 'stock.batch.columns.customer' | translate }}</th>
+                    <th scope="col">{{ 'stock.batch.columns.branch' | translate }}</th>
+                    <th scope="col" class="numeric">{{ 'stock.batch.columns.quantity' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (sale of sales(); track sale.orderUuid + sale.quantity) {
+                    <tr>
+                      <td class="nowrap">{{ (sale.dateOperation | localizedDate: 'short') || '—' }}</td>
+                      <td class="nowrap">
+                        <span class="voucher">{{ sale.publicId || '—' }}</span>
+                        @if (sale.voucher?.name) {
+                          <span class="voucher__name">{{ sale.voucher?.name }}</span>
+                        }
+                      </td>
+                      <td>{{ sale.party?.name || ('stock.batch.finalConsumer' | translate) }}</td>
+                      <td>{{ sale.branch?.name || '—' }}</td>
+                      <td class="numeric">{{ sale.quantity }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </mat-tab>
+
+      <!-- El kardex de la partida, del primer ingreso al último movimiento. -->
+      <mat-tab [label]="'stock.batch.tabs.movements' | translate">
+        <div class="tab">
+          @if (batch.movements.length === 0) {
+            <p class="empty">{{ 'stock.batch.movementsEmpty' | translate }}</p>
+          } @else {
+            <div class="scroll">
+              <table class="table" [attr.aria-label]="'stock.batch.tabs.movements' | translate">
+                <thead>
+                  <tr>
+                    <th scope="col">{{ 'stock.batch.columns.date' | translate }}</th>
+                    <th scope="col">{{ 'stock.batch.columns.type' | translate }}</th>
+                    <th scope="col">{{ 'stock.batch.columns.origin' | translate }}</th>
+                    <th scope="col">{{ 'stock.batch.columns.reason' | translate }}</th>
+                    <th scope="col" class="numeric">{{ 'stock.batch.columns.quantity' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (movement of batch.movements; track movement.uuid) {
+                    <tr>
+                      <td class="nowrap">{{ (movement.date | localizedDate: 'short') || '—' }}</td>
+                      <td>
+                        <span class="type" [attr.data-inbound]="movement.inbound">
+                          <mat-icon aria-hidden="true">{{ movement.inbound ? 'south_west' : 'north_east' }}</mat-icon>
+                          {{ 'stock.batch.movementTypes.' + movement.type | translate }}
+                        </span>
+                      </td>
+                      <td class="nowrap">{{ movement.origin?.name || (movement.origin ? '…' + movement.origin.uuid.slice(-8) : '—') }}</td>
+                      <td>
+                        {{ movement.adjustmentReason?.name || '' }}
+                        @if (movement.reasonDescription) {
+                          <span class="reason__description">{{ movement.reasonDescription }}</span>
+                        }
+                      </td>
+                      <td class="numeric" [attr.data-inbound]="movement.inbound">
+                        {{ movement.inbound ? '+' : '−' }}{{ movement.quantity }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</app-load-state>

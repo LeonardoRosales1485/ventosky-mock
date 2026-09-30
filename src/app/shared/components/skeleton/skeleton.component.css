@@ -1,0 +1,53 @@
+:host {
+  display: block;
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton--inline {
+  flex-direction: row;
+  align-items: center;
+}
+
+.skeleton__block {
+  display: block;
+  flex: none;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--mat-sys-surface-container-highest);
+}
+
+/* Circles stay round no matter what width the caller passed. */
+.skeleton__block--circle {
+  aspect-ratio: 1;
+}
+
+/* Highlight sweeping across the block; the base color already reads as a placeholder. */
+.skeleton__block--animated::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent),
+    transparent
+  );
+  animation: skeleton-wave 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-wave {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton__block--animated::after {
+    animation: none;
+  }
+}

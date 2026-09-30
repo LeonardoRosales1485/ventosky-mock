@@ -1,0 +1,34 @@
+.reassign__lead {
+  margin: 0 0 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.reassign__origin {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* La deuda elegida, con lo que debe hoy: es la cota del importe que se puede mover. */
+.reassign__target {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  background: var(--mat-sys-surface-container-low);
+  font-size: 0.875rem;
+}
+
+.reassign__error {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--app-error);
+}

@@ -1,0 +1,254 @@
+<app-page-header
+  [title]="'promotions.title' | translate"
+  [description]="'promotions.description' | translate"
+>
+  @if (canCreate) {
+    <button mat-flat-button type="button" color="primary" (click)="onCreate()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      {{ 'promotions.actions.create' | translate }}
+    </button>
+  }
+</app-page-header>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'promotions.loading' | translate"
+  maxHeight="32rem"
+>
+  <app-table-toolbar
+    tableWrapperHeader
+    [search]="searchQuery()"
+    [activeFilters]="activeFilters()"
+    [searchPlaceholder]="'promotions.searchPlaceholder' | translate"
+    (searchChange)="searchQuery.set($event)"
+    (refresh)="onRefresh()"
+    (filtersClick)="onToggleFilters()"
+    (clearFilters)="onClearFilters()"
+  />
+
+  @if (filtersOpen()) {
+    <div
+      class="promotions__filters"
+      role="group"
+      [attr.aria-label]="'promotions.filtersAria' | translate"
+    >
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'promotions.filters.type' | translate }}</mat-label>
+        <mat-select
+          [value]="typeFilter()"
+          (valueChange)="onTypeChange($event)"
+          [disabled]="paginator.loading()"
+        >
+          <mat-option [value]="null">{{ 'promotions.filters.all' | translate }}</mat-option>
+          @for (type of typeOptions(); track type) {
+            <mat-option [value]="type">{{ 'promotions.types.' + type | translate }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <!--
+        El estado filtra por la mitad que el paginado sabe filtrar: `is_discontinued` es una columna.
+        Programada, vigente y vencida se derivan de las fechas contra hoy y el paginado del Core no
+        las puede comparar, así que se leen en la columna de estado y se ordenan por vigencia.
+      -->
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'promotions.filters.circulation' | translate }}</mat-label>
+        <mat-select
+          [value]="circulationFilter()"
+          (valueChange)="onCirculationChange($event)"
+          [disabled]="paginator.loading()"
+        >
+          <mat-option [value]="null">{{ 'promotions.filters.all' | translate }}</mat-option>
+          @for (circulation of circulations; track circulation) {
+            <mat-option [value]="circulation">{{
+              'promotions.circulations.' + circulation | translate
+            }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>{{ 'promotions.filters.circulationHint' | translate }}</mat-hint>
+      </mat-form-field>
+    </div>
+  }
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    class="w-full"
+    [attr.aria-label]="'promotions.tableAria' | translate"
+  >
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'promotions.columns.name' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let promotion">
+        <span class="promotions__name">{{ promotion.name }}</span>
+        @if (promotion.isCombinable === false) {
+          <!-- No acumulable: excluye a las demás de su ámbito, así que es parte de leer la fila. -->
+          <span class="promotions__flag" [matTooltip]="'promotions.hints.exclusive' | translate">{{
+            'promotions.exclusive' | translate
+          }}</span>
+        }
+      </td>
+    </ng-container>
+
+    <!-- El tipo como chip: `3x2`, `−10 %`, `−$500`. Es lo que evita abrir cada fila. -->
+    <ng-container matColumnDef="type">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'promotions.columns.type' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let promotion">
+        @let chip = promotionTypeChipOf(promotion);
+        <span class="promotions__chip" [matTooltip]="'promotions.types.' + chip.kind | translate">
+          @switch (chip.kind) {
+            @case ('PERCENTAGE') {
+              −{{ formatPercent(chip.percent) }} %
+            }
+            @case ('FIXED_AMOUNT') {
+              −<app-currency-display [value]="chip.amount" />
+            }
+            @case ('NXM') {
+              {{ chip.buyQuantity }}x{{ chip.payQuantity }}
+            }
+            @default {
+              —
+            }
+          }
+        </span>
+      </td>
+    </ng-container>
+
+    <!-- A qué alcanza, en una línea: la venta entera, o cuántos productos y cuántas categorías. -->
+    <ng-container matColumnDef="eligibleSet">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'promotions.columns.eligibleSet' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let promotion">
+        @let eligible = eligibleSetOf(promotion);
+        @if (eligible.scope === 'ORDER_TOTAL') {
+          {{ 'promotions.eligibleSet.orderTotal' | translate }}
+        } @else {
+          {{
+            'promotions.eligibleSet.products'
+              | translate: { products: eligible.products, categories: eligible.categories }
+          }}
+        }
+      </td>
+    </ng-container>
+
+    <!-- Audiencia y medios de pago: vacío significa «todos», no «ninguno». -->
+    <ng-container matColumnDef="audience">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'promotions.columns.audience' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let promotion">
+        @if (promotion.customers?.length) {
+          <span [matTooltip]="'promotions.hints.audience' | translate">
+            {{ 'promotions.audience.some' | translate: { count: promotion.customers.length } }}
+          </span>
+        } @else {
+          <span class="promotions__muted">{{ 'promotions.audience.all' | translate }}</span>
+        }
+        @if (promotion.branches?.length) {
+          <span class="promotions__meta">{{
+            'promotions.audience.branches' | translate: { count: promotion.branches.length }
+          }}</span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="payment">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'promotions.columns.payment' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let promotion">
+        @if (promotion.paymentMethods?.length) {
+          <span [matTooltip]="'promotions.hints.payment' | translate">
+            {{ 'promotions.payment.some' | translate: { count: promotion.paymentMethods.length } }}
+          </span>
+        } @else {
+          <span class="promotions__muted">{{ 'promotions.payment.any' | translate }}</span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="validity">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'promotions.columns.validity' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let promotion">
+        {{ promotion.validFrom | localizedDate: 'shortDate' }}
+        @if (promotion.validUntil) {
+          – {{ promotion.validUntil | localizedDate: 'shortDate' }}
+        } @else {
+          <span class="promotions__muted">– {{ 'promotions.validity.noEnd' | translate }}</span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="state">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'promotions.columns.state' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let promotion">
+        @let state = stateOf(promotion);
+        <span
+          class="promotions__state"
+          [class.promotions__state--active]="state === 'ACTIVE'"
+          [class.promotions__state--scheduled]="state === 'SCHEDULED'"
+          [class.promotions__state--expired]="state === 'EXPIRED'"
+          [class.promotions__state--discontinued]="state === 'DISCONTINUED'"
+          [matTooltip]="'promotions.stateHints.' + state | translate"
+        >
+          {{ 'promotions.states.' + state | translate }}
+        </span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'promotions.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let promotion" class="actions-cell">
+        <app-row-actions
+          [actions]="rowActionsFor(promotion)"
+          [ariaLabel]="'promotions.actions.rowAria' | translate"
+          (actionClick)="onRowAction($event, promotion)"
+        />
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr
+      mat-row
+      *matRowDef="let row; columns: displayedColumns"
+      [class.promotions__row--dimmed]="isDimmed(row)"
+    ></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="displayedColumns.length"
+      >
+        @if (!paginator.loading()) {
+          {{ 'promotions.empty' | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'promotions.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

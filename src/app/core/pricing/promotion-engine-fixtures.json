@@ -1,0 +1,2412 @@
+{
+  "$comment": "Fixtures compartidos del motor de promociones (ADR-0002). Nacen acá y el frontend tiene una copia commiteada; la CI del workspace falla si difieren. Cada caso es input (la forma exacta de PromotionEvaluationInput) + expected. Los importes se comparan por valor, no por escala. Salvo que se indique, el comprobante no discrimina impuesto (taxAmount 0). Precios del documento funcional §11: alfajor negro $1.200, alfajor blanco $1.100. Las claves (productKey, key, customerKey, branchKey) son opacas: en el backend son ids de fila, en el front lo que tenga el carrito. La linea puede traer subtotal (el persistido); sin el vale net + taxAmount.",
+  "cases": [
+    {
+      "name": "E1 - 3x2 sobre dos sabores: 2 negros + 1 blanco forman un grupo y se bonifica el mas barato",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "negro",
+            "categoryKeys": [
+              "golosinas"
+            ],
+            "quantity": 2,
+            "unitPrice": 1200,
+            "net": 2400,
+            "taxAmount": 0
+          },
+          {
+            "index": 1,
+            "productKey": "blanco",
+            "categoryKeys": [
+              "golosinas"
+            ],
+            "quantity": 1,
+            "unitPrice": 1100,
+            "net": 1100,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "3x2",
+            "sequence": 1,
+            "name": "3x2 alfajores",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "buyQuantity": 3,
+            "payQuantity": 2,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "negro",
+              "blanco"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 2400,
+            "taxAmount": 0,
+            "subtotal": 2400
+          },
+          {
+            "index": 1,
+            "discountAmount": 1100,
+            "net": 0,
+            "taxAmount": 0,
+            "subtotal": 0
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "3x2",
+            "lineIndex": 1,
+            "bonusQuantity": 1,
+            "amount": 1100
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 2400
+      }
+    },
+    {
+      "name": "E2 - 3x2 con resto: 7 unidades son dos bloques, se bonifica lo mas barato de cada bloque (5.800, no 5.900)",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "negro",
+            "categoryKeys": [],
+            "quantity": 4,
+            "unitPrice": 1200,
+            "net": 4800,
+            "taxAmount": 0
+          },
+          {
+            "index": 1,
+            "productKey": "blanco",
+            "categoryKeys": [],
+            "quantity": 3,
+            "unitPrice": 1100,
+            "net": 3300,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "3x2",
+            "sequence": 1,
+            "name": "3x2 alfajores",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "buyQuantity": 3,
+            "payQuantity": 2,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "negro",
+              "blanco"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 1200,
+            "net": 3600,
+            "taxAmount": 0,
+            "subtotal": 3600
+          },
+          {
+            "index": 1,
+            "discountAmount": 1100,
+            "net": 2200,
+            "taxAmount": 0,
+            "subtotal": 2200
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "3x2",
+            "lineIndex": 0,
+            "bonusQuantity": 1,
+            "amount": 1200
+          },
+          {
+            "promotionKey": "3x2",
+            "lineIndex": 1,
+            "bonusQuantity": 1,
+            "amount": 1100
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 5800
+      }
+    },
+    {
+      "name": "E3 - cascada de porcentuales: 10% por categoria y 5% por cliente descuentan 14,5%, no 15%",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "gaseosa",
+            "categoryKeys": [
+              "gaseosas",
+              "bebidas"
+            ],
+            "quantity": 1,
+            "unitPrice": 2000,
+            "net": 2000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "bebidas-10",
+            "sequence": 1,
+            "name": "-10% bebidas",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "categoryKeys": [
+              "bebidas"
+            ]
+          },
+          {
+            "key": "club-5",
+            "sequence": 2,
+            "name": "-5% clientes del club",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 5,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "gaseosa"
+            ],
+            "customerKeys": [
+              "perez"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "customerKey": "perez",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 290,
+            "net": 1710,
+            "taxAmount": 0,
+            "subtotal": 1710
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "bebidas-10",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 200
+          },
+          {
+            "promotionKey": "club-5",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 90
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 1710
+      }
+    },
+    {
+      "name": "E4 - una linea con 3x2 no recibe ademas el 10% de producto, pero el 5% sobre el total si aplica",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "negro",
+            "categoryKeys": [
+              "golosinas"
+            ],
+            "quantity": 3,
+            "unitPrice": 1200,
+            "net": 3600,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "3x2",
+            "sequence": 1,
+            "name": "3x2 alfajores",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "buyQuantity": 3,
+            "payQuantity": 2,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "negro",
+              "blanco"
+            ]
+          },
+          {
+            "key": "golosinas-10",
+            "sequence": 2,
+            "name": "-10% golosinas",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "categoryKeys": [
+              "golosinas"
+            ]
+          },
+          {
+            "key": "total-5",
+            "sequence": 3,
+            "name": "-5% sobre el total",
+            "type": "PERCENTAGE",
+            "scope": "ORDER_TOTAL",
+            "percent": 5,
+            "combinable": true,
+            "validFrom": "2026-09-01"
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 1200,
+            "net": 2400,
+            "taxAmount": 0,
+            "subtotal": 2400
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "3x2",
+            "lineIndex": 0,
+            "bonusQuantity": 1,
+            "amount": 1200
+          },
+          {
+            "promotionKey": "total-5",
+            "lineIndex": null,
+            "bonusQuantity": 0,
+            "amount": 120
+          }
+        ],
+        "orderDiscount": 120,
+        "total": 2280
+      }
+    },
+    {
+      "name": "E5 - sobre el total van primero los porcentajes y despues el vale: 10.000 -> 9.000 -> 8.500",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 10000,
+            "net": 10000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "vale-500",
+            "sequence": 1,
+            "name": "Vale $500",
+            "type": "FIXED_AMOUNT",
+            "scope": "ORDER_TOTAL",
+            "amount": 500,
+            "combinable": true,
+            "validFrom": "2026-09-01"
+          },
+          {
+            "key": "aniversario-10",
+            "sequence": 2,
+            "name": "-10% aniversario",
+            "type": "PERCENTAGE",
+            "scope": "ORDER_TOTAL",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01"
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 10000,
+            "taxAmount": 0,
+            "subtotal": 10000
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "aniversario-10",
+            "lineIndex": null,
+            "bonusQuantity": 0,
+            "amount": 1000
+          },
+          {
+            "promotionKey": "vale-500",
+            "lineIndex": null,
+            "bonusQuantity": 0,
+            "amount": 500
+          }
+        ],
+        "orderDiscount": 1500,
+        "total": 8500
+      }
+    },
+    {
+      "name": "E6 - factura A: el descuento baja la base imponible, 1.000 + 21% con -10% da 900 + 189",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 210
+          }
+        ],
+        "promotions": [
+          {
+            "key": "p-10",
+            "sequence": 1,
+            "name": "-10%",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 100,
+            "net": 900,
+            "taxAmount": 189,
+            "subtotal": 1089
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "p-10",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 100
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 1089
+      }
+    },
+    {
+      "name": "E7 - un vale mayor al total deja la venta en $0 sin saldo a favor",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 400,
+            "net": 400,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "vale-500",
+            "sequence": 1,
+            "name": "Vale $500",
+            "type": "FIXED_AMOUNT",
+            "scope": "ORDER_TOTAL",
+            "amount": 500,
+            "combinable": true,
+            "validFrom": "2026-09-01"
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 400,
+            "taxAmount": 0,
+            "subtotal": 400
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "vale-500",
+            "lineIndex": null,
+            "bonusQuantity": 0,
+            "amount": 400
+          }
+        ],
+        "orderDiscount": 400,
+        "total": 0
+      }
+    },
+    {
+      "name": "E8a - audiencia: la venta sin cliente no recibe la promocion exclusiva de Perez",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "perez-15",
+            "sequence": 1,
+            "name": "-15% Perez",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 15,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ],
+            "customerKeys": [
+              "perez"
+            ]
+          },
+          {
+            "key": "general-10",
+            "sequence": 2,
+            "name": "-10% general",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "customerKey": null,
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 100,
+            "net": 900,
+            "taxAmount": 0,
+            "subtotal": 900
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "general-10",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 100
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 900
+      }
+    },
+    {
+      "name": "E8b - audiencia: la venta a Perez recibe la exclusiva y se acumula con la general",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "perez-15",
+            "sequence": 1,
+            "name": "-15% Perez",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 15,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ],
+            "customerKeys": [
+              "perez"
+            ]
+          },
+          {
+            "key": "general-10",
+            "sequence": 2,
+            "name": "-10% general",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "customerKey": "perez",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 235,
+            "net": 765,
+            "taxAmount": 0,
+            "subtotal": 765
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "perez-15",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 150
+          },
+          {
+            "promotionKey": "general-10",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 85
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 765
+      }
+    },
+    {
+      "name": "E9a - condicion por medio de pago: todos los pagos en efectivo, aplica",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 10000,
+            "net": 10000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "efectivo-10",
+            "sequence": 1,
+            "name": "-10% pagando en efectivo",
+            "type": "PERCENTAGE",
+            "scope": "ORDER_TOTAL",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "paymentMethodKeys": [
+              "cash"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash",
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 10000,
+            "taxAmount": 0,
+            "subtotal": 10000
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "efectivo-10",
+            "lineIndex": null,
+            "bonusQuantity": 0,
+            "amount": 1000
+          }
+        ],
+        "orderDiscount": 1000,
+        "total": 9000
+      }
+    },
+    {
+      "name": "E9b - condicion por medio de pago: un pago con tarjeta la desactiva por completo",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 10000,
+            "net": 10000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "efectivo-10",
+            "sequence": 1,
+            "name": "-10% pagando en efectivo",
+            "type": "PERCENTAGE",
+            "scope": "ORDER_TOTAL",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "paymentMethodKeys": [
+              "cash"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash",
+            "card"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 10000,
+            "taxAmount": 0,
+            "subtotal": 10000
+          }
+        ],
+        "applications": [],
+        "orderDiscount": 0,
+        "total": 10000
+      }
+    },
+    {
+      "name": "E9c - condicion por medio de pago: un presupuesto sin pagos no la cumple",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 10000,
+            "net": 10000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "efectivo-10",
+            "sequence": 1,
+            "name": "-10% pagando en efectivo",
+            "type": "PERCENTAGE",
+            "scope": "ORDER_TOTAL",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "paymentMethodKeys": [
+              "cash"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": []
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 10000,
+            "taxAmount": 0,
+            "subtotal": 10000
+          }
+        ],
+        "applications": [],
+        "orderDiscount": 0,
+        "total": 10000
+      }
+    },
+    {
+      "name": "E10 - un kit no presta sus componentes: el combo con 2 negros adentro y 1 blanco suelto no forman grupo",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "combo-merienda",
+            "categoryKeys": [
+              "combos"
+            ],
+            "quantity": 1,
+            "unitPrice": 3000,
+            "net": 3000,
+            "taxAmount": 0
+          },
+          {
+            "index": 1,
+            "productKey": "blanco",
+            "categoryKeys": [
+              "golosinas"
+            ],
+            "quantity": 1,
+            "unitPrice": 1100,
+            "net": 1100,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "3x2",
+            "sequence": 1,
+            "name": "3x2 alfajores",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "buyQuantity": 3,
+            "payQuantity": 2,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "negro",
+              "blanco"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 3000,
+            "taxAmount": 0,
+            "subtotal": 3000
+          },
+          {
+            "index": 1,
+            "discountAmount": 0,
+            "net": 1100,
+            "taxAmount": 0,
+            "subtotal": 1100
+          }
+        ],
+        "applications": [],
+        "orderDiscount": 0,
+        "total": 4100
+      }
+    },
+    {
+      "name": "E11 - monto fijo sobre un kit de alicuota mixta en factura A: el factor 0,8 escala neto e impuesto",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "combo",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 168
+          }
+        ],
+        "promotions": [
+          {
+            "key": "menos-200",
+            "sequence": 1,
+            "name": "-$200 por unidad",
+            "type": "FIXED_AMOUNT",
+            "scope": "PRODUCTS",
+            "amount": 200,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "combo"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 200,
+            "net": 800,
+            "taxAmount": 134.4,
+            "subtotal": 934.4
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "menos-200",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 200
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 934.4
+      }
+    },
+    {
+      "name": "Redondeo feo a proposito: kit de tres componentes con alicuotas mezcladas y 33%",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "kit3",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 999.99,
+            "net": 999.99,
+            "taxAmount": 174.99
+          }
+        ],
+        "promotions": [
+          {
+            "key": "feo-33",
+            "sequence": 1,
+            "name": "-33%",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 33,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "kit3"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 330.0,
+            "net": 669.99,
+            "taxAmount": 117.24,
+            "subtotal": 787.23
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "feo-33",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 330.0
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 787.23
+      }
+    },
+    {
+      "name": "Cascada en factura A con redondeo por paso: 333,33 al 21% con -10% y -5%",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 333.33,
+            "net": 333.33,
+            "taxAmount": 70.0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "p-10",
+            "sequence": 1,
+            "name": "-10%",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          },
+          {
+            "key": "p-5",
+            "sequence": 2,
+            "name": "-5%",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 5,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 48.33,
+            "net": 285.0,
+            "taxAmount": 59.85,
+            "subtotal": 344.85
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "p-10",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 33.33
+          },
+          {
+            "promotionKey": "p-5",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 15.0
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 344.85
+      }
+    },
+    {
+      "name": "Desempate NxM entre unidades del mismo precio: gana el indice de linea ascendente, se bonifica la ultima",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "a",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 0
+          },
+          {
+            "index": 1,
+            "productKey": "b",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 0
+          },
+          {
+            "index": 2,
+            "productKey": "c",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "3x2",
+            "sequence": 1,
+            "name": "3x2",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "buyQuantity": 3,
+            "payQuantity": 2,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "a",
+              "b",
+              "c"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 1000,
+            "taxAmount": 0,
+            "subtotal": 1000
+          },
+          {
+            "index": 1,
+            "discountAmount": 0,
+            "net": 1000,
+            "taxAmount": 0,
+            "subtotal": 1000
+          },
+          {
+            "index": 2,
+            "discountAmount": 1000,
+            "net": 0,
+            "taxAmount": 0,
+            "subtotal": 0
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "3x2",
+            "lineIndex": 2,
+            "bonusQuantity": 1,
+            "amount": 1000
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 2000
+      }
+    },
+    {
+      "name": "Desempate NxM con varias unidades por linea: 2x1 sobre 3 + 1 del mismo precio bonifica una de cada linea",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "a",
+            "categoryKeys": [],
+            "quantity": 3,
+            "unitPrice": 1000,
+            "net": 3000,
+            "taxAmount": 0
+          },
+          {
+            "index": 1,
+            "productKey": "b",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "2x1",
+            "sequence": 1,
+            "name": "2x1",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "buyQuantity": 2,
+            "payQuantity": 1,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "a",
+              "b"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 1000,
+            "net": 2000,
+            "taxAmount": 0,
+            "subtotal": 2000
+          },
+          {
+            "index": 1,
+            "discountAmount": 1000,
+            "net": 0,
+            "taxAmount": 0,
+            "subtotal": 0
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "2x1",
+            "lineIndex": 0,
+            "bonusQuantity": 1,
+            "amount": 1000
+          },
+          {
+            "promotionKey": "2x1",
+            "lineIndex": 1,
+            "bonusQuantity": 1,
+            "amount": 1000
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 2000
+      }
+    },
+    {
+      "name": "Dos NxM compiten: el 2x1 (mitad bonificada) toma primero y el 3x2 se queda sin bloque",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "a",
+            "categoryKeys": [],
+            "quantity": 3,
+            "unitPrice": 1000,
+            "net": 3000,
+            "taxAmount": 0
+          },
+          {
+            "index": 1,
+            "productKey": "b",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 900,
+            "net": 900,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "3x2",
+            "sequence": 1,
+            "name": "3x2",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "buyQuantity": 3,
+            "payQuantity": 2,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "a",
+              "b"
+            ]
+          },
+          {
+            "key": "2x1",
+            "sequence": 2,
+            "name": "2x1",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "buyQuantity": 2,
+            "payQuantity": 1,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "a"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 1000,
+            "net": 2000,
+            "taxAmount": 0,
+            "subtotal": 2000
+          },
+          {
+            "index": 1,
+            "discountAmount": 0,
+            "net": 900,
+            "taxAmount": 0,
+            "subtotal": 900
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "2x1",
+            "lineIndex": 0,
+            "bonusQuantity": 1,
+            "amount": 1000
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 2900
+      }
+    },
+    {
+      "name": "No acumulables compitiendo: gana la de mayor descuento (-$150 sobre -10% de 1.000)",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "p-10",
+            "sequence": 1,
+            "name": "-10%",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          },
+          {
+            "key": "p-150",
+            "sequence": 2,
+            "name": "-$150",
+            "type": "FIXED_AMOUNT",
+            "scope": "PRODUCTS",
+            "amount": 150,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 150,
+            "net": 850,
+            "taxAmount": 0,
+            "subtotal": 850
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "p-150",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 150
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 850
+      }
+    },
+    {
+      "name": "No acumulables empatadas: gana la mas antigua (menor sequence)",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "p-100",
+            "sequence": 7,
+            "name": "-$100",
+            "type": "FIXED_AMOUNT",
+            "scope": "PRODUCTS",
+            "amount": 100,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          },
+          {
+            "key": "p-10",
+            "sequence": 3,
+            "name": "-10%",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 100,
+            "net": 900,
+            "taxAmount": 0,
+            "subtotal": 900
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "p-10",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 100
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 900
+      }
+    },
+    {
+      "name": "Una no acumulable excluye a las acumulables de la misma linea, aunque descuente menos",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "p-10",
+            "sequence": 1,
+            "name": "-10%",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          },
+          {
+            "key": "p-5-exclusiva",
+            "sequence": 2,
+            "name": "-5% exclusiva",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 5,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 50,
+            "net": 950,
+            "taxAmount": 0,
+            "subtotal": 950
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "p-5-exclusiva",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 50
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 950
+      }
+    },
+    {
+      "name": "Piso $0 por linea: -$150 por unidad sobre una linea de $100 la deja en cero",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 100,
+            "net": 100,
+            "taxAmount": 21
+          }
+        ],
+        "promotions": [
+          {
+            "key": "p-150",
+            "sequence": 1,
+            "name": "-$150",
+            "type": "FIXED_AMOUNT",
+            "scope": "PRODUCTS",
+            "amount": 150,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 100,
+            "net": 0,
+            "taxAmount": 0,
+            "subtotal": 0
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "p-150",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 100
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 0
+      }
+    },
+    {
+      "name": "Monto fijo por unidad: -$200 en cada una de 3 unidades descuenta 600",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 3,
+            "unitPrice": 1000,
+            "net": 3000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "menos-200",
+            "sequence": 1,
+            "name": "-$200 por unidad",
+            "type": "FIXED_AMOUNT",
+            "scope": "PRODUCTS",
+            "amount": 200,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 600,
+            "net": 2400,
+            "taxAmount": 0,
+            "subtotal": 2400
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "menos-200",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 600
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 2400
+      }
+    },
+    {
+      "name": "Condicion por medio de pago que dejaria el total en $0: el motor resuelve al punto estable sin la promocion",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 400,
+            "net": 400,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "vale-efectivo",
+            "sequence": 1,
+            "name": "Vale $500 en efectivo",
+            "type": "FIXED_AMOUNT",
+            "scope": "ORDER_TOTAL",
+            "amount": 500,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "paymentMethodKeys": [
+              "cash"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 400,
+            "taxAmount": 0,
+            "subtotal": 400
+          }
+        ],
+        "applications": [],
+        "orderDiscount": 0,
+        "total": 400
+      }
+    },
+    {
+      "name": "Vigencia, discontinuacion y sucursal: solo entra la vigente en esta sucursal",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "programada",
+            "sequence": 1,
+            "name": "Programada",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 50,
+            "combinable": true,
+            "validFrom": "2026-09-18",
+            "productKeys": [
+              "p"
+            ]
+          },
+          {
+            "key": "vencida",
+            "sequence": 2,
+            "name": "Vencida",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 50,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "validUntil": "2026-09-16",
+            "productKeys": [
+              "p"
+            ]
+          },
+          {
+            "key": "discontinuada",
+            "sequence": 3,
+            "name": "Discontinuada",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 50,
+            "combinable": true,
+            "discontinued": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ]
+          },
+          {
+            "key": "otra-sucursal",
+            "sequence": 4,
+            "name": "Otra sucursal",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 50,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "p"
+            ],
+            "branchKeys": [
+              "suc-2"
+            ]
+          },
+          {
+            "key": "vigente",
+            "sequence": 5,
+            "name": "Vigente hasta hoy inclusive",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-17",
+            "validUntil": "2026-09-17",
+            "productKeys": [
+              "p"
+            ],
+            "branchKeys": [
+              "suc-1",
+              "suc-2"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 100,
+            "net": 900,
+            "taxAmount": 0,
+            "subtotal": 900
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "vigente",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 100
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 900
+      }
+    },
+    {
+      "name": "Cantidad fraccionaria: 2,5 kg no aportan unidades a un 2x1, y el porcentaje si aplica",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "queso",
+            "categoryKeys": [
+              "fiambres"
+            ],
+            "quantity": 2.5,
+            "unitPrice": 1000,
+            "net": 2500,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "2x1",
+            "sequence": 1,
+            "name": "2x1",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "buyQuantity": 2,
+            "payQuantity": 1,
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "productKeys": [
+              "queso"
+            ]
+          },
+          {
+            "key": "fiambres-10",
+            "sequence": 2,
+            "name": "-10% fiambres",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "percent": 10,
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "categoryKeys": [
+              "fiambres"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 250,
+            "net": 2250,
+            "taxAmount": 0,
+            "subtotal": 2250
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "fiambres-10",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 250
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 2250
+      }
+    },
+    {
+      "name": "Un NxM no acumulable cierra todas las lineas que pusieron unidades en el bloque, tambien las que solo pagaron",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "negro",
+            "categoryKeys": [
+              "golosinas"
+            ],
+            "quantity": 2,
+            "unitPrice": 1200,
+            "net": 2400,
+            "taxAmount": 0
+          },
+          {
+            "index": 1,
+            "productKey": "blanco",
+            "categoryKeys": [
+              "golosinas"
+            ],
+            "quantity": 1,
+            "unitPrice": 1100,
+            "net": 1100,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "3x2",
+            "sequence": 1,
+            "name": "3x2 alfajores",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "buyQuantity": 3,
+            "payQuantity": 2,
+            "productKeys": [
+              "negro",
+              "blanco"
+            ]
+          },
+          {
+            "key": "golosinas-10",
+            "sequence": 2,
+            "name": "-10% golosinas",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "percent": 10,
+            "categoryKeys": [
+              "golosinas"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 2400,
+            "taxAmount": 0,
+            "subtotal": 2400
+          },
+          {
+            "index": 1,
+            "discountAmount": 1100,
+            "net": 0,
+            "taxAmount": 0,
+            "subtotal": 0
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "3x2",
+            "lineIndex": 1,
+            "bonusQuantity": 1,
+            "amount": 1100
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 2400
+      }
+    },
+    {
+      "name": "Un NxM no acumulable que solo forma bloque con parte de la venta deja abierta la linea que aporto solo sobrantes",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "negro",
+            "categoryKeys": [
+              "golosinas"
+            ],
+            "quantity": 3,
+            "unitPrice": 1200,
+            "net": 3600,
+            "taxAmount": 0
+          },
+          {
+            "index": 1,
+            "productKey": "blanco",
+            "categoryKeys": [
+              "golosinas"
+            ],
+            "quantity": 1,
+            "unitPrice": 1100,
+            "net": 1100,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "3x2",
+            "sequence": 1,
+            "name": "3x2 alfajores",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "combinable": false,
+            "validFrom": "2026-09-01",
+            "buyQuantity": 3,
+            "payQuantity": 2,
+            "productKeys": [
+              "negro",
+              "blanco"
+            ]
+          },
+          {
+            "key": "golosinas-10",
+            "sequence": 2,
+            "name": "-10% golosinas",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "percent": 10,
+            "categoryKeys": [
+              "golosinas"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 1200,
+            "net": 2400,
+            "taxAmount": 0,
+            "subtotal": 2400
+          },
+          {
+            "index": 1,
+            "discountAmount": 110,
+            "net": 990,
+            "taxAmount": 0,
+            "subtotal": 990
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "3x2",
+            "lineIndex": 0,
+            "bonusQuantity": 1,
+            "amount": 1200
+          },
+          {
+            "promotionKey": "golosinas-10",
+            "lineIndex": 1,
+            "bonusQuantity": 0,
+            "amount": 110
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 3390
+      }
+    },
+    {
+      "name": "NxM acumulable mas monto fijo por unidad: el fijo cuenta solo las unidades que pagan",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 2,
+            "unitPrice": 500,
+            "net": 1000,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "2x1",
+            "sequence": 1,
+            "name": "2x1",
+            "type": "NXM",
+            "scope": "PRODUCTS",
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "buyQuantity": 2,
+            "payQuantity": 1,
+            "productKeys": [
+              "p"
+            ]
+          },
+          {
+            "key": "menos-100",
+            "sequence": 2,
+            "name": "-$100 por unidad",
+            "type": "FIXED_AMOUNT",
+            "scope": "PRODUCTS",
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "amount": 100,
+            "productKeys": [
+              "p"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 600,
+            "net": 400,
+            "taxAmount": 0,
+            "subtotal": 400
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "2x1",
+            "lineIndex": 0,
+            "bonusQuantity": 1,
+            "amount": 500
+          },
+          {
+            "promotionKey": "menos-100",
+            "lineIndex": 0,
+            "bonusQuantity": 0,
+            "amount": 100
+          }
+        ],
+        "orderDiscount": 0,
+        "total": 400
+      }
+    },
+    {
+      "name": "Dos condicionadas por medio de pago y total en $0: se saca solo la que cerro el total, la otra sigue aplicando",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 400,
+            "net": 400,
+            "taxAmount": 0
+          }
+        ],
+        "promotions": [
+          {
+            "key": "efectivo-10",
+            "sequence": 1,
+            "name": "-10% en efectivo",
+            "type": "PERCENTAGE",
+            "scope": "ORDER_TOTAL",
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "percent": 10,
+            "paymentMethodKeys": [
+              "cash"
+            ]
+          },
+          {
+            "key": "vale-efectivo",
+            "sequence": 2,
+            "name": "Vale $500 en efectivo",
+            "type": "FIXED_AMOUNT",
+            "scope": "ORDER_TOTAL",
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "amount": 500,
+            "paymentMethodKeys": [
+              "cash"
+            ]
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 400,
+            "taxAmount": 0,
+            "subtotal": 400
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "efectivo-10",
+            "lineIndex": null,
+            "bonusQuantity": 0,
+            "amount": 40
+          }
+        ],
+        "orderDiscount": 40,
+        "total": 360
+      }
+    },
+    {
+      "name": "La linea que el motor no toca aporta su subtotal de lista (redondeado por la regla de precio), no neto + impuesto",
+      "input": {
+        "lines": [
+          {
+            "index": 0,
+            "productKey": "p",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 995,
+            "net": 995,
+            "taxAmount": 208.95,
+            "subtotal": 1210
+          },
+          {
+            "index": 1,
+            "productKey": "q",
+            "categoryKeys": [],
+            "quantity": 1,
+            "unitPrice": 1000,
+            "net": 1000,
+            "taxAmount": 210,
+            "subtotal": 1210
+          }
+        ],
+        "promotions": [
+          {
+            "key": "q-10",
+            "sequence": 1,
+            "name": "-10% q",
+            "type": "PERCENTAGE",
+            "scope": "PRODUCTS",
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "percent": 10,
+            "productKeys": [
+              "q"
+            ]
+          },
+          {
+            "key": "total-5",
+            "sequence": 2,
+            "name": "-5% total",
+            "type": "PERCENTAGE",
+            "scope": "ORDER_TOTAL",
+            "combinable": true,
+            "validFrom": "2026-09-01",
+            "percent": 5
+          }
+        ],
+        "context": {
+          "operationDate": "2026-09-17",
+          "branchKey": "suc-1",
+          "paymentMethodKeys": [
+            "cash"
+          ]
+        }
+      },
+      "expected": {
+        "lines": [
+          {
+            "index": 0,
+            "discountAmount": 0,
+            "net": 995,
+            "taxAmount": 208.95,
+            "subtotal": 1210
+          },
+          {
+            "index": 1,
+            "discountAmount": 100,
+            "net": 900,
+            "taxAmount": 189,
+            "subtotal": 1089
+          }
+        ],
+        "applications": [
+          {
+            "promotionKey": "q-10",
+            "lineIndex": 1,
+            "bonusQuantity": 0,
+            "amount": 100
+          },
+          {
+            "promotionKey": "total-5",
+            "lineIndex": null,
+            "bonusQuantity": 0,
+            "amount": 114.95
+          }
+        ],
+        "orderDiscount": 114.95,
+        "total": 2184.05
+      }
+    }
+  ]
+}

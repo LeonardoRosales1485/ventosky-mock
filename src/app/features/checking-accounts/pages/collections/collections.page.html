@@ -1,0 +1,235 @@
+<app-page-header
+  [title]="'checkingAccounts.collections.title' | translate"
+  [description]="'checkingAccounts.collections.description' | translate"
+>
+  <a mat-flat-button color="primary" [routerLink]="newCollectionPath">
+    <mat-icon aria-hidden="true">add</mat-icon>
+    {{ 'checkingAccounts.collections.new' | translate }}
+  </a>
+</app-page-header>
+
+<app-table-toolbar
+  [searchPlaceholder]="'checkingAccounts.collections.search' | translate"
+  (searchChange)="onSearch($event)"
+>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="collections__filter">
+    <mat-label>{{ 'checkingAccounts.collections.filterRole' | translate }}</mat-label>
+    <mat-select [value]="roleFilter" (valueChange)="onRoleFilter($event)">
+      <mat-option value="">{{ 'checkingAccounts.list.filters.all' | translate }}</mat-option>
+      @for (role of partyRoles; track role) {
+        <mat-option [value]="role">{{ 'checkingAccounts.roles.' + role | translate }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="collections__filter">
+    <mat-label>{{ 'checkingAccounts.collections.filterState' | translate }}</mat-label>
+    <mat-select [value]="stateFilter" (valueChange)="onStateFilter($event)">
+      <mat-option value="">{{ 'checkingAccounts.list.filters.all' | translate }}</mat-option>
+      @for (state of creditStates; track state) {
+        <mat-option [value]="state">
+          {{ 'checkingAccounts.creditStates.' + state | translate }}
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <!--
+    La bandeja de trabajo. Sin este filtro el listado muestra todos los cobros justo cuando no hay
+    ninguno pendiente, que es el caso normal con la imputación automática encendida.
+  -->
+  <mat-slide-toggle
+    class="collections__toggle"
+    [checked]="onlyUnallocated"
+    (change)="onOnlyUnallocated($event.checked)"
+    [disabled]="paginator.loading()"
+  >
+    {{ 'checkingAccounts.collections.onlyUnallocated' | translate }}
+  </mat-slide-toggle>
+</app-table-toolbar>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'checkingAccounts.collections.title' | translate"
+>
+  <table
+    mat-table
+    matSort
+    (matSortChange)="onSort($event)"
+    [dataSource]="paginator.items()"
+    [attr.aria-label]="'checkingAccounts.collections.title' | translate"
+  >
+    <ng-container matColumnDef="publicId">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'checkingAccounts.columns.publicId' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">{{ row.publicId }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="dateIssued">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'checkingAccounts.columns.date' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">{{ row.dateIssued | localizedDate }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="partyName">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'checkingAccounts.columns.party' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">
+        <span class="collections__party">{{ row.partyRole?.name }}</span>
+        @if (row.partyRole?.role; as role) {
+          <span class="collections__role">
+            {{ 'checkingAccounts.roles.' + role | translate }}
+          </span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="description">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'checkingAccounts.columns.description' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">{{ row.description }}</td>
+    </ng-container>
+
+    <!--
+      El estado llega derivado del backend. No es ordenable: se resuelve como un `IN` de ids y no
+      como una columna, así que ofrecer el encabezado sería prometer un orden que se ignora.
+    -->
+    <ng-container matColumnDef="state">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'checkingAccounts.columns.state' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row">
+        <span class="chip" [attr.data-state]="row.state">
+          {{ 'checkingAccounts.creditStates.' + row.state | translate }}
+        </span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="amount">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header class="numeric-header">
+        {{ 'checkingAccounts.columns.amount' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row" class="numeric-cell">
+        <app-currency-display [value]="row.amount" />
+      </td>
+    </ng-container>
+
+    <!-- La columna que justifica la pantalla: lo que todavía no canceló ninguna deuda. -->
+    <ng-container matColumnDef="unallocatedAmount">
+      <th
+        mat-header-cell
+        *matHeaderCellDef
+        mat-sort-header
+        class="numeric-header"
+        [matTooltip]="'checkingAccounts.collections.unallocatedHint' | translate"
+      >
+        {{ 'checkingAccounts.columns.unallocatedAmount' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let row" class="numeric-cell">
+        <app-currency-display
+          [value]="row.unallocatedAmount"
+          [tone]="row.unallocatedAmount > 0 ? 'negative' : 'neutral'"
+        />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef aria-hidden="true"></th>
+      <td mat-cell *matCellDef="let row">
+        <!--
+          Imputar redistribuye plata que ya entró: no toca la caja, no emite comprobante y no exige
+          sesión. Sin saldo disponible el botón queda visible y apagado, con el motivo — esconderlo
+          dejaría la fila sin explicación.
+        -->
+        @if (canAllocate) {
+          <button
+            mat-icon-button
+            type="button"
+            [disabled]="row.unallocatedAmount <= 0 || !!row.dateVoided"
+            [matTooltip]="
+              (row.unallocatedAmount > 0 && !row.dateVoided
+                ? 'checkingAccounts.actions.allocate'
+                : 'checkingAccounts.actions.allocateUnavailable'
+              ) | translate
+            "
+            [attr.aria-label]="'checkingAccounts.actions.allocate' | translate"
+            (click)="onAllocate(row)"
+          >
+            <mat-icon>rule</mat-icon>
+          </button>
+
+          <!-- A qué deudas fue esta plata, y desde ahí desimputar. -->
+          <button
+            mat-icon-button
+            type="button"
+            [matTooltip]="'checkingAccounts.actions.viewAllocations' | translate"
+            [attr.aria-label]="'checkingAccounts.actions.viewAllocations' | translate"
+            (click)="onAllocations(row)"
+          >
+            <mat-icon>history</mat-icon>
+          </button>
+        }
+        <!--
+          Un cobro ya anulado no se anula de nuevo: el botón se apaga y dice por qué, en vez de
+          desaparecer y dejar la fila sin explicación.
+        -->
+        @if (canVoid) {
+          <button
+            mat-icon-button
+            type="button"
+            [disabled]="!!row.dateVoided"
+            [matTooltip]="
+              (row.dateVoided
+                ? 'checkingAccounts.actions.alreadyVoided'
+                : 'checkingAccounts.actions.void'
+              ) | translate
+            "
+            [attr.aria-label]="'checkingAccounts.actions.void' | translate"
+            (click)="onVoid(row)"
+          >
+            <mat-icon>block</mat-icon>
+          </button>
+        }
+        <a
+          mat-icon-button
+          [routerLink]="accountPath(row)"
+          [matTooltip]="'checkingAccounts.collections.goToAccount' | translate"
+          [attr.aria-label]="'checkingAccounts.collections.goToAccount' | translate"
+        >
+          <mat-icon>arrow_forward</mat-icon>
+        </a>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell collections__empty" [attr.colspan]="displayedColumns.length">
+        @if (!paginator.loading()) {
+          <p class="collections__empty-title">
+            {{ 'checkingAccounts.collections.empty' | translate }}
+          </p>
+          <p class="collections__empty-hint">
+            {{ 'checkingAccounts.collections.emptyHint' | translate }}
+          </p>
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

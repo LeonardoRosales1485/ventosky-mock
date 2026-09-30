@@ -1,0 +1,85 @@
+/*
+  El diálogo se queda con el alto que le dé el viewport y scrollea la tabla por dentro: con el
+  scroll en el contenido, el buscador se iría de pantalla apenas hay resultados.
+*/
+.customer-picker__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.customer-picker__description {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.customer-picker__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
+.customer-picker__search {
+  flex: 1 1 auto;
+}
+
+table {
+  width: 100%;
+}
+
+.customer-picker__row {
+  cursor: pointer;
+}
+
+.customer-picker__row:hover {
+  background: var(--mat-sys-surface-container-high);
+}
+
+/* El que ya está elegido: se marca para que se vea a quién se le está por cambiar. */
+.customer-picker__row--current {
+  background: var(--mat-sys-secondary-container);
+}
+
+.customer-picker__name {
+  font-weight: 500;
+}
+
+.customer-picker__document {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* La marca y el botón comparten renglón: el flex es lo que los deja a la misma altura. */
+.customer-picker__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+.customer-picker__current {
+  flex: none;
+  color: var(--mat-sys-primary);
+}
+
+.customer-picker__empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.mat-column-actions {
+  width: 1%;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+  text-align: end;
+}
+
+/* La columna queda fija al hacer scroll horizontal, así que necesita fondo propio. */
+.customer-picker__actions-cell {
+  background: var(--mat-sys-surface);
+  border-left: 1px solid var(--mat-sys-outline-variant);
+}

@@ -1,0 +1,817 @@
+<app-load-state
+  [state]="loadState()"
+  [loadingMessage]="'checkingAccounts.detail.loading' | translate"
+  [errorMessage]="'checkingAccounts.detail.loadError' | translate"
+  [retryable]="true"
+  [retryLabel]="'checkingAccounts.actions.retry' | translate"
+  (retry)="onRetry()"
+  minHeight="20rem"
+>
+  @if (account(); as account) {
+    <!--
+      El encabezado contesta de un vistazo lo que trae a esta pantalla, y son **cuatro** números y no
+      uno: el saldo es la resta de la deuda abierta menos la plata sin imputar, y con imputación
+      manual esa resta esconde el estado — un neto a favor conviviendo con una factura impaga.
+    -->
+    <section class="detail__hero">
+      <div class="detail__identity">
+        <div class="detail__title-row">
+          <h1 class="detail__name">{{ partyName() }}</h1>
+          <app-delinquency-chip [level]="account.delinquencyLevel" />
+          @if (!account.enabled) {
+            <span
+              class="detail__badge"
+              [matTooltip]="'checkingAccounts.list.disabledHint' | translate"
+            >
+              {{ 'checkingAccounts.list.disabled' | translate }}
+            </span>
+          }
+        </div>
+        <p class="detail__meta">
+          @if (account.partyRole?.role; as role) {
+            {{ 'checkingAccounts.roles.' + role | translate }}
+          }
+          @if (partyDocument()) {
+            · {{ partyDocument() }}
+          }
+        </p>
+      </div>
+
+      <div class="detail__actions">
+        <button mat-flat-button color="primary" type="button" (click)="onCollect()">
+          <mat-icon aria-hidden="true">payments</mat-icon>
+          {{
+            (account.partyRole?.role === 'SUPPLIER'
+              ? 'checkingAccounts.actions.pay'
+              : 'checkingAccounts.actions.collect'
+            ) | translate
+          }}
+        </button>
+        <!--
+          Ajustar no se ofrece a quien no puede: un botón que va a contestar 403 es peor que un
+          botón que no está.
+        -->
+        @if (canAdjust) {
+          <button mat-stroked-button type="button" (click)="onAdjust()">
+            <mat-icon aria-hidden="true">tune</mat-icon>
+            {{ 'checkingAccounts.actions.adjust' | translate }}
+          </button>
+        }
+        <!--
+          El nivel de mora lo fija una persona y no lo calcula nadie: por eso es una acción del
+          encabezado y no un dato que la ficha derive.
+        -->
+        @if (canNotify) {
+          <button mat-stroked-button type="button" (click)="onSetDelinquency()">
+            <mat-icon aria-hidden="true">flag</mat-icon>
+            {{ 'checkingAccounts.actions.setDelinquency' | translate }}
+          </button>
+          <!--
+            El aviso se manda desde acá y nunca solo: ningún proceso agendado le escribe a un cliente.
+          -->
+          <button mat-stroked-button type="button" (click)="onSendNotice()">
+            <mat-icon aria-hidden="true">mail</mat-icon>
+            {{ 'checkingAccounts.actions.notice' | translate }}
+          </button>
+        }
+
+        <button
+          matIconButton
+          type="button"
+          [matMenuTriggerFor]="moreMenu"
+          [attr.aria-label]="'checkingAccounts.detail.moreAria' | translate"
+        >
+          <mat-icon aria-hidden="true">more_vert</mat-icon>
+        </button>
+        <mat-menu #moreMenu="matMenu">
+          <!--
+            Prender y apagar la cuenta es, junto con la política del titular, lo único editable de la
+            ficha: el resto del menú son operaciones, no ediciones. Apagada, el medio «cuenta
+            corriente» deja de ofrecerse en el mostrador.
+          -->
+          @if (canConfig) {
+            <button mat-menu-item type="button" (click)="onToggleEnabled()">
+              <mat-icon aria-hidden="true">{{ account.enabled ? 'block' : 'check_circle' }}</mat-icon>
+              <span>
+                {{
+                  (account.enabled
+                    ? 'checkingAccounts.actions.disableAccount'
+                    : 'checkingAccounts.actions.enableAccount'
+                  ) | translate
+                }}
+              </span>
+            </button>
+            <!--
+              El job de consistencia detecta y no corrige: una diferencia significa que hay un bug en
+              algún camino de escritura, y arreglarla sola lo escondería. Corregir es una decisión.
+            -->
+            <button mat-menu-item type="button" (click)="onRecalculate()">
+              <mat-icon aria-hidden="true">calculate</mat-icon>
+              <span>{{ 'checkingAccounts.override.recalculate' | translate }}</span>
+            </button>
+          }
+          <a mat-menu-item [routerLink]="checkingAccountsPath">
+            <mat-icon aria-hidden="true">arrow_back</mat-icon>
+            <span>{{ 'checkingAccounts.detail.backToList' | translate }}</span>
+          </a>
+        </mat-menu>
+      </div>
+    </section>
+
+    <!--
+      Cuatro números y no uno. El saldo dice el neto, el vencido dice cuánto ya debería haber
+      entrado, y los dos términos de los que sale el saldo —la deuda abierta y la plata sin
+      imputar— dicen de qué está hecho ese neto. La resta sola se lee como que no se debe nada.
+    -->
+    <section
+      class="detail__summary"
+      [attr.aria-label]="'checkingAccounts.detail.summaryAria' | translate"
+    >
+      <div class="detail__figure">
+        <span class="detail__figure-label">{{ balanceLabel() | translate }}</span>
+        <app-currency-display class="detail__figure-value" [value]="account.balance" />
+        @if (account.balanceRecalculatedAt) {
+          <span class="detail__figure-note">
+            {{
+              'checkingAccounts.detail.cacheAt'
+                | translate: { date: account.balanceRecalculatedAt | localizedDate: 'short' }
+            }}
+          </span>
+        } @else {
+          <span class="detail__figure-note">
+            {{ 'checkingAccounts.detail.cacheNever' | translate }}
+          </span>
+        }
+      </div>
+
+      <div class="detail__figure">
+        <span class="detail__figure-label">
+          {{ 'checkingAccounts.columns.overdueAmount' | translate }}
+        </span>
+        <app-currency-display
+          class="detail__figure-value"
+          [value]="account.overdueAmount"
+          [tone]="(account.overdueAmount ?? 0) > 0 ? 'negative' : 'neutral'"
+        />
+        @if (account.oldestOverdueDays !== null) {
+          <span class="detail__figure-note">
+            {{
+              'checkingAccounts.detail.oldestOverdue'
+                | translate: { days: account.oldestOverdueDays }
+            }}
+          </span>
+        }
+      </div>
+
+      <!--
+        Los dos términos del invariante (3). Sólo llegan en la lectura de una cuenta: en el paginado
+        viajan nulos, y nulo es «no se calculó en esta vista», que es distinto de cero.
+      -->
+      <div class="detail__figure">
+        <span class="detail__figure-label">
+          {{ 'checkingAccounts.detail.pendingTerm' | translate }}
+        </span>
+        <app-currency-display class="detail__figure-value" [value]="account.pendingAmount ?? null" />
+        <span class="detail__figure-note">
+          {{ 'checkingAccounts.detail.pendingHint' | translate }}
+        </span>
+      </div>
+
+      <div class="detail__figure">
+        <span class="detail__figure-label">
+          {{ 'checkingAccounts.detail.unallocatedTerm' | translate }}
+        </span>
+        <app-currency-display
+          class="detail__figure-value"
+          [value]="account.unallocatedAmount ?? null"
+          [tone]="(account.unallocatedAmount ?? 0) > 0 ? 'positive' : 'neutral'"
+        />
+        <span class="detail__figure-note">
+          {{ 'checkingAccounts.detail.unallocatedHint' | translate }}
+        </span>
+      </div>
+    </section>
+
+    <!--
+      El aviso aparece sólo cuando pendiente y sin imputar son los dos distintos de cero — el caso
+      que la imputación manual habilita, y el único en el que el saldo miente por omisión.
+    -->
+    @if (hidesOpenDebt()) {
+      <div class="detail__alert" role="status">
+        <mat-icon class="detail__alert-icon" aria-hidden="true">info</mat-icon>
+        <p class="detail__alert-text">
+          {{
+            'checkingAccounts.detail.openDebtAlert'
+              | translate
+                : {
+                    credits: formatAmount(account.unallocatedAmount),
+                    overdue: formatAmount(account.overdueAmount),
+                  }
+          }}
+        </p>
+        <button mat-stroked-button type="button" (click)="onGoToUnallocated()">
+          {{ 'checkingAccounts.detail.allocateNow' | translate }}
+        </button>
+      </div>
+    }
+
+    <!--
+      La política que le rige, con la fuente de cada valor: «heredado de la empresa: 30 días» es una
+      sola línea que contesta las dos preguntas, y evita abrir otra pantalla para entender qué rige.
+    -->
+    <section class="detail__policy" aria-labelledby="detail-policy-title">
+      <div class="detail__policy-head">
+        <h2 class="detail__policy-title" id="detail-policy-title">
+          {{ 'checkingAccounts.detail.policyTitle' | translate }}
+        </h2>
+        @if (canConfig && policy()) {
+          <button mat-stroked-button type="button" (click)="onEditPolicy()">
+            <mat-icon aria-hidden="true">edit</mat-icon>
+            {{ 'checkingAccounts.detail.editOverride' | translate }}
+          </button>
+        }
+      </div>
+
+      @if (policyLoading()) {
+        <p class="detail__policy-loading">{{ 'checkingAccounts.override.loading' | translate }}</p>
+      } @else if (policy(); as current) {
+        <div class="detail__policy-rows">
+          <app-setting-source
+            ownLevel="ACCOUNT"
+            translationPrefix="checkingAccounts.policySource"
+            [label]="'checkingAccounts.policy.dueDays' | translate"
+            [source]="current.resolved.dueDaysSource"
+          >
+            {{ 'checkingAccounts.policy.days' | translate: { days: current.resolved.dueDays } }}
+          </app-setting-source>
+
+          @if (showsLimit()) {
+            <app-setting-source
+              ownLevel="ACCOUNT"
+              translationPrefix="checkingAccounts.policySource"
+              [label]="'checkingAccounts.policy.debtLimit' | translate"
+              [source]="current.resolved.debtLimitSource"
+            >
+              @if (current.resolved.debtLimit === null) {
+                {{ 'checkingAccounts.override.limit.unlimited' | translate }}
+              } @else {
+                <app-currency-display [value]="current.resolved.debtLimit" />
+              }
+            </app-setting-source>
+          }
+
+          <app-setting-source
+            ownLevel="ACCOUNT"
+            translationPrefix="checkingAccounts.policySource"
+            [label]="'checkingAccounts.policy.allocationMode' | translate"
+            [source]="current.resolved.allocationModeSource"
+          >
+            {{ 'checkingAccounts.allocationModes.' + current.resolved.allocationMode | translate }}
+          </app-setting-source>
+        </div>
+      }
+    </section>
+
+    <mat-tab-group
+      [selectedIndex]="selectedTab()"
+      (selectedIndexChange)="onTabChange($event)"
+      [attr.aria-label]="'checkingAccounts.detail.tabsAria' | translate"
+    >
+      <mat-tab [label]="'checkingAccounts.detail.tabs.statement' | translate">
+        <!--
+          La partida anulada se sigue listando por default y suma cero: esconderla dejaría un salto
+          de saldo sin explicar. Poder sacarlas es para leer sólo lo que pesa.
+        -->
+        <div class="detail__ledger-filters">
+          <mat-checkbox
+            [checked]="includeVoided()"
+            (change)="onToggleVoided($event.checked)"
+            [disabled]="statement.loading()"
+          >
+            {{ 'checkingAccounts.detail.showVoided' | translate }}
+          </mat-checkbox>
+        </div>
+
+        <app-table-wrapper
+          [loading]="statement.loading()"
+          [loadingAriaLabel]="'checkingAccounts.detail.loading' | translate"
+          maxHeight="30rem"
+        >
+          <table
+            mat-table
+            [dataSource]="statement.items()"
+            [attr.aria-label]="'checkingAccounts.detail.tabs.statement' | translate"
+          >
+            <ng-container matColumnDef="dateIssued">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'checkingAccounts.columns.date' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let entry">{{ entry.dateIssued | localizedDate }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="publicId">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'checkingAccounts.columns.publicId' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let entry">{{ entry.publicId }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="description">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'checkingAccounts.columns.description' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let entry">
+                <!--
+                  Una fila que no salió de una operación tiene que decirlo. Un ajuste de $500 sin
+                  comprobante y sin etiqueta se lee como una venta, que es justo lo que no es.
+                -->
+                @if (entry.entryType === 'EXTENSION') {
+                  <span class="detail__tag">
+                    {{ 'checkingAccounts.detail.extensionBadge' | translate }}
+                  </span>
+                } @else if (entry.entryType === 'NOTICE') {
+                  <span class="detail__tag">
+                    {{ 'checkingAccounts.detail.noticeBadge' | translate }}
+                  </span>
+                } @else if (entry.entryType === 'POLICY') {
+                  <span class="detail__tag">
+                    {{ 'checkingAccounts.detail.policyBadge' | translate }}
+                  </span>
+                } @else if (entry.entryType === 'CREDIT_VOID' || entry.entryType === 'DEBT_VOID') {
+                  <span class="detail__tag detail__tag--void">
+                    {{ 'checkingAccounts.detail.voidBadge' | translate }}
+                  </span>
+                } @else if (entry.entryType === 'ALLOCATION') {
+                  <span class="detail__tag">
+                    {{ 'checkingAccounts.detail.allocationBadge' | translate }}
+                  </span>
+                } @else if (entry.entryType === 'REVERSAL') {
+                  <span class="detail__tag">
+                    {{ 'checkingAccounts.detail.reversalBadge' | translate }}
+                  </span>
+                } @else if (entry.origin === 'ADJUSTMENT') {
+                  <span class="detail__tag">
+                    {{ 'checkingAccounts.origins.ADJUSTMENT' | translate }}
+                  </span>
+                }
+                {{ entry.description }}
+                <!--
+                  La partida anulada conserva su importe en su fecha; lo que la revierte es su propia
+                  fila, más abajo. El chip avisa acá que esa fila existe —si no, la partida se lee
+                  como vigente— y sobra justamente en la fila de la anulación, que ya lo dice.
+                -->
+                @if (entry.dateVoided && entry.entryType !== 'CREDIT_VOID' && entry.entryType !== 'DEBT_VOID') {
+                  <span class="detail__voided">
+                    {{ 'checkingAccounts.detail.voided' | translate }}
+                  </span>
+                }
+                <!--
+                  La prórroga no mueve el saldo, así que su columna de importe queda vacía: lo que
+                  esta fila cambió son las fechas, y son las que hay que mostrar.
+                -->
+                @if (entry.entryType === 'EXTENSION') {
+                  <span class="detail__entry-note">
+                    {{
+                      'checkingAccounts.detail.extensionRange'
+                        | translate
+                          : {
+                              from: entry.previousDateDue | localizedDate: 'mediumDate',
+                              to: entry.dateDue | localizedDate: 'mediumDate',
+                            }
+                    }}
+                  </span>
+                }
+                <!--
+                  El aviso dice a qué dirección salió: «te avisamos» sólo es un dato cuando se puede
+                  contestar cuándo y a dónde.
+                -->
+                @if (entry.entryType === 'NOTICE' && entry.state) {
+                  <span class="detail__entry-note">
+                    {{ 'checkingAccounts.detail.noticeSentTo' | translate: { to: entry.state } }}
+                  </span>
+                }
+                <!--
+                  El cambio de política no mueve el saldo: lo que cambió es qué parámetro, y de qué
+                  valor a cuál. El backend manda el parámetro en `origin` y los dos valores en
+                  `state` y `previousState`, igual que el evento de morosidad.
+                -->
+                @if (entry.entryType === 'POLICY') {
+                  <span class="detail__entry-note">
+                    {{ 'checkingAccounts.policyParameters.' + entry.origin | translate }}:
+                    {{ policyValueLabel(entry.previousState) }} → {{ policyValueLabel(entry.state) }}
+                  </span>
+                }
+                <!--
+                  La fila que faltaba: a qué deuda se aplicó este cobro y por cuánto. En `origin` va
+                  el **modo** y no la causa —la causa de una imputación es siempre `MANUAL` y no
+                  informa nada; lo que se pregunta es si lo decidió el FIFO o una persona—.
+                -->
+                @if (entry.entryType === 'ALLOCATION') {
+                  <span class="detail__entry-note">
+                    {{ 'checkingAccounts.allocationModes.' + entry.origin | translate }} ·
+                    {{
+                      'checkingAccounts.detail.allocationApplied'
+                        | translate: { amount: formatAmount(entry.amount), debt: entry.state }
+                    }}
+                  </span>
+                }
+                <!--
+                  Las cuatro desimputaciones que deja una anulación comparten recibo, causa e
+                  instante: lo único que las distingue —y lo único que se pregunta— es a qué deuda le
+                  devolvió cuánto. El backend manda la causa en `origin` y la deuda en `state`.
+                -->
+                @if (entry.entryType === 'REVERSAL') {
+                  <span class="detail__entry-note">
+                    {{ 'checkingAccounts.causes.' + entry.origin | translate }} ·
+                    {{
+                      'checkingAccounts.detail.reversalFreed'
+                        | translate: { amount: formatAmount(entry.amount), debt: entry.state }
+                    }}
+                  </span>
+                }
+                @if (entry.userName) {
+                  <span class="detail__entry-note">
+                    {{ 'checkingAccounts.detail.byUser' | translate: { user: entry.userName } }}
+                  </span>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="amount">
+              <th mat-header-cell *matHeaderCellDef class="numeric-header">
+                {{ 'checkingAccounts.columns.movement' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let entry" class="numeric-cell">
+                <!--
+                  Las filas que no son partidas —morosidad, prórroga— no mueven el saldo, y su
+                  importe viene nulo: un «$ 0,00» ahí se leería como un movimiento de cero pesos.
+                  Imputar y desimputar sí traen importe, pero tampoco mueven el saldo —redistribuyen
+                  lo que ya entró—, así que va en su nota y no en esta columna, por lo mismo.
+                -->
+                @if (
+                  entry.entryType !== 'ALLOCATION' &&
+                  entry.entryType !== 'REVERSAL' &&
+                  entry.amount !== null
+                ) {
+                  <app-currency-display
+                    [value]="entry.signedAmount"
+                    [tone]="entry.signedAmount < 0 ? 'positive' : 'neutral'"
+                  />
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="runningBalance">
+              <th mat-header-cell *matHeaderCellDef class="numeric-header">
+                {{ 'checkingAccounts.columns.runningBalance' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let entry" class="numeric-cell">
+                <app-currency-display [value]="entry.runningBalance" />
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="statementColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: statementColumns"></tr>
+
+            <!--
+              Una cuenta sin movimientos no es una tabla en blanco: es una cuenta a la que todavía no
+              se le fió nada, y conviene que lo diga.
+            -->
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell detail__empty" [attr.colspan]="statementColumns.length">
+                @if (!statement.loading()) {
+                  <p class="detail__empty-title">
+                    {{ 'checkingAccounts.detail.emptyStatement' | translate }}
+                  </p>
+                  <p class="detail__empty-hint">
+                    {{ 'checkingAccounts.detail.emptyStatementHint' | translate }}
+                  </p>
+                }
+              </td>
+            </tr>
+          </table>
+
+          <mat-paginator
+            tableWrapperFooter
+            [length]="statement.totalCount()"
+            [pageIndex]="statement.pageIndex()"
+            [pageSize]="statement.pageSize()"
+            [pageSizeOptions]="statement.defaultPageSizeOptions"
+            [disabled]="statement.loading()"
+            (page)="onStatementPage($event)"
+            showFirstLastButtons
+          />
+        </app-table-wrapper>
+
+        <!--
+          El acumulado se calcula sobre el extracto entero y no sobre la página. Decirlo es la forma
+          de que alguien detecte que se rompió: si la última fila no cierra en el saldo, algo pasó.
+        -->
+        <p class="detail__ledger-note">
+          {{ 'checkingAccounts.detail.runningBalanceNote' | translate }}
+        </p>
+      </mat-tab>
+
+      <mat-tab [label]="'checkingAccounts.detail.tabs.debts' | translate">
+        <!--
+          Sin tocar los chips vienen las tres abiertas: pagada y anulada ya no son deuda, y arrancar
+          mostrándolas escondería lo único que hay que mirar. Vencida absorbe a parcial — con
+          pendiente y el vencimiento atrás, se informa vencida sin importar si alguien pagó algo.
+        -->
+        <div class="detail__ledger-filters">
+          @for (state of allDebtStates; track state) {
+            <mat-checkbox
+              [checked]="isDebtStateOn(state)"
+              (change)="onToggleDebtState(state, $event.checked)"
+              [disabled]="debts.loading()"
+            >
+              {{ 'checkingAccounts.states.' + state | translate }}
+            </mat-checkbox>
+          }
+        </div>
+        <p class="detail__ledger-note">
+          {{ 'checkingAccounts.detail.debtsOrderNote' | translate }}
+        </p>
+
+        <app-table-wrapper
+          [loading]="debts.loading()"
+          [loadingAriaLabel]="'checkingAccounts.detail.loading' | translate"
+          maxHeight="30rem"
+        >
+          <table
+            mat-table
+            [dataSource]="debts.items()"
+            [attr.aria-label]="'checkingAccounts.detail.tabs.debts' | translate"
+          >
+            <ng-container matColumnDef="publicId">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'checkingAccounts.columns.publicId' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let debt">{{ debt.publicId }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="dateIssued">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'checkingAccounts.columns.dateIssued' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let debt">{{ debt.dateIssued | localizedDate }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="dateDue">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'checkingAccounts.columns.dateDue' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let debt">
+                {{ debt.dateDue | localizedDate }}
+                <!--
+                  La deuda prorrogada muestra el vencimiento original al lado del nuevo: sin eso la
+                  mora se lee como si siempre hubiera vencido más tarde.
+                -->
+                @if (debt.dateDueOriginal && debt.dateDueOriginal !== debt.dateDue) {
+                  <span class="detail__extended">
+                    {{
+                      'checkingAccounts.debts.extendedFrom'
+                        | translate: { date: (debt.dateDueOriginal | localizedDate: 'shortDate') }
+                    }}
+                  </span>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="state">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'checkingAccounts.columns.state' | translate }}
+              </th>
+              <!--
+                El estado llega calculado del backend. La pantalla lo pinta y no lo deriva: una
+                deuda vence sola al pasar la fecha, y el reloj que decide es el del servidor.
+              -->
+              <td mat-cell *matCellDef="let debt">
+                <app-debt-state-chip [state]="debt.state" />
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="amount">
+              <th mat-header-cell *matHeaderCellDef class="numeric-header">
+                {{ 'checkingAccounts.columns.amount' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let debt" class="numeric-cell">
+                <app-currency-display [value]="debt.amount" />
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="pendingAmount">
+              <th mat-header-cell *matHeaderCellDef class="numeric-header">
+                {{ 'checkingAccounts.columns.pendingAmount' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let debt" class="numeric-cell">
+                <app-currency-display [value]="debt.pendingAmount" />
+              </td>
+            </ng-container>
+
+            <!--
+              La historia de la deuda es tambien el punto desde donde se desimputa y se reimputa: son
+              operaciones sobre UNA imputacion, y este es el unico lugar donde se ven de a una.
+            -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef aria-hidden="true"></th>
+              <td mat-cell *matCellDef="let debt">
+                <!--
+                  Prorrogar sólo tiene sentido sobre una deuda viva: a una pagada o anulada no le
+                  queda vencimiento que correr, y el backend la rechaza.
+                -->
+                @if (canAdjust && debt.state !== 'PAGADA' && debt.state !== 'ANULADA') {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [matTooltip]="'checkingAccounts.actions.extend' | translate"
+                    [attr.aria-label]="'checkingAccounts.actions.extend' | translate"
+                    (click)="onExtendDebt(debt)"
+                  >
+                    <mat-icon>event_repeat</mat-icon>
+                  </button>
+                }
+                <button
+                  mat-icon-button
+                  type="button"
+                  [matTooltip]="'checkingAccounts.actions.history' | translate"
+                  [attr.aria-label]="'checkingAccounts.actions.history' | translate"
+                  (click)="onDebtHistory(debt)"
+                >
+                  <mat-icon>history</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="debtColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: debtColumns"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell detail__empty" [attr.colspan]="debtColumns.length">
+                @if (!debts.loading()) {
+                  <p class="detail__empty-title">
+                    {{ 'checkingAccounts.detail.emptyDebts' | translate }}
+                  </p>
+                }
+              </td>
+            </tr>
+          </table>
+
+          <mat-paginator
+            tableWrapperFooter
+            [length]="debts.totalCount()"
+            [pageIndex]="debts.pageIndex()"
+            [pageSize]="debts.pageSize()"
+            [pageSizeOptions]="debts.defaultPageSizeOptions"
+            [disabled]="debts.loading()"
+            (page)="onDebtsPage($event)"
+            showFirstLastButtons
+          />
+        </app-table-wrapper>
+      </mat-tab>
+
+      <mat-tab [label]="'checkingAccounts.detail.tabs.credits' | translate">
+        <!--
+          Sin tocar las casillas vienen los dos de la bandeja: imputado y anulado ya no tienen nada
+          para hacer, y arrancar mostrándolos escondería el trabajo pendiente entre cobros cerrados.
+          Tildando los otros dos la pestaña contesta la pregunta de después: este cobro, ¿dónde
+          terminó?
+        -->
+        <div class="detail__ledger-filters">
+          @for (state of allCreditStates; track state) {
+            <mat-checkbox
+              [checked]="isCreditStateOn(state)"
+              (change)="onToggleCreditState(state, $event.checked)"
+              [disabled]="credits.loading()"
+            >
+              {{ 'checkingAccounts.creditStates.' + state | translate }}
+            </mat-checkbox>
+          }
+        </div>
+        <p class="detail__ledger-note">
+          {{ 'checkingAccounts.detail.creditsOrderNote' | translate }}
+        </p>
+
+        <app-table-wrapper
+          [loading]="credits.loading()"
+          [loadingAriaLabel]="'checkingAccounts.detail.loading' | translate"
+          maxHeight="30rem"
+        >
+          <table
+            mat-table
+            [dataSource]="credits.items()"
+            [attr.aria-label]="'checkingAccounts.detail.tabs.credits' | translate"
+          >
+            <ng-container matColumnDef="dateIssued">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'checkingAccounts.columns.date' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let credit">{{ credit.dateIssued | localizedDate }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="description">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'checkingAccounts.columns.description' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let credit">
+                {{ credit.publicId ?? credit.description }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="origin">
+              <th mat-header-cell *matHeaderCellDef>
+                {{ 'checkingAccounts.columns.origin' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let credit">
+                {{ 'checkingAccounts.creditOrigins.' + credit.origin | translate }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="amount">
+              <th mat-header-cell *matHeaderCellDef class="numeric-header">
+                {{ 'checkingAccounts.columns.amount' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let credit" class="numeric-cell">
+                <app-currency-display [value]="credit.amount" />
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="unallocatedAmount">
+              <th mat-header-cell *matHeaderCellDef class="numeric-header">
+                {{ 'checkingAccounts.columns.unallocatedAmount' | translate }}
+              </th>
+              <td mat-cell *matCellDef="let credit" class="numeric-cell">
+                <app-currency-display [value]="credit.unallocatedAmount" tone="positive" />
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef aria-hidden="true"></th>
+              <td mat-cell *matCellDef="let credit">
+                <button mat-stroked-button type="button" (click)="onAllocate(credit)">
+                  <mat-icon aria-hidden="true">rule</mat-icon>
+                  {{ 'checkingAccounts.actions.allocate' | translate }}
+                </button>
+                <!--
+                  A qué deudas se aplicó lo que ya no está sin imputar. La columna dice cuánto queda;
+                  esto dice dónde fue lo demás, que es la primera pregunta ante un cobro parcial.
+                -->
+                <button
+                  mat-icon-button
+                  type="button"
+                  [attr.aria-label]="'checkingAccounts.actions.viewAllocations' | translate"
+                  [matTooltip]="'checkingAccounts.actions.viewAllocations' | translate"
+                  (click)="onCreditAllocations(credit)"
+                >
+                  <mat-icon aria-hidden="true">history</mat-icon>
+                </button>
+                @if (canVoid) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [attr.aria-label]="'checkingAccounts.actions.void' | translate"
+                    [matTooltip]="'checkingAccounts.actions.void' | translate"
+                    (click)="onVoidCredit(credit)"
+                  >
+                    <mat-icon aria-hidden="true">block</mat-icon>
+                  </button>
+                }
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="creditColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: creditColumns"></tr>
+
+            <!--
+              La bandeja vacia es el caso NORMAL: con la imputacion automatica encendida casi todo
+              entra ya aplicado. Decirlo evita que un vacio se lea como si algo estuviera roto.
+            -->
+            <tr class="mat-row" *matNoDataRow>
+              <td class="mat-cell detail__empty" [attr.colspan]="creditColumns.length">
+                @if (!credits.loading()) {
+                  <p class="detail__empty-title">
+                    {{ 'checkingAccounts.detail.emptyUnallocated' | translate }}
+                  </p>
+                  <p class="detail__empty-hint">
+                    {{ 'checkingAccounts.detail.emptyUnallocatedHint' | translate }}
+                  </p>
+                }
+              </td>
+            </tr>
+          </table>
+
+          <mat-paginator
+            tableWrapperFooter
+            [length]="credits.totalCount()"
+            [pageIndex]="credits.pageIndex()"
+            [pageSize]="credits.pageSize()"
+            [pageSizeOptions]="credits.defaultPageSizeOptions"
+            [disabled]="credits.loading()"
+            (page)="onUnallocatedPage($event)"
+            showFirstLastButtons
+          />
+        </app-table-wrapper>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</app-load-state>

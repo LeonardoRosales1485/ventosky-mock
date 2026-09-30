@@ -1,0 +1,22 @@
+<nav class="crumb" [attr.aria-label]="'breadcrumb.aria' | translate">
+  <ol class="crumb__list">
+    @if (branchName(); as branch) {
+      <li class="crumb__item crumb__item--root">{{ branch }}</li>
+    }
+    @for (item of trail(); track $index) {
+      @let text = item.label ?? (item.labelKey ?? '' | translate);
+
+      <li class="crumb__item">
+        @if (!$first || branchName()) {
+          <mat-icon class="crumb__sep" aria-hidden="true">chevron_right</mat-icon>
+        }
+
+        @if ($last || !item.link) {
+          <span class="crumb__current" [attr.aria-current]="$last ? 'page' : null">{{ text }}</span>
+        } @else {
+          <a class="crumb__link" [routerLink]="item.link">{{ text }}</a>
+        }
+      </li>
+    }
+  </ol>
+</nav>

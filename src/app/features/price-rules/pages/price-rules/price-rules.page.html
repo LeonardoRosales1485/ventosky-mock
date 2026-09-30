@@ -1,0 +1,129 @@
+<app-page-header
+  [title]="'priceRules.title' | translate"
+  [description]="'priceRules.description' | translate"
+>
+  @if (canCreate) {
+    <button mat-flat-button type="button" color="primary" (click)="onCreate()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      {{ 'priceRules.actions.create' | translate }}
+    </button>
+  }
+</app-page-header>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'priceRules.loading' | translate"
+  maxHeight="32rem"
+>
+  <app-table-toolbar
+    tableWrapperHeader
+    [search]="searchQuery()"
+    [activeFilters]="activeFilters()"
+    [searchPlaceholder]="'priceRules.searchPlaceholder' | translate"
+    (searchChange)="searchQuery.set($event)"
+    (refresh)="onRefresh()"
+    (clearFilters)="onClearFilters()"
+  />
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    class="w-full"
+    [attr.aria-label]="'priceRules.tableAria' | translate"
+  >
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'priceRules.columns.name' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let rule">{{ rule.name }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="ruleType">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'priceRules.columns.ruleType' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let rule">
+        <span [matTooltip]="'priceRules.typeHints.' + rule.ruleType | translate">
+          {{ ruleTypeLabel(rule.ruleType) }}
+        </span>
+      </td>
+    </ng-container>
+
+    <!-- Con qué criterio cierra el precio. Es de la regla, no de la sucursal: dos filas de este
+         mismo listado pueden redondear distinto. -->
+    <ng-container matColumnDef="rounding">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'priceRules.columns.rounding' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let rule">{{ roundingLabel(rule) }}</td>
+    </ng-container>
+
+    <!-- El alcance de la regla: qué lista recalcula, en qué sucursal y con qué porcentaje. -->
+    <ng-container matColumnDef="scope">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'priceRules.columns.scope' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let rule">
+        @let rows = priceListRows(rule);
+
+        @if (rows.length === 0) {
+          <span
+            class="price-rules__muted"
+            [matTooltip]="'priceRules.hints.noPriceLists' | translate"
+          >
+            {{ 'priceRules.noPriceLists' | translate }}
+          </span>
+        } @else {
+          <span class="price-rules__chips">
+            @for (row of rows; track row.uuid ?? $index) {
+              <span class="price-rules__chip">{{ describeRow(row) }}</span>
+            }
+          </span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'priceRules.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let rule" class="actions-cell">
+        <app-row-actions
+          [actions]="rowActions()"
+          [ariaLabel]="'priceRules.actions.rowAria' | translate"
+          (actionClick)="onRowAction($event, rule)"
+        />
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="displayedColumns.length"
+      >
+        @if (!paginator.loading()) {
+          {{ 'priceRules.empty' | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'priceRules.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

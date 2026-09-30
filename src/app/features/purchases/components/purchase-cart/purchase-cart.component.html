@@ -1,0 +1,480 @@
+<div class="cart__scroll">
+  <table
+    mat-table
+    multiTemplateDataRows
+    [dataSource]="lines()"
+    [trackBy]="trackByProduct"
+    [attr.aria-label]="'purchases.cart.tableAria' | translate"
+  >
+    <ng-container matColumnDef="product">
+      <th mat-header-cell *matHeaderCellDef>{{ 'purchases.cart.columns.product' | translate }}</th>
+      <td mat-cell *matCellDef="let line">
+        <div class="cart__product">
+          <!-- El catálogo todavía no trae imagen: la miniatura es un lugar reservado, no un dato. -->
+          <span class="cart__thumb" aria-hidden="true">
+            <mat-icon>inventory_2</mat-icon>
+          </span>
+
+          <div class="cart__product-body">
+            <span class="cart__product-name">{{ line.product.name }}</span>
+
+            <span class="cart__tags">
+              @if (line.product.sku) {
+                <span class="cart__tag">
+                  {{ 'purchases.search.sku' | translate: { sku: line.product.sku } }}
+                </span>
+              }
+
+              <!--
+                El stock actual se informa como referencia —cuánto hay antes de que entre lo que se
+                está comprando—, nunca como advertencia: una compra suma, así que nada de acá traba.
+              -->
+              @if (line.product.totalStock !== null && line.product.totalStock !== undefined) {
+                <span class="cart__tag cart__tag--stock">
+                  {{
+                    'purchases.cart.currentStock' | translate: { stock: line.product.totalStock }
+                  }}
+                </span>
+              }
+
+              @if (line.missingCost) {
+                <span class="cart__tag cart__tag--error">
+                  <mat-icon aria-hidden="true">price_change</mat-icon>
+                  {{ 'purchases.cart.missingCost' | translate }}
+                </span>
+              }
+
+              <!-- El eje del producto, en la línea: es lo que explica la fila de partidas de abajo. -->
+              @if (line.requiresBatches) {
+                <span class="cart__tag cart__tag--batch">
+                  <mat-icon aria-hidden="true">layers</mat-icon>
+                  {{
+                    (expirationRequired(line)
+                      ? 'purchases.cart.batches.tagRequired'
+                      : 'purchases.cart.batches.tag'
+                    ) | translate
+                  }}
+                </span>
+              }
+
+              @if (line.requiresSerials) {
+                <span class="cart__tag cart__tag--serial">
+                  <mat-icon aria-hidden="true">qr_code_2</mat-icon>
+                  {{ 'purchases.cart.serials.tag' | translate }}
+                </span>
+              }
+
+              <!--
+                La conversión a unidad base viaja como tag del producto, junto al SKU y al stock: es
+                lo que evita que el número de la fila se lea como unidades cuando son cajas (RN-16).
+              -->
+              @if (equivalence(line); as text) {
+                <span class="cart__tag cart__tag--equivalence">{{ text }}</span>
+              }
+            </span>
+          </div>
+        </div>
+      </td>
+    </ng-container>
+
+    <!--
+      El empaque con el que se carga la línea, en columna propia (wireframe 1o): comprar por bulto y
+      vender por unidad es el caso que resuelve. Se elige «Caja x 21», el input de cantidad pasa a
+      contar cajas y la equivalencia en unidad base va como tag del producto. Sin empaques declarados
+      la celda dice en qué unidad se carga, apagada: no hay nada que elegir.
+    -->
+    <ng-container matColumnDef="packaging">
+      <th mat-header-cell *matHeaderCellDef>{{ 'purchases.cart.columns.packaging' | translate }}</th>
+      <td mat-cell *matCellDef="let line">
+        @if (packagingOptions(line).length > 0) {
+          <mat-select
+            class="cart__packaging-select"
+            [value]="line.packaging?.uuid ?? null"
+            [attr.aria-label]="
+              'purchases.cart.packaging.selectAria' | translate: { name: line.product.name }
+            "
+            (selectionChange)="onPackagingChange(line, packagingByUuid(line, $event.value))"
+          >
+            <mat-option [value]="null">
+              {{ 'purchases.cart.packaging.loose' | translate: { unit: unitName(line) } }}
+            </mat-option>
+            @for (option of packagingOptions(line); track option.uuid) {
+              <mat-option [value]="option.uuid">{{ option.name }}</mat-option>
+            }
+          </mat-select>
+        } @else {
+          <span class="cart__packaging-none">{{ looseLabel(line) }}</span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="quantity">
+      <th mat-header-cell *matHeaderCellDef class="cart__center">
+        {{ 'purchases.cart.columns.quantity' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let line">
+        <div class="cart__quantity">
+          <button
+            mat-icon-button
+            type="button"
+            [disabled]="!canDecrease(line)"
+            [attr.aria-label]="'purchases.cart.decrease' | translate: { name: line.product.name }"
+            (click)="onDecrease(line)"
+          >
+            <mat-icon aria-hidden="true">remove</mat-icon>
+          </button>
+
+          <!--
+            `min` y `step` los declara la unidad del producto: con `step="1"` fijo el navegador
+            marcaría como inválido el 1,5 de un producto que se compra por kilo.
+          -->
+          <input
+            type="number"
+            class="cart__quantity-input"
+            [attr.min]="min(line)"
+            [attr.step]="step(line)"
+            [value]="displayedQuantity(line)"
+            [attr.aria-label]="
+              line.packaging
+                ? ('purchases.cart.packaging.quantityAria'
+                  | translate: { name: line.product.name, packaging: line.packaging.name })
+                : ('purchases.cart.quantityAria' | translate: { name: line.product.name })
+            "
+            (change)="onQuantityInput(line, $any($event.target).value)"
+          />
+
+          <button
+            mat-icon-button
+            type="button"
+            [attr.aria-label]="'purchases.cart.increase' | translate: { name: line.product.name }"
+            (click)="onIncrease(line)"
+          >
+            <mat-icon aria-hidden="true">add</mat-icon>
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <!--
+      El costo lo escribe el operador: es el `unitPrice` que viaja en la línea del commit y con el
+      que el backend recalcula el costo del producto y arrastra sus precios de venta.
+    -->
+    <ng-container matColumnDef="unitCost">
+      <th mat-header-cell *matHeaderCellDef class="cart__numeric">
+        {{ 'purchases.cart.columns.unitCost' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let line" class="cart__numeric">
+        <div class="cart__cost" [class.cart__cost--missing]="line.missingCost">
+          <span class="cart__cost-prefix" aria-hidden="true">$</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            autocomplete="off"
+            class="cart__cost-input"
+            [value]="line.unitCost"
+            [attr.aria-label]="
+              'purchases.cart.unitCostAria' | translate: { name: line.product.name }
+            "
+            (input)="onUnitCostInput(line, $any($event.target).value)"
+          />
+        </div>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="taxRate">
+      <th mat-header-cell *matHeaderCellDef class="cart__numeric">
+        {{ 'purchases.cart.columns.taxRate' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let line" class="cart__numeric">{{ line.taxRate }}%</td>
+    </ng-container>
+
+    <ng-container matColumnDef="subtotal">
+      <th mat-header-cell *matHeaderCellDef class="cart__numeric">
+        {{ 'purchases.cart.columns.subtotal' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let line" class="cart__numeric cart__subtotal">
+        <app-currency-display
+          [value]="line.amounts?.subtotal ?? null"
+          [emptyLabel]="'purchases.cart.noCostShort' | translate"
+        />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="cart__actions-cell">
+        <span class="sr-only">{{ 'purchases.cart.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let line" class="cart__actions-cell">
+        <button
+          mat-icon-button
+          type="button"
+          [matTooltip]="'purchases.cart.remove' | translate"
+          [attr.aria-label]="'purchases.cart.removeAria' | translate: { name: line.product.name }"
+          (click)="lineRemove.emit(line.product.uuid)"
+        >
+          <mat-icon aria-hidden="true">delete_outline</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <!--
+      El reparto en partidas de la línea (§7.2). Es una fila propia debajo de la línea y no un
+      diálogo: es como llega el remito —dos lotes en un renglón— y el contador «X de Y repartidas»
+      es la validación, visible antes de confirmar.
+    -->
+    <ng-container matColumnDef="batches">
+      <td mat-cell *matCellDef="let line" class="cart__batches-cell" [attr.colspan]="displayedColumns.length">
+        <div class="cart__batches" role="group" [attr.aria-label]="'purchases.cart.batches.title' | translate: { name: line.product.name }">
+          <div class="cart__batches-head">
+            <span class="cart__batches-title">{{ 'purchases.cart.batches.title' | translate: { name: line.product.name } }}</span>
+            <span
+              class="cart__tag"
+              [class.cart__tag--ok]="line.batchIssue === null"
+              [class.cart__tag--error]="line.batchIssue !== null"
+              role="status"
+            >
+              @switch (line.batchIssue) {
+                @case ('MISSING_NUMBER') {
+                  {{ 'purchases.cart.batches.missingNumber' | translate }}
+                }
+                @case ('MISSING_EXPIRATION') {
+                  {{ 'purchases.cart.batches.missingExpiration' | translate }}
+                }
+                @default {
+                  {{
+                    'purchases.cart.batches.allocated'
+                      | translate: { allocated: line.allocatedQuantity, total: line.quantity }
+                  }}
+                }
+              }
+            </span>
+          </div>
+
+          @if (line.batches.length > 0) {
+            <table class="cart__batches-table">
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'purchases.cart.batches.columns.number' | translate }}</th>
+                  @if (showsExpiration(line)) {
+                    <th scope="col">
+                      {{
+                        (expirationRequired(line)
+                          ? 'purchases.cart.batches.columns.expirationRequired'
+                          : 'purchases.cart.batches.columns.expiration'
+                        ) | translate
+                      }}
+                    </th>
+                  }
+                  @if (line.packaging; as packaging) {
+                    <th scope="col" class="cart__numeric">{{ packaging.name }}</th>
+                  }
+                  <th scope="col" class="cart__numeric">{{ 'purchases.cart.batches.columns.quantity' | translate }}</th>
+                  <th scope="col"><span class="sr-only">{{ 'purchases.cart.columns.actions' | translate }}</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (batch of line.batches; track batch.key) {
+                  <tr>
+                    <td>
+                      <input
+                        type="text"
+                        class="cart__batch-input"
+                        autocomplete="off"
+                        [value]="batch.batchNumber"
+                        [attr.placeholder]="'purchases.cart.batches.numberPlaceholder' | translate"
+                        [attr.aria-label]="'purchases.cart.batches.numberAria' | translate: { name: line.product.name }"
+                        [attr.aria-invalid]="!batch.batchNumber.trim()"
+                        (input)="onBatchNumberInput(line, batch.key, $any($event.target).value)"
+                      />
+                    </td>
+                    @if (showsExpiration(line)) {
+                      <td>
+                        <input
+                          type="date"
+                          class="cart__batch-input"
+                          [value]="batch.expirationDate ?? ''"
+                          [required]="expirationRequired(line)"
+                          [attr.aria-label]="'purchases.cart.batches.expirationAria' | translate: { name: line.product.name }"
+                          [attr.aria-invalid]="expirationRequired(line) && !batch.expirationDate"
+                          (input)="onBatchExpirationInput(line, batch.key, $any($event.target).value)"
+                        />
+                      </td>
+                    }
+                    @if (line.packaging; as packaging) {
+                      <!--
+                        Con la línea en bultos la partida se carga en bultos —es como viene el
+                        remito— y al lado se ve a cuántas unidades base equivale, que es lo que
+                        tiene que cuadrar. Lo que se guarda sigue siendo unidad base (RN-16).
+                      -->
+                      <td class="cart__numeric">
+                        <input
+                          type="number"
+                          class="cart__batch-input cart__batch-input--qty"
+                          min="0"
+                          step="any"
+                          [value]="batchPackageQuantity(line, batch)"
+                          [attr.aria-label]="
+                            'purchases.cart.batches.packageQuantityAria'
+                              | translate: { packaging: packaging.name, name: line.product.name }
+                          "
+                          (input)="onBatchPackageQuantityInput(line, batch.key, $any($event.target).value)"
+                        />
+                      </td>
+                      <td class="cart__numeric cart__batch-units">{{ batch.quantity ?? 0 }}</td>
+                    } @else {
+                      <td class="cart__numeric">
+                        <input
+                          type="number"
+                          class="cart__batch-input cart__batch-input--qty"
+                          [attr.min]="min(line)"
+                          [attr.step]="step(line)"
+                          [value]="batch.quantity"
+                          [attr.aria-label]="'purchases.cart.batches.quantityAria' | translate: { name: line.product.name }"
+                          (input)="onBatchQuantityInput(line, batch.key, $any($event.target).value)"
+                        />
+                      </td>
+                    }
+                    <td class="cart__actions-cell">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [attr.aria-label]="'purchases.cart.batches.remove' | translate"
+                        [matTooltip]="'purchases.cart.batches.remove' | translate"
+                        (click)="onBatchRemove(line, batch.key)"
+                      >
+                        <mat-icon aria-hidden="true">close</mat-icon>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+          <button mat-button type="button" class="cart__batches-add" (click)="onAddBatch(line)">
+            <mat-icon aria-hidden="true">add</mat-icon>
+            {{ 'purchases.cart.batches.add' | translate }}
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <!--
+      Las series de la línea. Pegado masivo a la izquierda —una por renglón, que es como llega el
+      remito y como las deja el lector— y los chips reconocidos a la derecha, para poder sacar una
+      sin buscarla en el texto.
+    -->
+    <ng-container matColumnDef="serials">
+      <td mat-cell *matCellDef="let line" class="cart__batches-cell" [attr.colspan]="displayedColumns.length">
+        <div
+          class="cart__serials"
+          role="group"
+          [attr.aria-label]="'purchases.cart.serials.title' | translate: { name: line.product.name }"
+        >
+          <div class="cart__serials-input">
+            <div class="cart__batches-head">
+              <span class="cart__batches-title">
+                {{ 'purchases.cart.serials.title' | translate: { name: line.product.name } }}
+              </span>
+              <span
+                class="cart__tag"
+                [class.cart__tag--ok]="line.serialIssue === null"
+                [class.cart__tag--error]="line.serialIssue !== null"
+                role="status"
+              >
+                @if (line.serialIssue === 'DUPLICATED') {
+                  {{ 'purchases.cart.serials.duplicated' | translate }}
+                } @else {
+                  {{
+                    'purchases.cart.serials.counted'
+                      | translate: { loaded: line.serials.length, total: line.quantity }
+                  }}
+                }
+              </span>
+            </div>
+            <textarea
+              class="cart__serials-textarea"
+              rows="5"
+              autocomplete="off"
+              spellcheck="false"
+              [value]="serialsText(line)"
+              [attr.placeholder]="'purchases.cart.serials.placeholder' | translate"
+              [attr.aria-label]="'purchases.cart.serials.textareaAria' | translate: { name: line.product.name }"
+              (input)="onSerialsInput(line, $any($event.target).value)"
+            ></textarea>
+            <p class="cart__serials-hint">{{ 'purchases.cart.serials.hint' | translate }}</p>
+          </div>
+
+          <div class="cart__serials-side">
+            <span class="cart__batches-title">{{ 'purchases.cart.serials.recognized' | translate }}</span>
+            @if (line.serials.length === 0) {
+              <p class="cart__serials-empty">{{ 'purchases.cart.serials.empty' | translate }}</p>
+            } @else {
+              <ul class="cart__serial-chips">
+                @for (serial of line.serials; track serial) {
+                  <li class="cart__serial-chip">
+                    <span>{{ serial }}</span>
+                    <button
+                      type="button"
+                      class="cart__serial-chip-remove"
+                      [attr.aria-label]="'purchases.cart.serials.removeAria' | translate: { serial: serial }"
+                      (click)="onRemoveSerial(line, serial)"
+                    >
+                      ×
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+            <!--
+              La cantidad no es un campo aparte que haya que mantener igual: la línea vale lo que
+              vale la lista (RN-17), y decirlo evita que alguien busque el input para «arreglarla».
+            -->
+            <p class="cart__serials-note">{{ 'purchases.cart.serials.quantityNote' | translate }}</p>
+          </div>
+        </div>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr
+      mat-row
+      *matRowDef="let row; columns: displayedColumns"
+      [class.cart__row--blocked]="row.missingCost || row.batchIssue !== null || row.serialIssue !== null"
+      [class.cart__row--has-batches]="row.requiresBatches || row.requiresSerials"
+    ></tr>
+    <tr
+      mat-row
+      *matRowDef="let row; columns: batchRowColumns; when: hasBatchRow"
+      class="cart__batches-row"
+      [class.cart__row--blocked]="row.batchIssue !== null"
+    ></tr>
+    <tr
+      mat-row
+      *matRowDef="let row; columns: serialRowColumns; when: hasSerialRow"
+      class="cart__batches-row"
+      [class.cart__row--blocked]="row.serialIssue !== null"
+    ></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <!--
+        La celda se queda como celda: un `display: flex` acá la saca del layout de la tabla y deja
+        de respetar el `colspan`, así que colapsa al ancho del contenido en vez de ocupar la fila.
+        El flex va adentro.
+      -->
+      <td class="cart__empty" [attr.colspan]="displayedColumns.length">
+        <div class="cart__empty-content">
+          <mat-icon aria-hidden="true">local_shipping</mat-icon>
+          <span>{{ 'purchases.cart.empty' | translate }}</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<footer class="cart__footer">
+  <span class="cart__count">
+    {{ 'purchases.cart.itemCount' | translate: { count: lines().length } }}
+  </span>
+</footer>

@@ -1,0 +1,96 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.phone-input__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/*
+  Both boxes are plain inputs rather than `matInput`: the surrounding
+  `mat-form-field` already draws the frame, the label and the error state.
+*/
+.phone-input__country,
+.phone-input__number {
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-large);
+  caret-color: var(--mat-sys-primary);
+}
+
+.phone-input__country::placeholder,
+.phone-input__number::placeholder {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.phone-input__country:disabled,
+.phone-input__number:disabled {
+  color: var(--mat-sys-on-surface);
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/*
+  Two focus stops share one form field, so its own focus ring cannot say which
+  box is active. Each box therefore carries its own indicator.
+*/
+.phone-input__country:focus-visible,
+.phone-input__number:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+:host(.phone-input--invalid) .phone-input__country:focus-visible,
+:host(.phone-input--invalid) .phone-input__number:focus-visible {
+  outline-color: var(--mat-sys-error);
+}
+
+/* Wide enough for the longest dial code (`🇺🇾 +598`) plus the caret. */
+.phone-input__country {
+  flex: 0 0 auto;
+  width: 5rem;
+  text-overflow: ellipsis;
+}
+
+.phone-input__number {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.phone-input__divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 1.25rem;
+  background: var(--mat-sys-outline-variant);
+}
+
+/* --- Country options (rendered in the autocomplete overlay) --- */
+
+.phone-input__option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.phone-input__option-flag {
+  flex: 0 0 auto;
+}
+
+.phone-input__option-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phone-input__option-code {
+  flex: 0 0 auto;
+  color: var(--mat-sys-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}

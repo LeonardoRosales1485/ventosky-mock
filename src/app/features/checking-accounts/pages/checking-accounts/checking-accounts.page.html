@@ -1,0 +1,224 @@
+<app-page-header
+  [title]="'checkingAccounts.list.title' | translate"
+  [description]="'checkingAccounts.list.description' | translate"
+>
+  @if (canConfig) {
+    <a mat-stroked-button [routerLink]="policyPath">
+      <mat-icon aria-hidden="true">tune</mat-icon>
+      {{ 'checkingAccounts.list.actions.companyPolicy' | translate }}
+    </a>
+  }
+  <a mat-flat-button color="primary" routerLink="/panel/new-collection">
+    <mat-icon aria-hidden="true">add</mat-icon>
+    {{ 'checkingAccounts.list.actions.newCollection' | translate }}
+  </a>
+</app-page-header>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'checkingAccounts.list.loading' | translate"
+  maxHeight="32rem"
+>
+  <div tableWrapperHeader class="accounts__header">
+    <app-table-toolbar
+      [search]="searchQuery()"
+      [activeFilters]="activeFilters()"
+      [searchPlaceholder]="'checkingAccounts.list.searchPlaceholder' | translate"
+      (searchChange)="searchQuery.set($event)"
+      (refresh)="onRefresh()"
+      (filtersClick)="onToggleFilters()"
+      (clearFilters)="onClearFilters()"
+    />
+
+    @if (filtersOpen()) {
+      <div
+        class="accounts__filters"
+        [attr.aria-label]="'checkingAccounts.list.filtersAria' | translate"
+      >
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'checkingAccounts.list.filters.role' | translate }}</mat-label>
+          <mat-select
+            [value]="roleFilter()"
+            (valueChange)="onRoleChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{
+              'checkingAccounts.list.filters.all' | translate
+            }}</mat-option>
+            <mat-option value="CUSTOMER">{{
+              'checkingAccounts.roles.CUSTOMER' | translate
+            }}</mat-option>
+            <mat-option value="SUPPLIER">{{
+              'checkingAccounts.roles.SUPPLIER' | translate
+            }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <!--
+          El filtro acota a lo que hay que mirar hoy. Sin ninguna cuenta vencida devuelve página
+          vacía y no el listado completo: «no hay nada vencido» es la respuesta, no un filtro roto.
+        -->
+        <mat-slide-toggle
+          class="accounts__toggle"
+          [checked]="onlyOverdue()"
+          (change)="onOnlyOverdueChange($event.checked)"
+          [disabled]="paginator.loading()"
+        >
+          {{ 'checkingAccounts.list.filters.onlyOverdue' | translate }}
+        </mat-slide-toggle>
+      </div>
+    }
+  </div>
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    [attr.aria-label]="'checkingAccounts.list.tableAria' | translate"
+  >
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'checkingAccounts.columns.party' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let account">
+        <a class="accounts__party" [routerLink]="accountLink(account)">{{ partyName(account) }}</a>
+        @if (!account.enabled) {
+          <span
+            class="accounts__disabled"
+            [matTooltip]="'checkingAccounts.list.disabledHint' | translate"
+          >
+            {{ 'checkingAccounts.list.disabled' | translate }}
+          </span>
+        }
+      </td>
+    </ng-container>
+
+    <!-- Columna propia y no un renglón bajo el nombre: es por lo que se busca a un titular. -->
+    <ng-container matColumnDef="docNumber">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'checkingAccounts.columns.document' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let account" class="accounts__doc">
+        {{ partyDocument(account) || '—' }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="role">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'checkingAccounts.columns.role' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let account">
+        @if (account.partyRole?.role; as role) {
+          {{ 'checkingAccounts.roles.' + role | translate }}
+        }
+      </td>
+    </ng-container>
+
+    <!--
+      El signo se lee distinto según el rol, pero la aritmética es una sola (§3.1): un saldo
+      negativo es siempre saldo a favor del titular, y la fila lo dice con palabras en vez de
+      dejar que el menos lo insinúe.
+    -->
+    <ng-container matColumnDef="balance">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header class="numeric-header">
+        {{ 'checkingAccounts.columns.balance' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let account" class="numeric-cell">
+        <app-currency-display [value]="account.balance" />
+        @if ((account.balance ?? 0) < 0) {
+          <span class="accounts__credit-note">
+            {{ 'checkingAccounts.list.creditBalance' | translate }}
+          </span>
+        }
+      </td>
+    </ng-container>
+
+    <!--
+      Sin `mat-sort-header`: el backend calcula el vencido después de la consulta, así que ordenar
+      por esta columna ordenaría sólo dentro de la página. Un encabezado clickeable que devuelve un
+      orden que no es el que promete es peor que uno que no se puede clickear.
+
+      El importe dice cuánto y los días dicen desde cuándo: $84.000 vencidos ayer y $84.000 vencidos
+      hace siete meses son decisiones distintas, y con un solo número se leen igual.
+    -->
+    <ng-container matColumnDef="overdueAmount">
+      <th mat-header-cell *matHeaderCellDef class="numeric-header">
+        {{ 'checkingAccounts.columns.overdueAmount' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let account" class="numeric-cell">
+        @if ((account.overdueAmount ?? 0) > 0) {
+          <app-currency-display [value]="account.overdueAmount" tone="negative" />
+          @if (account.oldestOverdueDays !== null) {
+            <span class="accounts__overdue-days">
+              {{
+                'checkingAccounts.list.overdueSince'
+                  | translate: { days: account.oldestOverdueDays }
+              }}
+            </span>
+          }
+        } @else {
+          <span class="accounts__dash" aria-hidden="true">—</span>
+        }
+      </td>
+    </ng-container>
+
+    <!--
+      El nivel lo fija una persona y **no bloquea nada**: informa en qué estado de gestión está el
+      caso. Para frenarle las ventas a un titular está deshabilitar la cuenta.
+    -->
+    <ng-container matColumnDef="delinquency">
+      <th mat-header-cell *matHeaderCellDef>
+        {{ 'checkingAccounts.columns.delinquency' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let account">
+        <app-delinquency-chip [level]="account.delinquencyLevel" />
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" [stickyEnd]="true">
+      <th mat-header-cell *matHeaderCellDef class="actions-header">
+        <span class="sr-only">{{ 'checkingAccounts.columns.actions' | translate }}</span>
+      </th>
+      <td mat-cell *matCellDef="let account" class="actions-cell">
+        <app-row-actions
+          [actions]="rowActionsFor(account)"
+          [ariaLabel]="'checkingAccounts.list.rowActionsAria' | translate"
+          (actionClick)="onRowAction($event, account)"
+        />
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="displayedColumns.length"
+      >
+        @if (!paginator.loading()) {
+          @if (onlyOverdue()) {
+            {{ 'checkingAccounts.list.emptyOverdue' | translate }}
+          } @else {
+            {{ 'checkingAccounts.list.empty' | translate }}
+          }
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'checkingAccounts.list.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

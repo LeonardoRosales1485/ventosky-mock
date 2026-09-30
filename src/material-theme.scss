@@ -1,0 +1,87 @@
+// Ventosky · Propuesta B — tema de Angular Material 22.
+//
+// `mat.theme()` define los `--mat-sys-*` y `theme-overrides` los fija a los tokens `--vk-*`
+// (src/styles/ventosky-tokens.css): así todo lo que el repo pinta con `--mat-sys-*` —que es casi
+// todo— toma la paleta nueva sin tocar cada componente. Los tokens de cada componente de Material
+// (alto de botón, radio, filas de tabla…) viven en src/styles/ventosky-material.css como variables
+// CSS planas, que Material lee con fallback al sistema.
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$violet-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: (
+        plain-family: var(--vk-font-ui),
+        brand-family: var(--vk-font-ui),
+        bold-weight: 600,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
+
+  // La paleta violeta de Material es más saturada que la propuesta: los roles del sistema se fijan
+  // con los valores exactos.
+  @include mat.theme-overrides(
+    (
+      primary: var(--vk-accent),
+      on-primary: var(--vk-on-accent),
+      primary-container: var(--vk-accent-soft),
+      on-primary-container: var(--vk-on-accent-soft),
+      inverse-primary: var(--vk-accent-soft),
+      secondary: var(--vk-fg-2),
+      on-secondary: var(--vk-surface),
+      secondary-container: var(--vk-accent-soft),
+      on-secondary-container: var(--vk-on-accent-soft),
+      tertiary: var(--vk-info),
+      tertiary-container: var(--vk-info-soft),
+      on-tertiary-container: var(--vk-info),
+      background: var(--vk-bg),
+      on-background: var(--vk-fg),
+      surface: var(--vk-surface),
+      surface-bright: var(--vk-surface),
+      surface-dim: var(--vk-sunken),
+      on-surface: var(--vk-fg),
+      on-surface-variant: var(--vk-fg-2),
+      surface-variant: var(--vk-sunken),
+      surface-container-lowest: var(--vk-surface),
+      surface-container-low: var(--vk-bg),
+      surface-container: var(--vk-sunken),
+      surface-container-high: var(--vk-sunken),
+      surface-container-highest: var(--vk-line),
+      inverse-surface: var(--vk-side),
+      inverse-on-surface: #ffffff,
+      outline: var(--vk-line-strong),
+      outline-variant: var(--vk-line),
+      error: var(--vk-bad),
+      on-error: #ffffff,
+      error-container: var(--vk-bad-soft),
+      on-error-container: var(--vk-bad),
+      corner-extra-small: 6px,
+      corner-small: var(--vk-radius-sm),
+      corner-medium: var(--vk-radius),
+      corner-large: var(--vk-radius),
+      corner-extra-large: 16px,
+      corner-full: var(--vk-radius-pill),
+    )
+  );
+}
+
+body {
+  // Lo sigue manejando ThemeService, que pisa `color-scheme` en el `<body>`.
+  color-scheme: light;
+  background-color: var(--vk-bg);
+  color: var(--vk-fg);
+  font: 400 14px/1.5 var(--vk-font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  height: 100%;
+}

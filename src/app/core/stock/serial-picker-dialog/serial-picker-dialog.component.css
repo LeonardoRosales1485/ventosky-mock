@@ -1,0 +1,99 @@
+.picker__lead {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.picker__search {
+  width: 100%;
+}
+
+.picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * La fila es la casilla. Su etiqueta —la unidad— ocupa todo el ancho y se extiende por debajo de la
+ * casilla hasta el borde, así que tocar cualquier punto de la fila la tilda, una sola vez: la casilla
+ * queda encima porque Material la posiciona, y el resto es la etiqueta. `mat-internal-form-field` es
+ * el contenedor que arma Material; no hay token para estirarlo.
+ */
+.picker__row {
+  display: block;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+}
+
+.picker__row ::ng-deep .mat-internal-form-field {
+  display: flex;
+  padding-inline-start: 0.25rem;
+}
+
+.picker__row ::ng-deep .mat-internal-form-field > label {
+  display: flex;
+  flex: 1;
+  align-self: stretch;
+  align-items: center;
+  min-width: 0;
+  margin-inline-start: calc(-0.25rem - var(--mat-checkbox-state-layer-size, 40px));
+  padding-block: 0.5rem;
+  padding-inline: calc(var(--mat-checkbox-state-layer-size, 40px) + 0.75rem) 0.75rem;
+}
+
+.picker__row--selected {
+  border-color: var(--mat-sys-primary);
+  background: var(--mat-sys-surface-container-high);
+}
+
+.picker__row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.picker__row-title {
+  font-family: var(--mat-sys-body-medium-font, monospace);
+  font-weight: 500;
+}
+
+.picker__row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.picker__row-meta > span:not(:last-child)::after {
+  content: ' ·';
+}
+
+.picker__empty {
+  margin: 0;
+  padding: 1.5rem 0;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: center;
+}
+
+.picker__actions {
+  gap: 0.5rem;
+}
+
+/* El contador a la izquierda de los botones: es la razón por la que «Confirmar» está apagado. */
+.picker__counter {
+  margin-right: auto;
+  padding-left: 0.5rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.picker__counter--error {
+  color: var(--mat-sys-error);
+  font-weight: 500;
+}

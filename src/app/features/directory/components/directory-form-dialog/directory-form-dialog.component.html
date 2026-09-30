@@ -1,0 +1,177 @@
+<form class="directory-form" (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    {{ (isEdit ? 'directory.form.editTitle.' : 'directory.form.createTitle.') + link | translate }}
+  </h2>
+
+  <mat-dialog-content>
+    <p class="directory-form__subtitle">{{ 'directory.form.subtitle.' + link | translate }}</p>
+
+    @if (errorMessage(); as message) {
+      <p class="directory-form__error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        {{ message }}
+      </p>
+    }
+
+    <div class="directory-form__columns" [class.directory-form__columns--with-links]="!isEdit">
+      <div class="directory-form__column directory-form__column--main">
+        <section class="directory-form__section" (focusout)="onDocumentBlur()">
+          <h3 class="directory-form__eyebrow">{{ 'directory.form.who' | translate }}</h3>
+
+          @if (chosenParty(); as party) {
+            <div class="directory-form__chosen">
+              <span class="directory-form__chosen-name">{{
+                party.name || model().name || ('directory.form.unnamedParty' | translate)
+              }}</span>
+              @if (chosenDocument(); as doc) {
+                <span class="directory-form__chosen-doc">{{ doc }}</span>
+              }
+              <span class="directory-form__chosen-note">{{
+                'directory.form.identityKept' | translate
+              }}</span>
+            </div>
+          } @else {
+            <app-party-identity-fields
+              [nameField]="profileForm.name"
+              [docTypeField]="profileForm.docType"
+              [docNumberField]="profileForm.docNumber"
+              [taxConditionField]="
+                definition.identity === 'fiscal' ? profileForm.taxCondition : null
+              "
+              [docTypes]="docTypes"
+              [nameLabelKey]="
+                definition.identity === 'person'
+                  ? 'directory.form.personName'
+                  : 'parties.fields.name'
+              "
+              [nameAutocomplete]="definition.identity === 'person' ? 'name' : 'organization'"
+            />
+
+            @if (!isEdit) {
+              <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+                <mat-label>{{ 'directory.form.email' | translate }}</mat-label>
+                <input
+                  matInput
+                  type="email"
+                  autocomplete="email"
+                  [formField]="profileForm.email"
+                  [attr.aria-label]="'directory.form.email' | translate"
+                />
+                <mat-hint>{{ 'directory.form.emailHint' | translate }}</mat-hint>
+                @if (profileForm.email().touched() && profileForm.email().invalid()) {
+                  <mat-error>{{ profileForm.email().errors() | fieldError }}</mat-error>
+                }
+              </mat-form-field>
+            }
+          }
+
+          @if (lookingUp()) {
+            <p class="directory-form__hint" role="status">
+              {{ 'directory.form.lookingUp' | translate }}
+            </p>
+          }
+
+          @if (!isEdit && existing(); as decision) {
+            <app-directory-existing-party
+              [link]="link"
+              [decision]="decision"
+              [accepted]="mode() !== 'create'"
+              (acceptRequested)="onAcceptExisting()"
+              (openRequested)="onOpenExisting()"
+              (resetRequested)="onResetExisting()"
+            />
+          }
+        </section>
+
+        <app-directory-profile-fields
+          [form]="profileForm"
+          [link]="link"
+          [showEmployment]="mode() !== 'addSpecialty'"
+          [branches]="catalogs.branches()"
+          [priceLists]="catalogs.priceLists()"
+        />
+
+        @if (!isEdit && mode() !== 'addSpecialty' && profileForm.attributes().value().length > 0) {
+          <app-directory-attribute-fields [attributes]="profileForm.attributes" />
+        }
+
+        @if (isEdit && profile()?.partyUuid; as partyUuid) {
+          <app-party-contacts-editor [partyUuid]="partyUuid" />
+        }
+      </div>
+
+      <div class="directory-form__column directory-form__column--access">
+        @if (isEdit) {
+          <section class="directory-form__access-summary" aria-labelledby="directory-form-access">
+            <h3 class="directory-form__eyebrow" id="directory-form-access">
+              {{ 'directory.access.title' | translate }}
+            </h3>
+            @if (profile()?.username; as username) {
+              <p>{{ 'directory.form.logsInAs' | translate: { username: username } }}</p>
+            } @else {
+              <p>
+                {{
+                  (definition.access === 'required'
+                    ? 'directory.access.reason.' + link
+                    : 'directory.form.doesNotLogIn'
+                  ) | translate
+                }}
+              </p>
+            }
+            @if (canGrantAccess) {
+              <button
+                mat-stroked-button
+                type="button"
+                class="self-start"
+                (click)="onManageAccess()"
+              >
+                {{
+                  (profile()?.username
+                    ? 'directory.form.reviewAccess'
+                    : 'directory.form.grantAccess'
+                  ) | translate
+                }}
+              </button>
+            }
+          </section>
+        } @else {
+          <app-directory-access-block
+            [access]="profileForm.access"
+            [variant]="definition.access"
+            [link]="link"
+            [suggested]="suggestedRoles()"
+            [suggestedState]="suggestedState()"
+            [roles]="roles()"
+            [canGrant]="canGrantAccess"
+            [takenUser]="takenUser()"
+            [personHasUser]="!!chosenParty()?.userUuid"
+          />
+        }
+      </div>
+
+      <!--
+        Los vínculos que piden los roles van debajo de los campos de la carpeta, en la columna de la izquierda. En una
+        sola columna quedan después del acceso: primero se eligen los roles, después aparece lo que piden.
+      -->
+      @if (!isEdit) {
+        <app-directory-extra-links
+          class="directory-form__extra-links"
+          [form]="profileForm"
+          [plan]="extraLinks()"
+          [detection]="detection()"
+          [branches]="catalogs.branches()"
+          [priceLists]="catalogs.priceLists()"
+        />
+      }
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'directory.form.cancel' | translate }}
+    </button>
+    <button mat-flat-button type="submit" [disabled]="submitBlocked()">
+      {{ submitLabelKey() | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -1,0 +1,510 @@
+<app-page-header
+  [title]="'stockTransfers.form.title' | translate"
+  [description]="'stockTransfers.form.description' | translate"
+  [showBack]="true"
+  [backLabel]="'stockTransfers.form.back' | translate"
+  (back)="onBack()"
+/>
+
+<!-- ─────────────────────────────  Origen y destino  ───────────────────────────── -->
+
+<section class="card" aria-labelledby="transfer-route-title">
+  <h2 id="transfer-route-title" class="card__title">
+    <mat-icon class="card__title-icon" aria-hidden="true">swap_horiz</mat-icon>
+    {{ 'stockTransfers.form.route.title' | translate }}
+  </h2>
+
+  <div class="route">
+    <div class="route__side">
+      <p class="route__label">{{ 'stockTransfers.form.route.from' | translate }}</p>
+
+      <!--
+        La sucursal de origen no se elige: un traslado sale siempre de la sucursal en la que se
+        está operando, y el backend rechaza un depósito de otra. Va deshabilitada y no oculta para
+        que se lea de dónde sale.
+      -->
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'stockTransfers.form.route.branch' | translate }}</mat-label>
+        <input matInput type="text" disabled [value]="activeBranch()?.name ?? ''" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'stockTransfers.form.route.warehouse' | translate }}</mat-label>
+        <mat-select
+          [value]="draft.sourceWarehouse()?.uuid ?? null"
+          (valueChange)="onSourceWarehouseChange($event)"
+        >
+          @for (warehouse of sourceWarehouses(); track warehouse.uuid) {
+            <mat-option [value]="warehouse.uuid">{{ warehouse.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <mat-icon class="route__arrow" aria-hidden="true">arrow_forward</mat-icon>
+
+    <div class="route__side">
+      <p class="route__label">{{ 'stockTransfers.form.route.to' | translate }}</p>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'stockTransfers.form.route.branch' | translate }}</mat-label>
+        <mat-select
+          [value]="draft.targetBranchUuid()"
+          [disabled]="!crossBranchAvailable()"
+          (valueChange)="onTargetBranchChange($event)"
+        >
+          @for (branch of targetBranches(); track branch.uuid) {
+            <mat-option [value]="branch.uuid">{{ branch.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>{{ 'stockTransfers.form.route.warehouse' | translate }}</mat-label>
+        <mat-select
+          [value]="draft.targetWarehouse()?.uuid ?? null"
+          (valueChange)="onTargetWarehouseChange($event)"
+        >
+          @for (warehouse of targetWarehouses(); track warehouse.uuid) {
+            <mat-option [value]="warehouse.uuid">{{ warehouse.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <p class="card__hint">
+    <mat-icon class="card__hint-icon" aria-hidden="true">info</mat-icon>
+    <span>
+      {{
+        (crossBranchAvailable()
+          ? 'stockTransfers.form.route.hint'
+          : 'stockTransfers.form.route.hintSameBranchOnly'
+        ) | translate
+      }}
+    </span>
+  </p>
+
+  <!-- ─────────────────────────────  Modalidad  ───────────────────────────── -->
+
+  <fieldset class="modes">
+    <legend class="modes__legend">{{ 'stockTransfers.form.mode.title' | translate }}</legend>
+
+    <div class="modes__options">
+      <button
+        type="button"
+        class="mode"
+        [attr.aria-pressed]="draft.mode() === 'DEFERRED'"
+        (click)="onModeChange('DEFERRED')"
+      >
+        <mat-icon class="mode__radio" aria-hidden="true">
+          {{ draft.mode() === 'DEFERRED' ? 'radio_button_checked' : 'radio_button_unchecked' }}
+        </mat-icon>
+        <span class="mode__text">
+          <span class="mode__name">{{ 'stockTransfers.modes.DEFERRED' | translate }}</span>
+          <span class="mode__hint">{{ 'stockTransfers.modes.deferredHint' | translate }}</span>
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="mode"
+        [attr.aria-pressed]="draft.mode() === 'IMMEDIATE'"
+        (click)="onModeChange('IMMEDIATE')"
+      >
+        <mat-icon class="mode__radio" aria-hidden="true">
+          {{ draft.mode() === 'IMMEDIATE' ? 'radio_button_checked' : 'radio_button_unchecked' }}
+        </mat-icon>
+        <span class="mode__text">
+          <span class="mode__name">{{ 'stockTransfers.modes.IMMEDIATE' | translate }}</span>
+          <span class="mode__hint">{{ 'stockTransfers.modes.immediateHint' | translate }}</span>
+        </span>
+      </button>
+    </div>
+  </fieldset>
+</section>
+
+<!-- ─────────────────────────────  Productos  ───────────────────────────── -->
+
+<section class="card" aria-labelledby="transfer-lines-title">
+  <div class="card__header">
+    <h2 id="transfer-lines-title" class="card__title">
+      <mat-icon class="card__title-icon" aria-hidden="true">list_alt</mat-icon>
+      {{ 'stockTransfers.form.lines.title' | translate }}
+    </h2>
+
+    <mat-form-field appearance="outline" class="lines__search" subscriptSizing="dynamic">
+      <mat-label>{{ 'stockTransfers.form.lines.add' | translate }}</mat-label>
+      <mat-icon matPrefix aria-hidden="true">search</mat-icon>
+      <input
+        matInput
+        type="search"
+        autocomplete="off"
+        [placeholder]="'stockTransfers.form.lines.addPlaceholder' | translate"
+        [value]="productQuery()"
+        (input)="productQuery.set($any($event.target).value)"
+        (keydown.enter)="onAddProduct()"
+      />
+      <button
+        matSuffix
+        mat-icon-button
+        type="button"
+        [attr.aria-label]="'stockTransfers.form.lines.add' | translate"
+        (click)="onAddProduct()"
+      >
+        <mat-icon aria-hidden="true">add</mat-icon>
+      </button>
+      <mat-hint>{{ 'stockTransfers.form.lines.addHint' | translate }}</mat-hint>
+    </mat-form-field>
+  </div>
+
+  @if (draft.isEmpty()) {
+    <p class="lines__empty">{{ 'stockTransfers.form.lines.empty' | translate }}</p>
+  } @else {
+    <div class="lines__scroll">
+      <table
+        class="lines__table"
+        [attr.aria-label]="'stockTransfers.form.lines.tableAria' | translate"
+      >
+        <thead>
+          <tr>
+            <th scope="col">{{ 'stockTransfers.form.lines.columns.product' | translate }}</th>
+            <th scope="col" class="lines__num">
+              {{ 'stockTransfers.form.lines.columns.quantity' | translate }}
+            </th>
+            <th scope="col">{{ 'stockTransfers.form.lines.columns.lots' | translate }}</th>
+            <th scope="col">
+              <span class="sr-only">
+                {{ 'stockTransfers.form.lines.columns.actions' | translate }}
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of lineViews(); track line.product.uuid) {
+            <tr>
+              <td>
+                <span class="lines__product">{{ line.product.name }}</span>
+                <span class="lines__meta">
+                  @if (line.product.sku) {
+                    <span>{{ 'stockTransfers.form.lines.sku' | translate }} {{ line.product.sku }}</span>
+                  }
+                  <!--
+                    El saldo que importa es el del depósito de origen, no el de la sucursal: un
+                    producto con 200 en la sucursal puede tener 6 en el depósito del que sale.
+                  -->
+                  @if (line.availableAtSource !== null) {
+                    <span [class.lines__meta--short]="line.shortage > 0">
+                      @if (line.shortage > 0) {
+                        <mat-icon class="lines__meta-icon" aria-hidden="true">error_outline</mat-icon>
+                      }
+                      {{
+                        'stockTransfers.form.lines.available'
+                          | translate
+                            : {
+                                quantity: line.availableAtSource,
+                                warehouse: draft.sourceWarehouse()?.name ?? '',
+                              }
+                      }}
+                      @if (line.shortage > 0) {
+                        · {{ 'stockTransfers.form.lines.missing' | translate: { count: line.shortage } }}
+                      }
+                    </span>
+                  }
+                </span>
+              </td>
+
+              <td class="lines__num">
+                <!--
+                  Con series la cantidad no se escribe: es cuántas unidades se eligieron (RN-17).
+                  Se muestra igual, porque es el número que el operador está tratando de alcanzar.
+                -->
+                @if (line.serialTracked) {
+                  <span class="lines__serial-count">{{ line.quantity }}</span>
+                } @else {
+                  <div class="lines__stepper">
+                    <button
+                      mat-icon-button
+                      type="button"
+                      [disabled]="line.quantity <= 1"
+                      [attr.aria-label]="'stockTransfers.form.lines.decrease' | translate"
+                      (click)="onStepQuantity(line, -1)"
+                    >
+                      <mat-icon aria-hidden="true">remove</mat-icon>
+                    </button>
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <!--
+                        Con un empaque elegido el input habla en cajas y no en unidades: es lo unico
+                        que cambia: lo que viaja sigue siendo la cantidad en unidad base (RN-16).
+                      -->
+                      @if (line.packaging) {
+                        <input
+                          matInput
+                          type="number"
+                          min="0"
+                          inputmode="decimal"
+                          autocomplete="off"
+                          [value]="line.packageQuantity"
+                          (change)="
+                            onPackageQuantityChange(line.product.uuid, $any($event.target).value)
+                          "
+                          [attr.aria-label]="
+                            'stockTransfers.form.lines.packageQuantityAria'
+                              | translate
+                                : { product: line.product.name, packaging: line.packaging.name }
+                          "
+                        />
+                      } @else {
+                        <input
+                          matInput
+                          type="number"
+                          min="0"
+                          inputmode="decimal"
+                          autocomplete="off"
+                          [value]="line.quantity"
+                          (change)="onQuantityChange(line.product.uuid, $any($event.target).value)"
+                          [attr.aria-label]="
+                            'stockTransfers.form.lines.quantityAria'
+                              | translate: { product: line.product.name }
+                          "
+                        />
+                      }
+                    </mat-form-field>
+                    <button
+                      mat-icon-button
+                      type="button"
+                      [attr.aria-label]="'stockTransfers.form.lines.increase' | translate"
+                      (click)="onStepQuantity(line, 1)"
+                    >
+                      <mat-icon aria-hidden="true">add</mat-icon>
+                    </button>
+                  </div>
+
+                  <!--
+                    El selector solo aparece si el producto declaro empaques. Uno vacio diria que no
+                    tiene cuando lo que pasa es que la lectura todavia no llego.
+                  -->
+                  @if (line.packagings.length > 0) {
+                    <mat-form-field
+                      appearance="outline"
+                      subscriptSizing="dynamic"
+                      class="lines__packaging"
+                    >
+                      <mat-select
+                        [value]="line.packaging?.uuid ?? null"
+                        (selectionChange)="
+                          onPackagingChange(
+                            line.product.uuid,
+                            packagingOf(line, $any($event).value)
+                          )
+                        "
+                        [attr.aria-label]="
+                          'stockTransfers.form.lines.packagingAria'
+                            | translate: { product: line.product.name }
+                        "
+                      >
+                        <mat-option [value]="null">
+                          {{ 'stockTransfers.form.lines.baseUnit' | translate }}
+                        </mat-option>
+                        @for (option of line.packagings; track option.uuid) {
+                          <mat-option [value]="option.uuid">{{ option.name }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+
+                    @if (line.packaging) {
+                      <span class="lines__packaging-hint">
+                        {{
+                          'stockTransfers.form.lines.baseEquivalence'
+                            | translate: { quantity: line.quantity }
+                        }}
+                      </span>
+                    }
+                  }
+                }
+              </td>
+
+              <!--
+                Sin reparto manual la línea no dice "sin lotes": dice que decide la política de la
+                sucursal, que es lo que va a pasar. El botón cambia esa decisión, no la crea.
+              -->
+              <td>
+                <!--
+                  Elegir la serie **es** elegir el lote, así que la línea con series no ofrece el
+                  reparto por partida: serían dos respuestas para la misma pregunta.
+                -->
+                @if (line.serialTracked) {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="lines__lots"
+                    [class.lines__lots--missing]="line.missingSerials"
+                    [disabled]="!draft.sourceWarehouse()"
+                    (click)="onPickSerials(line)"
+                  >
+                    <mat-icon aria-hidden="true">qr_code_scanner</mat-icon>
+                    {{
+                      line.missingSerials
+                        ? ('stockTransfers.form.lines.serialsPick' | translate)
+                        : ('stockTransfers.form.lines.serialsChosen'
+                          | translate: { count: line.serials.length })
+                    }}
+                  </button>
+                  @if (line.serials.length > 0) {
+                    <span class="lines__serials">{{ line.serials.join(' · ') }}</span>
+                  }
+                } @else if (line.lots.length === 0) {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="lines__lots"
+                    [disabled]="!draft.sourceWarehouse()"
+                    [matTooltip]="'stockTransfers.form.lines.lotsAutoHint' | translate"
+                    (click)="onEditLots(line)"
+                  >
+                    <mat-icon aria-hidden="true">layers</mat-icon>
+                    {{ 'stockTransfers.form.lines.lotsAuto' | translate }}
+                  </button>
+                } @else {
+                  <div class="lines__lots-manual">
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      class="lines__lots"
+                      (click)="onEditLots(line)"
+                    >
+                      <mat-icon aria-hidden="true">edit</mat-icon>
+                      {{
+                        'stockTransfers.form.lines.lotsManual'
+                          | translate: { count: line.lots.length }
+                      }}
+                    </button>
+                    <button
+                      mat-icon-button
+                      type="button"
+                      [matTooltip]="'stockTransfers.form.lines.lotsReset' | translate"
+                      [attr.aria-label]="'stockTransfers.form.lines.lotsReset' | translate"
+                      (click)="onClearLots(line.product.uuid)"
+                    >
+                      <mat-icon aria-hidden="true">restart_alt</mat-icon>
+                    </button>
+                  </div>
+                  @if (!line.lotsBalanced) {
+                    <span class="lines__lots-error">
+                      {{ 'stockTransfers.form.lines.lotsUnbalanced' | translate }}
+                    </span>
+                  }
+                }
+              </td>
+
+              <td class="lines__actions">
+                <button
+                  mat-icon-button
+                  type="button"
+                  [matTooltip]="'stockTransfers.form.lines.remove' | translate"
+                  [attr.aria-label]="'stockTransfers.form.lines.remove' | translate"
+                  (click)="onRemove(line.product.uuid)"
+                >
+                  <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="lines__summary">
+      <span>
+        {{
+          'stockTransfers.form.lines.summary'
+            | translate
+              : {
+                  products: draft.productCount(),
+                  units: draft.totalQuantity(),
+                  lots: draft.totalLots(),
+                }
+        }}
+      </span>
+      <p class="card__hint">
+        <mat-icon class="card__hint-icon" aria-hidden="true">info</mat-icon>
+        <span>{{ 'stockTransfers.form.lines.note' | translate }}</span>
+      </p>
+    </div>
+  }
+</section>
+
+<!--
+  El faltante se avisa pero no bloquea: quien decide si se puede despachar en negativo es la
+  política de stock de la sucursal, y su respuesta llega como un 412 al apretar el botón.
+-->
+@if (shortages().length > 0) {
+  <div class="warn" role="status">
+    <mat-icon class="warn__icon" aria-hidden="true">error_outline</mat-icon>
+    <div class="warn__text">
+      @for (line of shortages(); track line.product.uuid) {
+        <p class="warn__line">
+          <strong>{{ line.product.name }}:</strong>
+          {{
+            'stockTransfers.form.shortageLine'
+              | translate
+                : {
+                    warehouse: draft.sourceWarehouse()?.name ?? '',
+                    available: line.availableAtSource ?? 0,
+                    requested: line.quantity,
+                  }
+          }}
+        </p>
+      }
+      <p class="warn__line warn__line--muted">
+        {{ 'stockTransfers.form.shortageHint' | translate }}
+      </p>
+    </div>
+  </div>
+}
+
+<!-- ─────────────────────────────  Pie de acción  ───────────────────────────── -->
+
+<div class="actions">
+  <button mat-stroked-button type="button" (click)="onBack()">
+    <mat-icon aria-hidden="true">close</mat-icon>
+    {{ 'stockTransfers.form.discard' | translate }}
+  </button>
+
+  <p class="actions__promise">
+    <mat-icon class="actions__promise-icon" aria-hidden="true">info</mat-icon>
+    <span>
+      {{
+        (draft.mode() === 'IMMEDIATE'
+          ? 'stockTransfers.form.promiseImmediate'
+          : 'stockTransfers.form.promiseDeferred'
+        )
+          | translate
+            : {
+                source: draft.sourceWarehouse()?.name ?? '',
+                target: draft.targetWarehouse()?.name ?? '',
+              }
+      }}
+    </span>
+  </p>
+
+  <div class="actions__submit">
+    <p class="actions__total">
+      <span class="actions__total-label">{{ 'stockTransfers.form.toTransfer' | translate }}</span>
+      <span class="actions__total-value">
+        {{ 'stockTransfers.units' | translate: { count: draft.totalQuantity() } }}
+      </span>
+    </p>
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      [disabled]="!canDispatch || !draft.isReadyToDispatch() || dispatching()"
+      [matTooltip]="canDispatch ? '' : ('stockTransfers.form.noPermission' | translate)"
+      (click)="onDispatch()"
+    >
+      <mat-icon aria-hidden="true">swap_horiz</mat-icon>
+      {{ 'stockTransfers.form.dispatch' | translate }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,54 @@
+:host {
+  display: block;
+}
+
+/* Propuesta B: título de 26px, descripción a 6px y acciones abajo a la derecha. */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.page-header__lead {
+  display: flex;
+  flex: 1 1 20rem;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.page-header__text {
+  min-width: 0;
+}
+
+.page-header__title {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--vk-fg);
+  text-wrap: balance;
+}
+
+.page-header__desc {
+  max-width: 44rem;
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--vk-fg-2);
+}
+
+.page-header__back {
+  margin-block-start: -2px;
+}
+
+.page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}

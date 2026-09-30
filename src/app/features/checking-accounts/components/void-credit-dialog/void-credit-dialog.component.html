@@ -1,0 +1,134 @@
+<h2 mat-dialog-title class="void__title">
+  {{ 'checkingAccounts.voidDialog.title' | translate }}
+  <!--
+    El badge no es decoración: es lo que separa anular de desimputar antes de leer una línea. Las
+    dos palabras existen porque las consecuencias no se parecen.
+  -->
+  <span class="void__badge">{{ 'checkingAccounts.voidDialog.badge' | translate }}</span>
+</h2>
+
+<mat-dialog-content>
+  <p class="void__lead">
+    {{ 'checkingAccounts.voidDialog.message' | translate: { publicId: data.publicId ?? '' } }}
+  </p>
+
+  @if (preview(); as preview) {
+    <section
+      class="void__preview"
+      [attr.aria-label]="'checkingAccounts.voidDialog.previewAria' | translate"
+    >
+      <div class="void__row">
+        <span class="void__label">{{ 'checkingAccounts.voidDialog.amount' | translate }}</span>
+        <app-currency-display [value]="preview.amount" />
+      </div>
+
+      <!--
+        La caja sólo se nombra cuando hay plata que devolver: un cobro por transferencia no mueve
+        el cajón, y avisar de una caja que no se toca es un aviso falso.
+      -->
+      @if (touchesCash()) {
+        <div class="void__row">
+          <span class="void__label">{{ 'checkingAccounts.voidDialog.cashAmount' | translate }}</span>
+          <app-currency-display [value]="preview.cashAmount" />
+        </div>
+      }
+
+      <div class="void__row">
+        <span class="void__label">{{ 'checkingAccounts.columns.balance' | translate }}</span>
+        <span class="void__change">
+          <app-currency-display [value]="preview.balance" />
+          <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+          <app-currency-display [value]="preview.balanceAfter" tone="negative" />
+        </span>
+      </div>
+
+      <!--
+        El corazón del diálogo: qué deudas vuelven a quedar impagas. «Se revierten 2 imputaciones»
+        no le dice nada a nadie; esto sí.
+      -->
+      @if (hasLines()) {
+        <p class="void__label">{{ 'checkingAccounts.voidDialog.debtsBack' | translate }}</p>
+        <ul class="void__debts">
+          @for (line of preview.lines; track line.debtUuid) {
+            <li class="void__debt">
+              <span class="void__debt-name">{{ line.debtPublicId ?? line.debtDescription }}</span>
+              <span class="void__change">
+                <app-currency-display [value]="line.pendingAmount" />
+                <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+                <app-currency-display [value]="line.pendingAmountAfter" />
+                <app-debt-state-chip [state]="line.stateAfter" />
+              </span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="void__note">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          {{ 'checkingAccounts.voidDialog.noDebts' | translate }}
+        </p>
+      }
+
+      @if (touchesCash()) {
+        <p class="void__note">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          {{ 'checkingAccounts.voidDialog.cashNote' | translate }}
+        </p>
+      }
+    </section>
+  } @else if (loading()) {
+    <p class="void__note">{{ 'checkingAccounts.detail.loading' | translate }}</p>
+  }
+
+  <!--
+    Sin sesión abierta la anulación no arranca, y no es un error de formulario: no hay nada que
+    corregir acá, hay que abrir la caja. Por eso el bloque explica el porqué y no sólo el qué.
+  -->
+  @if (missingCashSession()) {
+    <div class="void__blocked" role="alert">
+      <mat-icon aria-hidden="true">point_of_sale</mat-icon>
+      <div>
+        <p class="void__blocked-title">
+          {{ 'checkingAccounts.voidDialog.noSessionTitle' | translate }}
+        </p>
+        <p class="void__blocked-why">
+          {{ 'checkingAccounts.voidDialog.noSessionWhy' | translate }}
+        </p>
+        <p class="void__blocked-how">
+          {{ 'checkingAccounts.voidDialog.noSessionHow' | translate }}
+        </p>
+      </div>
+    </div>
+  } @else if (touchesCash() && cashRegister(); as register) {
+    <p class="void__session">
+      <mat-icon aria-hidden="true">check_circle</mat-icon>
+      {{ 'checkingAccounts.voidDialog.sessionOpen' | translate: { register: register.name } }}
+    </p>
+  }
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'checkingAccounts.reasonDialog.reason' | translate }}</mat-label>
+    <textarea
+      matInput
+      rows="2"
+      name="reason"
+      [ngModel]="reason()"
+      (ngModelChange)="reason.set($event)"
+    ></textarea>
+    <mat-hint>{{ 'checkingAccounts.reasonDialog.hint' | translate }}</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">
+    {{ 'checkingAccounts.actions.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    color="warn"
+    type="button"
+    [disabled]="!canSubmit()"
+    (click)="onConfirm()"
+  >
+    {{ 'checkingAccounts.voidDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

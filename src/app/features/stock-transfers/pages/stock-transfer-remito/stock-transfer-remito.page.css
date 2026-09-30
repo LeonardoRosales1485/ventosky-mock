@@ -1,0 +1,231 @@
+:host {
+  display: block;
+}
+
+/* ─────────────────────────────  Barra de pantalla  ───────────────────────────── */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.toolbar__identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.toolbar__title {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.toolbar__lead {
+  margin: 0.25rem 0 0;
+  max-width: 44rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/* ─────────────────────────────  La hoja  ───────────────────────────── */
+
+/*
+  Blanco fijo, también en tema oscuro: es una hoja de papel. Un remito que se imprime desde el
+  tema oscuro tiene que salir igual que uno impreso desde el claro.
+*/
+.sheet {
+  max-width: 52rem;
+  padding: 2rem;
+  margin: 0 auto;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #1a1a1a;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.sheet__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #1a1a1a;
+}
+
+.sheet__company {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.sheet__company-meta {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  color: #555;
+}
+
+.sheet__doc {
+  text-align: end;
+}
+
+.sheet__doc-kind {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sheet__doc-number {
+  margin: 0.125rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet__doc-date {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  color: #555;
+}
+
+.sheet__parties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #ccc;
+}
+
+.sheet__party {
+  flex: 1 1 16rem;
+}
+
+.sheet__party-label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #555;
+}
+
+.sheet__party-name {
+  margin: 0.125rem 0 0;
+  font-weight: 600;
+}
+
+.sheet__party-meta {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  color: #555;
+}
+
+.sheet__table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+}
+
+.sheet__table th,
+.sheet__table td {
+  padding: 0.375rem 0.5rem;
+  text-align: start;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.sheet__table thead th {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.sheet__table tfoot td {
+  font-weight: 700;
+  border-top: 1px solid #1a1a1a;
+  border-bottom: none;
+}
+
+.sheet__num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+  Las series bajo el nombre del producto, en un renglón propio: la columna es la del producto y el
+  papel es angosto, así que se dejan cortar en varias líneas antes que ensanchar la tabla.
+*/
+/* La unidad acompaña al número sin competirle: se lee «2,5 kg», no «2,5 KG». */
+.sheet__unit {
+  margin-inline-start: 0.125rem;
+  font-size: 0.6875rem;
+  color: #555;
+}
+
+.sheet__serials {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.6875rem;
+  color: #555;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet__disclaimer {
+  margin: 1rem 0 0;
+  font-size: 0.6875rem;
+  color: #555;
+}
+
+.sheet__signatures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.sheet__signature {
+  flex: 1 1 14rem;
+  padding-top: 0.375rem;
+  border-top: 1px solid #1a1a1a;
+}
+
+.sheet__signature p {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: #555;
+}
+
+/* ─────────────────────────────  Impresión  ───────────────────────────── */
+
+/*
+  En papel sólo va la hoja. `position: fixed` la saca del layout del panel —sidebar, topbar,
+  breadcrumb— sin tener que llegar hasta él desde acá con selectores globales.
+*/
+@media print {
+  .noprint {
+    display: none !important;
+  }
+
+  .sheet {
+    position: fixed;
+    inset: 0;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+}

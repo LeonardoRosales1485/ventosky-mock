@@ -1,0 +1,162 @@
+<app-load-state
+  [state]="loadState()"
+  [loadingMessage]="'stockTransfers.remito.loading' | translate"
+  [errorMessage]="'stockTransfers.remito.loadError' | translate"
+  [retryable]="true"
+  [retryLabel]="'stockTransfers.actions.retry' | translate"
+  (retry)="onRetry()"
+  minHeight="20rem"
+>
+  @if (transfer(); as transfer) {
+    <!-- La cabecera de pantalla no se imprime: en el papel sólo va el remito. -->
+    <section class="toolbar noprint">
+      <div class="toolbar__identity">
+        <button
+          mat-icon-button
+          type="button"
+          [matTooltip]="'stockTransfers.remito.back' | translate"
+          [attr.aria-label]="'stockTransfers.remito.back' | translate"
+          (click)="onBack()"
+        >
+          <mat-icon aria-hidden="true">arrow_back</mat-icon>
+        </button>
+        <div>
+          <h1 class="toolbar__title">{{ 'stockTransfers.remito.title' | translate }}</h1>
+          <p class="toolbar__lead">{{ 'stockTransfers.remito.lead' | translate }}</p>
+        </div>
+      </div>
+
+      <button mat-flat-button color="primary" type="button" (click)="onPrint()">
+        <mat-icon aria-hidden="true">print</mat-icon>
+        {{ 'stockTransfers.remito.print' | translate }}
+      </button>
+    </section>
+
+    <article class="sheet">
+      <header class="sheet__header">
+        <div>
+          <p class="sheet__company">{{ transfer.companyName || '—' }}</p>
+          @if (transfer.companyCuit) {
+            <p class="sheet__company-meta">
+              {{ 'stockTransfers.remito.cuit' | translate }} {{ transfer.companyCuit }}
+            </p>
+          }
+        </div>
+
+        <div class="sheet__doc">
+          <p class="sheet__doc-kind">{{ 'stockTransfers.remito.docKind' | translate }}</p>
+          <p class="sheet__doc-number">{{ transfer.publicId || '—' }}</p>
+          <p class="sheet__doc-date">{{ transfer.dateCreated | localizedDate: 'short' }}</p>
+        </div>
+      </header>
+
+      <div class="sheet__parties">
+        <div class="sheet__party">
+          <p class="sheet__party-label">{{ 'stockTransfers.remito.from' | translate }}</p>
+          <p class="sheet__party-name">
+            {{ transfer.sourceBranch?.name || '—' }} · {{ transfer.fromWarehouse?.name || '—' }}
+          </p>
+          @if (transfer.sourceBranchAddress) {
+            <p class="sheet__party-meta">{{ transfer.sourceBranchAddress }}</p>
+          }
+          <p class="sheet__party-meta">
+            {{ 'stockTransfers.remito.dispatchedBy' | translate }}
+            {{ transfer.dispatchedByUser?.name || '—' }}
+          </p>
+        </div>
+
+        <div class="sheet__party">
+          <p class="sheet__party-label">{{ 'stockTransfers.remito.to' | translate }}</p>
+          <p class="sheet__party-name">
+            {{ transfer.targetBranch?.name || '—' }} · {{ transfer.toWarehouse?.name || '—' }}
+          </p>
+          @if (transfer.targetBranchAddress) {
+            <p class="sheet__party-meta">{{ transfer.targetBranchAddress }}</p>
+          }
+          <!--
+            Quien recibe se escribe a mano al entregar: el remito se firma en destino, y en el
+            momento de imprimirlo todavía no se sabe quién va a estar del otro lado.
+          -->
+          <p class="sheet__party-meta">
+            {{ 'stockTransfers.remito.receivedBy' | translate }}
+            {{ transfer.receivedByUser?.name || '________________________' }}
+          </p>
+        </div>
+      </div>
+
+      <table class="sheet__table">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'stockTransfers.remito.columns.product' | translate }}</th>
+            <th scope="col">{{ 'stockTransfers.remito.columns.sku' | translate }}</th>
+            <!--
+              En el papel el ancho es fijo: dos columnas de guiones se lo sacan al nombre del
+              producto y a las series, que es lo que quien recibe coteja contra las cajas.
+            -->
+            @if (showBatch()) {
+              <th scope="col">{{ 'stockTransfers.remito.columns.batch' | translate }}</th>
+            }
+            @if (showExpiration()) {
+              <th scope="col">{{ 'stockTransfers.remito.columns.expiration' | translate }}</th>
+            }
+            <th scope="col" class="sheet__num">
+              {{ 'stockTransfers.remito.columns.quantity' | translate }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of transfer.lines ?? []; track line.uuid) {
+            <tr>
+              <td>
+                {{ line.product?.name || '—' }}
+                <!--
+                  Las series van en el papel y no sólo en la pantalla: es el dato que el depósito
+                  de destino coteja contra las cajas antes de firmar. En un traslado de electro es
+                  la única forma de que «faltó una» sea una diferencia demostrable.
+                -->
+                @if (line.serials?.length) {
+                  <span class="sheet__serials">
+                    {{ 'stockTransfers.remito.serials' | translate }}
+                    {{ line.serials?.join(' · ') }}
+                  </span>
+                }
+              </td>
+              <td>{{ line.productSku || '—' }}</td>
+              @if (showBatch()) {
+                <td>{{ line.batchNumber || '—' }}</td>
+              }
+              @if (showExpiration()) {
+                <td>{{ (line.expirationDate | localizedDate: 'shortDate') || '—' }}</td>
+              }
+              <td class="sheet__num">
+                {{ line.quantity ?? 0 }}
+                @if (unitOf(line); as unit) {
+                  <span class="sheet__unit">{{ unit }}</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td [attr.colspan]="footerColspan()">
+              {{ 'stockTransfers.remito.total' | translate }}
+            </td>
+            <td class="sheet__num">{{ totalQuantity() }}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <p class="sheet__disclaimer">{{ 'stockTransfers.remito.disclaimer' | translate }}</p>
+
+      <div class="sheet__signatures">
+        <div class="sheet__signature">
+          <p>{{ 'stockTransfers.remito.signDispatch' | translate }}</p>
+        </div>
+        <div class="sheet__signature">
+          <p>{{ 'stockTransfers.remito.signReceive' | translate }}</p>
+        </div>
+      </div>
+    </article>
+  }
+</app-load-state>

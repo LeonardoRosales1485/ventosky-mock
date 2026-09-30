@@ -1,0 +1,108 @@
+<h2 mat-dialog-title class="variant-title">
+  {{ data.modelName }}
+  <span class="variant-subtitle">{{ 'variantPicker.subtitle' | translate }}</span>
+</h2>
+
+<mat-dialog-content class="variant-content">
+  <!-- Chips por eje: elegir el talle y el color es la tarea, y son dos gestos, no un desplegable. -->
+  @for (axis of axes(); track axis.uuid) {
+    <section class="variant-axis">
+      <h3 class="variant-axis__label">{{ axis.name }}</h3>
+      <div class="chip-set" role="group" [attr.aria-label]="axis.name">
+        @for (value of axis.values; track value.uuid) {
+          <button
+            type="button"
+            class="variant-chip"
+            [class.variant-chip--on]="isChosen(axis.uuid, value.uuid)"
+            [class.variant-chip--off]="!isAvailable(axis.uuid, value.uuid)"
+            [disabled]="!isAvailable(axis.uuid, value.uuid)"
+            [attr.aria-pressed]="isChosen(axis.uuid, value.uuid)"
+            (click)="onChoose(axis.uuid, value.uuid)"
+          >
+            @if (value.code?.startsWith('#')) {
+              <span class="variant-swatch" [style.background]="value.code" aria-hidden="true"></span>
+            }
+            {{ value.value }}
+          </button>
+        }
+      </div>
+    </section>
+  }
+
+  <!--
+    La grilla de stock por combinación: de un vistazo se ve si conviene ofrecer otro color en vez
+    de perder la venta. Las agotadas y las que no existen quedan apagadas.
+  -->
+  @if (grid().rows.length > 0) {
+    <table class="stock-grid" [attr.aria-label]="'variantPicker.stockAria' | translate">
+      <thead>
+        <tr>
+          <th scope="col">{{ 'variantPicker.stock' | translate }}</th>
+          @for (column of grid().columns; track column.uuid) {
+            <th scope="col" class="num">{{ column.value }}</th>
+          }
+          @if (grid().columns.length === 0) {
+            <th scope="col" class="num">{{ 'variantPicker.stock' | translate }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of grid().rows; track row.uuid) {
+          <tr>
+            <th scope="row">{{ row.value }}</th>
+            @if (grid().columns.length === 0) {
+              <td class="num" [class.cell-current]="isCurrentCell(row, undefined)">
+                {{ stockOf(row, undefined) ?? '—' }}
+              </td>
+            } @else {
+              @for (column of grid().columns; track column.uuid) {
+                @let stock = stockOf(row, column);
+                <td
+                  class="num"
+                  [class.cell-empty]="stock === null || stock === 0"
+                  [class.cell-current]="isCurrentCell(row, column)"
+                >
+                  {{ stock ?? '—' }}
+                </td>
+              }
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions class="variant-actions">
+  <div class="variant-summary">
+    @if (selected()) {
+      <span class="variant-summary__label">{{ selectedLabel() }}</span>
+      @if (selected()?.sku) {
+        <span class="variant-summary__sku">· {{ selected()?.sku }}</span>
+      }
+      <span class="variant-summary__stock">
+        · {{ 'variantPicker.inStock' | translate: { count: selected()?.totalStock ?? 0 } }}
+      </span>
+    } @else {
+      <span class="variant-summary__hint">{{ 'variantPicker.pickHint' | translate }}</span>
+    }
+  </div>
+
+  <button mat-button type="button" (click)="onClose()">
+    {{ 'variantPicker.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    type="button"
+    color="primary"
+    [disabled]="!selected()"
+    (click)="onAdd()"
+  >
+    {{ 'variantPicker.add' | translate }}
+  </button>
+</mat-dialog-actions>
+
+<p class="variant-scan-hint">
+  <mat-icon aria-hidden="true" class="hint-icon">barcode_reader</mat-icon>
+  <span>{{ 'variantPicker.scanHint' | translate }}</span>
+</p>

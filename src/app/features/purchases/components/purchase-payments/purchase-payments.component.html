@@ -1,0 +1,81 @@
+@if (payments().length > 0) {
+  <ul class="payments__list">
+    @for (payment of payments(); track $index) {
+      <li class="payments__item">
+        <span class="payments__item-icon"><mat-icon aria-hidden="true">{{ methodIcon(payment.paymentMethod.name) }}</mat-icon></span>
+
+        <span class="payments__item-name">{{ payment.paymentMethod.name }}</span>
+
+        <app-currency-display class="payments__item-amount" [value]="payment.amount" />
+
+        <button
+          mat-icon-button
+          type="button"
+          class="vk-row-action"
+          [disabled]="disabled()"
+          [matTooltip]="'purchases.payments.remove' | translate"
+          [attr.aria-label]="
+            'purchases.payments.removeAria' | translate: { name: payment.paymentMethod.name }
+          "
+          (click)="paymentRemove.emit($index)"
+        >
+          <mat-icon aria-hidden="true">close</mat-icon>
+        </button>
+      </li>
+    }
+  </ul>
+}
+
+<div class="payments__draft">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="payments__draft-method">
+    <mat-label>{{ 'purchases.payments.method' | translate }}</mat-label>
+    <mat-select
+      [value]="selectedMethodUuid()"
+      [disabled]="disabled() || paymentMethods().length === 0"
+      (valueChange)="selectedMethodUuid.set($event)"
+    >
+      @for (method of paymentMethods(); track method.uuid) {
+        <mat-option [value]="method.uuid">{{ method.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="payments__draft-amount">
+    <mat-label>{{ 'purchases.payments.amount' | translate }}</mat-label>
+    <span matTextPrefix>$&nbsp;</span>
+    <input
+      matInput
+      type="number"
+      min="0"
+      step="0.01"
+      autocomplete="off"
+      [value]="draftAmount()"
+      [disabled]="disabled()"
+      [attr.aria-label]="'purchases.payments.amount' | translate"
+      (input)="onAmountInput($any($event.target).value)"
+    />
+  </mat-form-field>
+
+  <button
+    mat-stroked-button
+    type="button"
+    class="payments__draft-add"
+    [disabled]="!canAdd()"
+    (click)="onAdd()"
+  >
+    <mat-icon aria-hidden="true">add</mat-icon>
+    {{ 'purchases.payments.add' | translate }}
+  </button>
+</div>
+
+<!-- La cuenta del proveedor apagada: es lo único que deshabilita el medio, y se dice por qué. -->
+@if (isAccountMethod() && accountDisabled()) {
+  <p class="payments__blocked" role="status">
+    <mat-icon aria-hidden="true">block</mat-icon>
+    {{ 'purchases.payments.accountDisabled' | translate }}
+  </p>
+}
+
+@if (paymentMethods().length === 0) {
+  <p class="payments__empty">{{ 'purchases.payments.noMethods' | translate }}</p>
+}

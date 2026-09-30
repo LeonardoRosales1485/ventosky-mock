@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+
+.serials__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.serials__title-icon {
+  flex: none;
+  color: var(--mat-sys-primary);
+}
+
+.serials__lead {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+/*
+  Columnas angostas y no una sola lista larga: cuarenta unidades en una columna obligan a scrollear
+  para contarlas, y contarlas es justamente lo que hace quien recibe.
+*/
+.serials__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.serials__item {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.25rem;
+  background: var(--mat-sys-surface-container-low);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

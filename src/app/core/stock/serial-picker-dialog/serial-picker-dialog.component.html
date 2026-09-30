@@ -1,0 +1,108 @@
+<h2 mat-dialog-title>{{ 'stock.serialPicker.title' | translate: { name: data.product.name } }}</h2>
+
+<mat-dialog-content>
+  <p class="picker__lead">
+    {{ data.lead || ('stock.serialPicker.lead' | translate) }}
+  </p>
+
+  <mat-form-field appearance="outline" class="picker__search">
+    <mat-label>{{ 'stock.serialPicker.searchLabel' | translate }}</mat-label>
+    <input
+      matInput
+      type="search"
+      cdkFocusInitial
+      autocomplete="off"
+      [value]="search()"
+      (input)="onSearchInput($event)"
+      (keydown.enter)="onSearchEnter()"
+      [attr.placeholder]="'stock.serialPicker.searchPlaceholder' | translate"
+    />
+    <mat-icon matSuffix aria-hidden="true">qr_code_scanner</mat-icon>
+  </mat-form-field>
+
+  <app-load-state
+    [state]="loadState()"
+    [loadingMessage]="'stock.serialPicker.loading' | translate"
+    [errorMessage]="'stock.serialPicker.loadError' | translate"
+    [retryable]="true"
+    [retryLabel]="'stock.serialPicker.retry' | translate"
+    minHeight="12rem"
+    (retry)="load()"
+  >
+    @if (available().length === 0) {
+      <p class="picker__empty">
+        {{
+          data.warehouse
+            ? ('stock.serialPicker.emptyInWarehouse'
+              | translate: { warehouse: data.warehouse.name })
+            : ('stock.serialPicker.empty' | translate)
+        }}
+      </p>
+    } @else if (visible().length === 0) {
+      <p class="picker__empty">{{ 'stock.serialPicker.emptySearch' | translate }}</p>
+    } @else {
+      <ul class="picker__list" [attr.aria-label]="'stock.serialPicker.listAria' | translate">
+        @for (serial of visible(); track serial.uuid) {
+          <li>
+            <!--
+              La unidad es la etiqueta de su casilla: el número y dónde está son lo que se lee al llegar a
+              ella. Envolver la casilla en otro <label> anidaba dos, porque Material ya dibuja el suyo.
+            -->
+            <mat-checkbox
+              class="picker__row"
+              [class.picker__row--selected]="isSelected(serial.serialNumber)"
+              [checked]="isSelected(serial.serialNumber)"
+              (change)="onToggle(serial.serialNumber)"
+            >
+              <span class="picker__row-body">
+                <span class="picker__row-title">{{ serial.serialNumber }}</span>
+                <span class="picker__row-meta">
+                  @if (serial.warehouse) {
+                    <span>{{ serial.warehouse.name }}</span>
+                  }
+                  @if (serial.batchNumber) {
+                    <span>{{
+                      'stock.serialPicker.batch' | translate: { batch: serial.batchNumber }
+                    }}</span>
+                  }
+                </span>
+              </span>
+            </mat-checkbox>
+          </li>
+        }
+      </ul>
+    }
+  </app-load-state>
+</mat-dialog-content>
+
+<mat-dialog-actions class="picker__actions">
+  <span class="picker__counter" role="status">
+    @if (excess() > 0) {
+      <span class="picker__counter--error">
+        {{ 'stock.serialPicker.excess' | translate: { count: excess() } }}
+      </span>
+    } @else if (remaining() > 0) {
+      <span class="picker__counter--error">
+        {{
+          (remaining() === 1
+            ? 'stock.serialPicker.remainingOne'
+            : 'stock.serialPicker.remainingMany'
+          ) | translate: { count: remaining() }
+        }}
+      </span>
+    } @else {
+      {{ 'stock.serialPicker.complete' | translate: { count: selected().length } }}
+    }
+  </span>
+  <button mat-button mat-dialog-close type="button">
+    {{ 'stock.serialPicker.cancel' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    type="button"
+    [disabled]="remaining() > 0 || excess() > 0"
+    (click)="onConfirm()"
+  >
+    {{ 'stock.serialPicker.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

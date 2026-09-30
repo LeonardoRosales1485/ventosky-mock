@@ -1,0 +1,12 @@
+@if (hasValue()) {
+  <span
+    class="currency-display"
+    [class.currency-display--positive]="resolvedTone() === 'positive'"
+    [class.currency-display--negative]="resolvedTone() === 'negative'"
+    >{{ formatted() }}</span
+  >
+} @else {
+  <span class="currency-display currency-display--empty">
+    {{ emptyLabel() ?? ('currencyDisplay.empty' | translate) }}
+  </span>
+}

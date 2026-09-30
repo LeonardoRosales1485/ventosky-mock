@@ -1,0 +1,86 @@
+<h2 mat-dialog-title>{{ 'sales.batchPicker.title' | translate: { name: data.product.name } }}</h2>
+
+<mat-dialog-content>
+  <p class="picker__lead">
+    {{ 'sales.batchPicker.lead' | translate: { quantity: data.quantity } }}
+  </p>
+
+  <app-load-state
+    [state]="loadState()"
+    [loadingMessage]="'sales.batchPicker.loading' | translate"
+    [errorMessage]="'sales.batchPicker.loadError' | translate"
+    [retryable]="true"
+    [retryLabel]="'sales.batchPicker.retry' | translate"
+    minHeight="12rem"
+    (retry)="load()"
+  >
+    <mat-radio-group
+      class="picker__list"
+      [value]="choice()"
+      (change)="onChoice($event.value)"
+      [attr.aria-label]="'sales.batchPicker.listAria' | translate"
+    >
+      <!-- La opción automática va primera: es lo que pasa si el operador no toca nada. -->
+      <!-- El `for` apunta al input que Material arma como `{id}-input`: toda la fila elige. -->
+      <label
+        class="picker__row"
+        for="batch-picker-auto-input"
+        [class.picker__row--selected]="choice() === AUTO"
+      >
+        <mat-radio-button id="batch-picker-auto" [value]="AUTO" />
+        <span class="picker__row-body">
+          <span class="picker__row-title">
+            <mat-icon aria-hidden="true">auto_mode</mat-icon>
+            {{ 'sales.batchPicker.auto' | translate }}
+          </span>
+          <span class="picker__row-meta">{{ 'sales.batchPicker.autoHint' | translate }}</span>
+        </span>
+      </label>
+
+      @for (batch of batches(); track batch.uuid) {
+        <label
+          class="picker__row"
+          [for]="'batch-picker-' + batch.uuid + '-input'"
+          [class.picker__row--selected]="choice() === batch.uuid"
+          [class.picker__row--expired]="batch.expirationStatus === 'EXPIRED'"
+        >
+          <mat-radio-button [id]="'batch-picker-' + batch.uuid" [value]="batch.uuid" />
+          <span class="picker__row-body">
+            <span class="picker__row-title">
+              <span class="picker__number">{{
+                batch.batchNumber || ('sales.cart.batch.unnamed' | translate)
+              }}</span>
+              <app-expiration-chip
+                [expirationDate]="batch.expirationDate"
+                [status]="batch.expirationStatus"
+                [days]="batch.daysToExpiration"
+              />
+            </span>
+            <span class="picker__row-meta">
+              {{ batch.warehouse.name }} ·
+              {{ 'sales.batchPicker.available' | translate: { quantity: batch.quantity } }}
+              @if (isShort(batch)) {
+                · <span class="picker__short">{{ 'sales.batchPicker.short' | translate }}</span>
+              }
+              @if (batch.expirationStatus === 'EXPIRED') {
+                ·
+                <span class="picker__short">{{ 'sales.batchPicker.expiredHint' | translate }}</span>
+              }
+            </span>
+          </span>
+        </label>
+      } @empty {
+        <p class="picker__empty">{{ 'sales.batchPicker.empty' | translate }}</p>
+      }
+    </mat-radio-group>
+  </app-load-state>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" mat-dialog-close>
+    {{ 'sales.batchPicker.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary" type="button" (click)="onApply()">
+    {{ 'sales.batchPicker.apply' | translate }}
+  </button>
+</mat-dialog-actions>

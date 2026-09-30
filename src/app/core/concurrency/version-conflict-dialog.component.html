@@ -1,0 +1,44 @@
+<h2 mat-dialog-title class="version-conflict__title">
+  <mat-icon aria-hidden="true" class="version-conflict__title-icon">sync_problem</mat-icon>
+  {{ 'versionConflict.title' | translate }}
+</h2>
+
+<mat-dialog-content>
+  @if (data.label) {
+    <p class="version-conflict__record">{{ data.label }}</p>
+  }
+
+  <p class="version-conflict__message">{{ 'versionConflict.message' | translate }}</p>
+
+  <ul class="version-conflict__options">
+    <li class="version-conflict__option">
+      <mat-icon aria-hidden="true" class="version-conflict__option-icon">refresh</mat-icon>
+      <span>{{ 'versionConflict.options.reload' | translate }}</span>
+    </li>
+    <li class="version-conflict__option version-conflict__option--warn">
+      <mat-icon aria-hidden="true" class="version-conflict__option-icon">save_as</mat-icon>
+      <span>{{ 'versionConflict.options.overwrite' | translate }}</span>
+    </li>
+  </ul>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (data.allowCancel) {
+    <!-- Arranca con el foco porque es la única salida que no destruye nada. -->
+    <button mat-button type="button" cdkFocusInitial [mat-dialog-close]="'cancel'">
+      {{ 'versionConflict.actions.cancel' | translate }}
+    </button>
+  }
+  <button mat-stroked-button color="warn" type="button" [mat-dialog-close]="'overwrite'">
+    {{ 'versionConflict.actions.overwrite' | translate }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [attr.cdkFocusInitial]="data.allowCancel ? null : ''"
+    [mat-dialog-close]="'reload'"
+  >
+    {{ 'versionConflict.actions.reload' | translate }}
+  </button>
+</mat-dialog-actions>

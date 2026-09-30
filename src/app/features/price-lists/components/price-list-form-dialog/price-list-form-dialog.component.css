@@ -1,0 +1,21 @@
+:host {
+  display: block;
+}
+
+.price-list-dialog__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.price-list-dialog__toggle-label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+}
+
+.price-list-dialog__toggle-description {
+  font-size: 0.8125rem;
+  color: var(--mat-sys-on-surface-variant);
+}

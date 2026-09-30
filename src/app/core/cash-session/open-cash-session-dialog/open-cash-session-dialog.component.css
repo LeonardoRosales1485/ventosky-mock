@@ -1,0 +1,21 @@
+.open-cash-session__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  min-width: 18rem;
+}
+
+.open-cash-session__register {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+}
+
+.open-cash-session__register mat-icon {
+  flex: none;
+  color: var(--mat-sys-on-surface-variant);
+}

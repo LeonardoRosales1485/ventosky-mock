@@ -1,0 +1,96 @@
+<h2 mat-dialog-title>{{ 'checkingAccounts.adjustDialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="adjust__intro">
+    {{ 'checkingAccounts.adjustDialog.intro' | translate: { name: data.partyName } }}
+  </p>
+
+  <mat-button-toggle-group
+    class="adjust__kind"
+    [value]="direction()"
+    (valueChange)="direction.set($event)"
+    [attr.aria-label]="'checkingAccounts.adjustDialog.kindAria' | translate"
+  >
+    <mat-button-toggle value="DEBIT">
+      <mat-icon aria-hidden="true">trending_up</mat-icon>
+      {{
+        'checkingAccounts.adjustDialog.kinds.' +
+          (data.role === 'CUSTOMER' ? 'debitCustomer' : 'debitSupplier') | translate
+      }}
+    </mat-button-toggle>
+    <mat-button-toggle value="CREDIT">
+      <mat-icon aria-hidden="true">trending_down</mat-icon>
+      {{
+        'checkingAccounts.adjustDialog.kinds.' +
+          (data.role === 'CUSTOMER' ? 'creditCustomer' : 'creditSupplier') | translate
+      }}
+    </mat-button-toggle>
+  </mat-button-toggle-group>
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'checkingAccounts.adjustDialog.amount' | translate }}</mat-label>
+    <input
+      matInput
+      type="number"
+      min="0"
+      step="0.01"
+      [value]="amount() ?? ''"
+      (input)="onAmountChange($any($event.target).value)"
+    />
+    <span matTextPrefix>$&nbsp;</span>
+  </mat-form-field>
+
+  <!--
+    El vencimiento sólo aparece en el ajuste en contra: un crédito no vence, y ofrecer la fecha
+    ahí sería prometer algo que el backend rechaza.
+  -->
+  @if (isDebit()) {
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>{{ 'checkingAccounts.adjustDialog.dueDate' | translate }}</mat-label>
+      <input
+        matInput
+        [matDatepicker]="picker"
+        [value]="dueDate()"
+        [min]="minDueDate"
+        (dateChange)="onDueDateChange($event.value)"
+      />
+      <mat-datepicker-toggle matIconSuffix [for]="picker" />
+      <mat-datepicker #picker />
+      <mat-hint>
+        {{ 'checkingAccounts.adjustDialog.dueDateHint' | translate: { days: data.dueDays } }}
+      </mat-hint>
+    </mat-form-field>
+  }
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>{{ 'checkingAccounts.reasonDialog.reason' | translate }}</mat-label>
+    <textarea
+      matInput
+      rows="3"
+      name="reason"
+      [ngModel]="reason()"
+      (ngModelChange)="reason.set($event)"
+    ></textarea>
+    <mat-hint>{{ 'checkingAccounts.reasonDialog.hint' | translate }}</mat-hint>
+  </mat-form-field>
+
+  <dl class="adjust__preview">
+    <div>
+      <dt>{{ 'checkingAccounts.adjustDialog.currentBalance' | translate }}</dt>
+      <dd><app-currency-display [value]="data.balance" /></dd>
+    </div>
+    <div>
+      <dt>{{ 'checkingAccounts.adjustDialog.projectedBalance' | translate }}</dt>
+      <dd><app-currency-display [value]="projectedBalance()" tone="auto" /></dd>
+    </div>
+  </dl>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="undefined">
+    {{ 'checkingAccounts.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary" type="button" [disabled]="!canSubmit()" (click)="onConfirm()">
+    {{ 'checkingAccounts.adjustDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,47 @@
+<h2 mat-dialog-title>{{ 'sales.quantityDialog.title' | translate: { name: data.line.product.name } }}</h2>
+
+<mat-dialog-content>
+  <!--
+    `cdkFocusInitial` y `select()` al enfocar: el diálogo se abrió con una tecla y lo que sigue es
+    tipear el número. Con el valor marcado, el primer dígito lo reemplaza en vez de agregarse
+    adelante del que ya estaba.
+  -->
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="quantity__field">
+    <mat-label>
+      @if (packagingName(); as packaging) {
+        {{ 'sales.quantityDialog.packages' | translate: { name: packaging } }}
+      } @else {
+        {{ 'sales.quantityDialog.units' | translate }}
+      }
+    </mat-label>
+
+    <input
+      matInput
+      cdkFocusInitial
+      type="number"
+      inputmode="decimal"
+      autocomplete="off"
+      class="quantity__input"
+      [attr.min]="min()"
+      [attr.step]="step()"
+      [value]="typed()"
+      (focus)="$any($event.target).select()"
+      (input)="onInput($any($event.target).value)"
+      (keydown.enter)="onConfirm()"
+    />
+
+    @if (equivalence(); as text) {
+      <mat-hint>{{ text }}</mat-hint>
+    }
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close>
+    {{ 'sales.quantityDialog.cancel' | translate }}
+  </button>
+
+  <button mat-flat-button type="button" [disabled]="!isValid()" (click)="onConfirm()">
+    {{ 'sales.quantityDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

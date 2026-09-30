@@ -1,0 +1,131 @@
+:host {
+  display: block;
+}
+
+.directory {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .directory {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+}
+
+.directory__tree {
+  padding: 0.5rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+  background: var(--mat-sys-surface-container-low);
+}
+
+@media (min-width: 960px) {
+  .directory__tree {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.directory__folder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.directory__folder-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.directory__folder-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.directory__folder-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.directory__folder-subtitle {
+  margin: 0.125rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.directory__menu-lead {
+  max-width: 16rem;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.directory__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.directory__toolbar-search {
+  flex: 1;
+  min-width: 16rem;
+}
+
+table {
+  width: 100%;
+}
+
+.directory__name {
+  font-weight: 500;
+}
+
+.directory__muted {
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+}
+
+.directory__tag {
+  margin-left: 0.5rem;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+}
+
+.directory__tag--terminated {
+  background: var(--app-warning-container);
+  color: var(--app-on-warning-container);
+}
+
+.directory__numeric-text {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.directory__numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mat-column-actions {
+  width: 1%;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+  text-align: end;
+}
+
+.actions-header,
+.actions-cell {
+  background: var(--mat-sys-surface);
+  border-left: 1px solid var(--mat-sys-outline-variant);
+}

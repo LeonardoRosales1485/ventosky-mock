@@ -1,0 +1,147 @@
+<app-page-header
+  [title]="'catalog.title' | translate"
+  [description]="'catalog.description' | translate"
+/>
+
+<app-table-wrapper
+  [loading]="paginator.loading()"
+  [loadingAriaLabel]="'catalog.loading' | translate"
+  maxHeight="32rem"
+>
+  <div tableWrapperHeader class="catalog-header">
+    <app-table-toolbar
+      [search]="searchQuery()"
+      [activeFilters]="activeFilters()"
+      [searchPlaceholder]="'catalog.searchPlaceholder' | translate"
+      (searchChange)="searchQuery.set($event)"
+      (refresh)="onRefresh()"
+      (filtersClick)="onToggleFilters()"
+      (clearFilters)="onClearFilters()"
+    />
+
+    @if (filtersOpen()) {
+      <div class="catalog-filters" [attr.aria-label]="'catalog.filtersAria' | translate">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'catalog.filters.brand' | translate }}</mat-label>
+          <mat-select
+            [value]="brandFilter()"
+            (valueChange)="onBrandChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{ 'catalog.filters.all' | translate }}</mat-option>
+            @for (brand of brands(); track brand.uuid) {
+              <mat-option [value]="brand.uuid">{{ brand.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>{{ 'catalog.filters.category' | translate }}</mat-label>
+          <mat-select
+            [value]="categoryFilter()"
+            (valueChange)="onCategoryChange($event)"
+            [disabled]="paginator.loading()"
+          >
+            <mat-option [value]="null">{{ 'catalog.filters.all' | translate }}</mat-option>
+            @for (category of categories(); track category.uuid) {
+              <mat-option [value]="category.uuid" [matTooltip]="category.path">
+                <span class="catalog-category" [style.--depth]="category.depth">{{
+                  category.name
+                }}</span>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+  </div>
+
+  <table
+    mat-table
+    matSort
+    [dataSource]="paginator.items()"
+    [matSortActive]="paginator.sortActive() ?? ''"
+    [matSortDirection]="paginator.sortDirection()"
+    (matSortChange)="onSort($event)"
+    [attr.aria-label]="'catalog.tableAria' | translate"
+  >
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'catalog.columns.name' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let product">
+        <span class="catalog-name">{{ product.name }}</span>
+        @if (product.sku) {
+          <span class="catalog-sku">{{ 'catalog.columns.sku' | translate }} {{ product.sku }}</span>
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="brand">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'catalog.columns.brand' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let product">{{ product.brand?.name || '—' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="category">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ 'catalog.columns.category' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let product">{{ product.category?.name || '—' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="unit">
+      <th mat-header-cell *matHeaderCellDef>{{ 'catalog.columns.unit' | translate }}</th>
+      <td mat-cell *matCellDef="let product">
+        @if (product.unitMeasure) {
+          {{ 'products.unitMeasures.' + product.unitMeasure | translate }}
+        } @else {
+          —
+        }
+      </td>
+    </ng-container>
+
+    <!-- Sólo para quien opera el stock: al resto el backend le manda el saldo vacío y la columna no existe. -->
+    <ng-container matColumnDef="stock">
+      <th mat-header-cell *matHeaderCellDef class="catalog-stock-header">
+        {{ 'catalog.columns.stock' | translate }}
+      </th>
+      <td mat-cell *matCellDef="let product" class="catalog-stock-cell">
+        @if (product.tracksStock === false) {
+          <span class="catalog-muted">{{ 'catalog.noStockTracking' | translate }}</span>
+        } @else if (product.totalStock !== null && product.totalStock !== undefined) {
+          {{ product.totalStock | number: '1.0-3' }}
+        } @else {
+          —
+        }
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+    <tr class="mat-row" *matNoDataRow>
+      <td
+        class="mat-cell px-4 py-8 text-center text-[var(--mat-sys-on-surface-variant)]"
+        [attr.colspan]="displayedColumns.length"
+      >
+        @if (!paginator.loading()) {
+          {{ 'catalog.empty' | translate }}
+        }
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator
+    tableWrapperFooter
+    [length]="paginator.totalCount()"
+    [pageIndex]="paginator.pageIndex()"
+    [pageSize]="paginator.pageSize()"
+    [pageSizeOptions]="pageSizeOptions"
+    [disabled]="paginator.loading()"
+    [attr.aria-label]="'catalog.paginationAria' | translate"
+    (page)="onPage($event)"
+    showFirstLastButtons
+  />
+</app-table-wrapper>

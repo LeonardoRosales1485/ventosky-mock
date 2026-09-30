@@ -1,0 +1,72 @@
+@if (loading()) {
+  <p class="account__loading">{{ 'checkingAccounts.panel.loading' | translate }}</p>
+} @else if (noAccount()) {
+  <!--
+    Panel vacío y sin cartel de error: «no puede llevar nada» y «no hay a quién preguntarle» no son
+    lo mismo. Si le vende a cuenta, la cuenta se abre en el commit.
+  -->
+  <div class="account account--empty">
+    <div class="account__header">
+      <span class="account__title">{{ 'checkingAccounts.panel.title' | translate }}</span>
+      <span class="account__none">{{ 'checkingAccounts.panel.noAccountChip' | translate }}</span>
+    </div>
+    <p class="account__none-text">{{ 'checkingAccounts.panel.noAccount' | translate }}</p>
+  </div>
+} @else if (availability(); as account) {
+  <div class="account" [class.account--disabled]="disabled()">
+    <div class="account__header">
+      <span class="account__title">{{ 'checkingAccounts.panel.title' | translate }}</span>
+      <app-delinquency-chip [level]="level()" />
+
+      @if (disabled()) {
+        <!--
+          El motivo a la vista y no sólo el medio en gris: un desplegable con una opción apagada y
+          sin explicación manda al cajero a preguntar por qué.
+        -->
+        <span class="account__blocked">
+          <mat-icon aria-hidden="true">block</mat-icon>
+          {{ 'checkingAccounts.panel.disabled' | translate }}
+        </span>
+      }
+    </div>
+
+    <dl class="account__figures">
+      <div class="account__figure">
+        <dt>{{ 'checkingAccounts.panel.balance' | translate }}</dt>
+        <dd><app-currency-display [value]="balance()" /></dd>
+      </div>
+
+      <!--
+        El vencido al lado del chip a propósito: el chip dice lo que alguien decidió y esto dice lo
+        que pasó, y que coincidan o no es justamente la información.
+      -->
+      <div class="account__figure" [class.account__figure--overdue]="overdueAmount() > 0">
+        <dt>{{ 'checkingAccounts.panel.overdue' | translate }}</dt>
+        <dd><app-currency-display [value]="overdueAmount()" /></dd>
+      </div>
+
+      <!--
+        En una compra el límite y el disponible viajan nulos —cuánto nos fía un proveedor lo decide
+        el proveedor—, así que las dos columnas desaparecen juntas: mostrar un tope que no se valida
+        es una invitación a que alguien lo implemente.
+      -->
+      @if (showsLimit()) {
+        <div class="account__figure">
+          <dt>{{ 'checkingAccounts.panel.limit' | translate }}</dt>
+          <dd><app-currency-display [value]="debtLimit()!" /></dd>
+        </div>
+
+        <div class="account__figure account__figure--available">
+          <dt>{{ 'checkingAccounts.panel.available' | translate }}</dt>
+          <dd>
+            @if (available() === null) {
+              {{ 'checkingAccounts.panel.unlimited' | translate }}
+            } @else {
+              <app-currency-display [value]="available()!" />
+            }
+          </dd>
+        </div>
+      }
+    </dl>
+  </div>
+}

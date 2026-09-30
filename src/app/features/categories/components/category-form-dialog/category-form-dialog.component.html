@@ -1,0 +1,130 @@
+<form (submit)="onSubmit($event)">
+  <h2 mat-dialog-title>
+    {{
+      (isEdit
+        ? 'categories.dialog.editTitle'
+        : parentName
+          ? 'categories.dialog.createChildTitle'
+          : 'categories.dialog.createTitle'
+      ) | translate
+    }}
+  </h2>
+
+  <mat-dialog-content>
+    <div class="flex flex-col gap-2 pt-2">
+      @if (parentName) {
+        <p class="text-sm text-[var(--mat-sys-on-surface-variant)]">
+          {{ 'categories.dialog.parentHint' | translate: { name: parentName } }}
+        </p>
+      }
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>{{ 'categories.columns.name' | translate }}</mat-label>
+        <input
+          matInput
+          type="text"
+          autocomplete="off"
+          [formField]="categoryForm.name"
+          [attr.aria-label]="'categories.columns.name' | translate"
+        />
+        @if (categoryForm.name().touched() && categoryForm.name().invalid()) {
+          <mat-error>{{ categoryForm.name().errors() | fieldError }}</mat-error>
+        }
+      </mat-form-field>
+
+      @if (!attributesUnavailable()) {
+        <section class="category-attributes" aria-labelledby="category-attributes-title">
+          <h3 class="category-attributes__title" id="category-attributes-title">
+            {{ 'categories.dialog.attributes.title' | translate }}
+          </h3>
+
+          @if (attributesLoading()) {
+            <p class="category-attributes__hint">
+              {{ 'categories.dialog.attributes.loading' | translate }}
+            </p>
+          } @else {
+            @if (categoryForm.attributes().value().length === 0) {
+              <p class="category-attributes__hint">
+                {{ 'categories.dialog.attributes.empty' | translate }}
+              </p>
+            }
+
+            @for (attributeField of categoryForm.attributes; track $index) {
+              <div class="category-attributes__row">
+                <mat-form-field appearance="outline" class="category-attributes__name">
+                  <mat-label>{{ 'categories.dialog.attributes.name' | translate }}</mat-label>
+                  <input
+                    #attributeName
+                    matInput
+                    type="text"
+                    autocomplete="off"
+                    [formField]="attributeField.name"
+                    [attr.aria-label]="
+                      'categories.dialog.attributes.nameAria' | translate: { index: $index + 1 }
+                    "
+                  />
+                  @if (attributeField.name().touched() && attributeField.name().invalid()) {
+                    <mat-error>{{ attributeField.name().errors() | fieldError }}</mat-error>
+                  }
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="category-attributes__type">
+                  <mat-label>{{ 'categories.dialog.attributes.type' | translate }}</mat-label>
+                  <mat-select
+                    [value]="attributeField.type().value()"
+                    (valueChange)="onAttributeTypeChange($index, $event)"
+                    [attr.aria-label]="
+                      'categories.dialog.attributes.typeAria' | translate: { index: $index + 1 }
+                    "
+                  >
+                    @for (type of attributeTypes; track type) {
+                      <mat-option [value]="type">
+                        {{ 'attributeValueTypes.' + type | translate }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="category-attributes__remove"
+                  (click)="onRemoveAttribute($index)"
+                  [matTooltip]="'categories.dialog.attributes.remove' | translate"
+                  [attr.aria-label]="
+                    'categories.dialog.attributes.removeAria' | translate: { index: $index + 1 }
+                  "
+                >
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            }
+
+            <button
+              mat-stroked-button
+              type="button"
+              class="category-attributes__add"
+              (click)="onAddAttribute()"
+            >
+              <mat-icon>add</mat-icon>
+              {{ 'categories.dialog.attributes.add' | translate }}
+            </button>
+
+            <p class="category-attributes__hint">
+              {{ 'categories.dialog.attributes.hint' | translate }}
+            </p>
+          }
+        </section>
+      }
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined">
+      {{ 'categories.dialog.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="attributesLoading()">
+      {{ (isEdit ? 'categories.dialog.save' : 'categories.dialog.create') | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>
